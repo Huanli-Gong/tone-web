@@ -704,14 +704,18 @@ class PerfBaselineService(CommonService):
                     case_list.extend(suite_data.get('case_list'))
             suite_id_list_str = ','.join(str(e) for e in suite_id_list)
             case_id_list_str = ','.join(str(e) for e in case_list)
-            raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ') OR ' \
-                                'a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
             if case_list and suite_id_list:
                 q &= (Q(test_suite_id__in=suite_id_list) | Q(test_case_id__in=case_list))
+                raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ') OR ' \
+                                                                                  'a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
             elif case_list:
                 q &= Q(test_suite_id__in=suite_id_list)
+                raw_sql = pre_sql + '(a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
             elif suite_id_list:
                 q &= Q(test_suite_id__in=suite_id_list)
+                raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ')) ' + end_sql
+            else:
+                return False, "请求参数错误！"
         elif suite_id_list:
             suite_id_list_str = ','.join(str(e) for e in suite_id_list)
             raw_sql = pre_sql + 'a.test_suite_id IN (' + suite_id_list_str + ') ' + end_sql
