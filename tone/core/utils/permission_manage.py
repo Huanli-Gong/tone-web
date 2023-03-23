@@ -171,6 +171,10 @@ class ValidPermission(MiddlewareMixin):
             status=401,
             data={'code': 401, 'msg': '没有权限，请联系统管理员'}
         )
+        response_403 = JsonResponse(
+            status=403,
+            data={'code': 401, 'msg': '未登录，请登录后再试'}
+        )
         if 'admin/' in current_path:
             if settings.ALLOW_ACCESS_ADMIN_URLS and settings.ADMIN_URLS_TOKEN \
                     and token == settings.ADMIN_URLS_TOKEN:
@@ -191,20 +195,20 @@ class ValidPermission(MiddlewareMixin):
         if request.user is None or request.user.id is None:
             # 游客
             if request.method == 'DELETE':
-                return response_401
+                return response_403
             if ws_id:
                 request_ws = Workspace.objects.filter(id=ws_id).first()
                 if request_ws is None:
-                    return response_401
+                    return response_403
                 if not request_ws.is_public:
-                    return response_401
+                    return response_403
                 # 游客公开权限校验
                 if not self.check_ws_permission(current_path, None, None, ws_id, current_method):
-                    return response_401
+                    return response_403
             else:
                 sys_result = self.check_sys_permission(current_path, current_method, 'user', None)
                 if sys_result == 'fail':
-                    return response_401
+                    return response_403
         else:
             role_member = RoleMember.objects.filter(user_id=request.user.id).first()
             current_role_name = 'user'
