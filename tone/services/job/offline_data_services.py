@@ -181,6 +181,7 @@ class OfflineDataUploadService(object):
             tar_file.close()
             return code, msg
         job_data = self.build_job_data(args, req_data, test_config)
+        _timestamp = int(round(time.time() * 1000000))
         with transaction.atomic():
             test_job = JobTestService().create(job_data, operator)
             if not test_job:
@@ -189,9 +190,9 @@ class OfflineDataUploadService(object):
                 tar_file.close()
                 return code, msg
             test_job_id = test_job.id
-
             code, msg, start_date, end_date = self.handle_result_file(baseline_id, tar_file, test_job_id, test_type, ip,
-                                                                      args['test_config'], server_type, ws_id)
+                                                                      args['test_config'], server_type, ws_id,
+                                                                      _timestamp)
             if code == 201:
                 tar_file.close()
                 return code, msg
@@ -200,7 +201,7 @@ class OfflineDataUploadService(object):
             if code == 200:
                 OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id,
                                                                    state_desc='begin upload file to ftp.')
-        code, msg = self.upload_result_file(tar_file, test_job_id, test_type)
+        code, msg = self.upload_result_file(tar_file, test_job_id, test_type, _timestamp)
         if code == 200:
             OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id, state='success',
                                                                state_desc='')
@@ -297,13 +298,13 @@ class OfflineDataUploadService(object):
                     test_config.append(suite_dict)
         return code, msg, test_config
 
-    def handle_result_file(self, baseline_id, tar_file, test_job_id, test_type, req_ip, test_config, server_type, ws_id):
+    def handle_result_file(self, baseline_id, tar_file, test_job_id, test_type, req_ip, test_config, server_type,
+                           ws_id, _timestamp):
         msg = ''
         code = 200
         result_file_list = []
         start_date = datetime.datetime.now()
         end_date = datetime.datetime.fromtimestamp(86400)
-        _timestamp = int(round(time.time() * 1000000))
         for filename in tar_file.getnames():
             in_file = tar_file.getmember(filename)
             if in_file.isfile() and filename.count('/') > 2 and filename.startswith('result'):
@@ -360,9 +361,8 @@ class OfflineDataUploadService(object):
         ResultFile.objects.bulk_create(result_file_list)
         return code, msg, start_date, end_date
 
-    def upload_result_file(self, tar_file, test_job_id, test_type):
+    def upload_result_file(self, tar_file, test_job_id, test_type, _timestamp):
         code = 200
-        _timestamp = int(round(time.time() * 1000000))
         for filename in tar_file.getnames():
             in_file = tar_file.getmember(filename)
             if in_file.isfile() and filename.count('/') > 2 and filename.startswith('result'):
