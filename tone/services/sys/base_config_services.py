@@ -64,7 +64,9 @@ class BaseConfigService(CommonService):
         assert config_id, BaseConfigException(ErrorCode.CONFIG_ID_NEED)
         self.check_id(config_id)
         with transaction.atomic():
-            BaseConfigHistory.objects.filter(config_key=BaseConfig.objects.get(id=config_id).config_key).delete()
+            config_key = BaseConfig.objects.get(id=config_id).config_key
+            if BaseConfigHistory.objects.filter(config_key=config_key).exists():
+                BaseConfigHistory.objects.filter(config_key=config_key).delete()
             BaseConfig.objects.filter(id=config_id).delete()
 
     @staticmethod
