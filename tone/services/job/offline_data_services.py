@@ -464,6 +464,7 @@ class OfflineDataUploadService(object):
         cloud_server_dict = dict(
             private_ip=instance,
             pub_ip=instance,
+            instance_id=instance,
             ws_id=ws_id,
             job_id=test_job_id,
             arch=args.get('arch', None),

@@ -525,7 +525,8 @@ class JobTestService(CommonService):
                 )
                 with open(job_yaml, 'w', encoding='utf-8') as f:
                     yaml.dump(job_yaml_dict, f)
-                raw_sql = 'SELECT a.result_path,a.result_file,b.name AS test_suite_name, c.name AS test_case_name ' \
+                raw_sql = 'SELECT a.result_path,a.result_file,b.name AS test_suite_name, ' \
+                          'c.short_name AS test_case_name ' \
                           'FROM result_file a left join test_suite b ON a.test_suite_id=b.id ' \
                           'LEFT JOIN test_case c ON a.test_case_id=c.id where test_job_id=%s'
                 result_files = query_all_dict(raw_sql.replace('\'', ''), [test_job_id])
