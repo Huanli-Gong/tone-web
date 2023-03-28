@@ -89,7 +89,7 @@ class ProjectService(CommonService):
             for key, value in data.items():
                 if key == 'name':
                     if value != project.name:
-                        self.check_name(value)
+                        self.check_name(value, project.ws_id)
                 if key == 'is_default':
                     self.check_default(value, project.ws_id, project.product_id)
                 if hasattr(project, key):
@@ -106,7 +106,7 @@ class ProjectService(CommonService):
         assert name, ProductException(ErrorCode.NAME_NEED)
         assert ws_id, ProductException(ErrorCode.WS_NEED)
         assert product_id, ProductException(ErrorCode.PRODUCT_NEED)
-        self.check_name(name)
+        self.check_name(name, ws_id)
         Project.objects.create(name=name, description=description, ws_id=ws_id, product_version=product_version,
                                product_id=product_id, is_show=is_show)
 
@@ -132,16 +132,10 @@ class ProjectService(CommonService):
                 raise ProductException(ErrorCode.PRODUCT_VERSION_DUPLICATION)
 
     @staticmethod
-    def check_name(name):
-        obj = Project.objects.filter(name=name)
+    def check_name(name, ws_id):
+        obj = Project.objects.filter(name=name, ws_id=ws_id)
         if obj.exists():
-            for tmp_obj in obj:
-                if tmp_obj.name == name:
-                    workspace = Workspace.objects.filter(id=tmp_obj.ws_id).first()
-                    if workspace is not None:
-                        raise ProductException((ErrorCode.PROJECT_DUPLICATION[0],
-                                                'Workspace: {} 下{}'.format(workspace.show_name,
-                                                                           ErrorCode.PROJECT_DUPLICATION[1])))
+            raise ProductException(ErrorCode.PROJECT_DUPLICATION)
 
     @staticmethod
     def check_default(is_default, ws_id, product_id):
