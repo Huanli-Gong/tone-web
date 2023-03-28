@@ -53,8 +53,8 @@ class DashboardService(CommonService):
                 test_run_running_num = rows[3]
                 server_alloc_num = rows[4]
                 server_running_num = rows[5]
-                func_result_num = rows[6][0] if rows[6] else 0
-                perf_result_num = rows[7][0] if rows[7] else 0
+                func_result_num = rows[6][0] if len(rows) > 6 and len(rows[6]) > 0 else 0
+                perf_result_num = rows[7][0] if len(rows) > 7 and len(rows[7]) > 0 else 0
                 result_total_num = int(func_result_num) + int(perf_result_num)
         # test duration
         redis_test_duration = 'test_duration'
