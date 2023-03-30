@@ -112,3 +112,23 @@ class BaselineServerSnapshot(BaseModel):
 
     class Meta:
         db_table = 'baseline_server_snapshot'
+
+
+class BaselineDownloadRecord(BaseModel):
+    DOWNLOAD_STATE_CHOICES = (
+        ('running', '文件打包中'),
+        ('success', '成功'),
+        ('fail', '失败')
+    )
+    baseline_id = models.IntegerField(help_text='baseline id', db_index=True)
+    state = models.CharField(max_length=64, choices=DOWNLOAD_STATE_CHOICES, default='running', help_text='state')
+    target_url = models.CharField(max_length=256, null=True, help_text='baseline下载链接')
+
+    class Meta:
+        db_table = 'baseline_download_record'
+
+    def to_dict(self):
+        job_dict = model_to_dict(self)
+        job_dict['gmt_modified'] = datetime.strftime(self.gmt_modified, "%Y-%m-%d %H:%M:%S")
+        job_dict['gmt_created'] = datetime.strftime(self.gmt_created, "%Y-%m-%d %H:%M:%S")
+        return job_dict

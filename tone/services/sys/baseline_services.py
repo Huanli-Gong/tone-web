@@ -5,13 +5,23 @@ Date:
 Author:
 """
 from django.db.models import Q
-
+import tarfile
+import yaml
+import requests
+import os
+import shutil
+import stat
+import uuid
+from django.db import transaction
+from tone.core.common.constant import OFFLINE_DATA_DIR
+from tone.settings import MEDIA_ROOT
+from tone.core.utils.sftp_client import sftp_client
 from tone.core.common.services import CommonService
 from tone.core.utils.tone_thread import ToneThread
 from tone.core.utils.common_utils import query_all_dict
 from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail, TestJob, PerfResult, TestJobCase, \
     TestSuite, TestCase, Project, TestStep, FuncResult, TestMetric, TestServerSnapshot, \
-    CloudServerSnapshot, BaselineServerSnapshot
+    CloudServerSnapshot, BaselineServerSnapshot, BaselineDownloadRecord
 from tone.services.portal.sync_portal_task_servers import sync_baseline, sync_baseline_del
 from tone.serializers.sys.baseline_serializers import FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
 
@@ -57,6 +67,9 @@ class BaselineService(CommonService):
             q &= Q(update_user__in=data.getlist('update_user'))
         q = self.expand_filter(data, q)
         return queryset.filter(q)
+
+    def filter_by_name(self, queryset, data):
+        return queryset.filter(name=data.get('name'), ws_id=data.get('ws_id'))
 
     @staticmethod
     def expand_filter(data, q):
@@ -120,6 +133,308 @@ class BaselineService(CommonService):
                                       ).update(bug=None, description=None, match_baseline=False)
         FuncBaselineDetail.objects.filter(baseline_id=baseline_id).delete()
         PerfBaselineDetail.objects.filter(baseline_id=baseline_id).delete()
+        BaselineServerSnapshot.objects.filter(baseline_id=baseline_id).delete()
+
+    def download(self, baseline_id):
+        if BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).exists():
+            BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).update(state='running')
+        else:
+            BaselineDownloadRecord.objects.create(**dict({'baseline_id': baseline_id, 'state': 'running'}))
+        upload_thread = ToneThread(self._post_background, args=(baseline_id,))
+        upload_thread.start()
+
+    def _post_background(self, baseline_id):
+        try:
+            offline_path = MEDIA_ROOT + OFFLINE_DATA_DIR
+            if not os.path.exists(offline_path):
+                os.makedirs(offline_path)
+            file_path = offline_path + '/' + str(baseline_id)
+            self.del_dir(file_path)
+            os.makedirs(file_path)
+            baseline_yaml = file_path + '/baseline.yaml'
+            baseline = Baseline.objects.filter(id=baseline_id).first()
+            if baseline:
+                tar_file_name = '/%s.tar.gz' % baseline.name
+                target_file = file_path + tar_file_name
+                baseline_detail_list = list()
+                raw_sql = 'SELECT a.*,b.name AS test_suite_name, c.name AS test_case_name FROM ' \
+                          '%s a LEFT JOIN test_suite b ON a.test_suite_id=b.id LEFT JOIN test_case c ON ' \
+                          'a.test_case_id=c.id WHERE a.is_deleted=0 and b.is_deleted=0 and c.is_deleted=0 and ' \
+                          'baseline_id=' + baseline_id
+                if baseline.test_type == 'functional':
+                    func_raw_sql = raw_sql % 'func_baseline_detail'
+                    baseline_detail = query_all_dict(func_raw_sql, params=None)
+                    if baseline_detail:
+                        for detail in baseline_detail:
+                            detail_dict = dict(
+                                test_suite_name=detail.get('test_suite_name'),
+                                test_case_name=detail.get('test_case_name'),
+                                sub_case_name=detail.get('sub_case_name'),
+                                impact_result=detail.get('impact_result'),
+                                bug=detail.get('bug'),
+                                description=detail.get('description'),
+                                note=detail.get('note'),
+                            )
+                            baseline_detail_list.append(detail_dict)
+                else:
+                    perf_raw_sql = raw_sql % 'perf_baseline_detail'
+                    baseline_detail = query_all_dict(perf_raw_sql, params=None)
+                    if baseline_detail:
+                        for detail in baseline_detail:
+                            detail_dict = dict(
+                                test_suite_name=detail.get('test_suite_name'),
+                                test_case_name=detail.get('test_case_name'),
+                                server_ip=detail.get('server_ip'),
+                                server_sn=detail.get('server_sn'),
+                                server_sm_name=detail.get('server_sm_name'),
+                                server_instance_type=detail.get('server_instance_type'),
+                                server_image=detail.get('server_image'),
+                                server_bandwidth=detail.get('server_bandwidth'),
+                                run_mode=detail.get('run_mode'),
+                                metric=detail.get('metric'),
+                                test_value=detail.get('test_value'),
+                                unit=detail.get('unit'),
+                                cv_value=detail.get('cv_value'),
+                                max_value=detail.get('max_value'),
+                                min_value=detail.get('min_value'),
+                                value_list=detail.get('value_list'),
+                                note=detail.get('note'),
+                            )
+                            baseline_detail_list.append(detail_dict)
+                baseline_server_list = list()
+                server_raw_sql = raw_sql % 'baseline_server_snapshot'
+                server_detail = query_all_dict(server_raw_sql, params=None)
+                for server_info in server_detail:
+                    server_dict = dict(
+                        test_suite_name=server_info.get('test_suite_name'),
+                        test_case_name=server_info.get('test_case_name'),
+                        ip=server_info.get('ip'),
+                        sn=server_info.get('sn'),
+                        image=server_info.get('image'),
+                        bandwidth=server_info.get('bandwidth'),
+                        sm_name=server_info.get('sm_name'),
+                        kernel_version=server_info.get('kernel_version'),
+                        distro=server_info.get('distro'),
+                        gcc=server_info.get('gcc'),
+                        rpm_list=server_info.get('rpm_list'),
+                        glibc=server_info.get('glibc'),
+                        memory_info=server_info.get('memory_info'),
+                        disk=server_info.get('disk'),
+                        cpu_info=server_info.get('cpu_info'),
+                        ether=server_info.get('ether'),
+                    )
+                    baseline_server_list.append(server_dict)
+                baseline_dict = dict(
+                    name=baseline.name,
+                    version=baseline.version,
+                    description=baseline.description,
+                    test_type=baseline.test_type,
+                    server_provider=baseline.server_provider,
+                    baseline_detail_list=baseline_detail_list,
+                    baseline_server_list=baseline_server_list
+                )
+                with open(baseline_yaml, 'w', encoding='utf-8') as f:
+                    yaml.dump(baseline_dict, f)
+                tf = tarfile.open(name=target_file, mode='w:gz')
+                tf.add(baseline_yaml, arcname='baseline.yaml')
+                tf.close()
+                oss_file = OFFLINE_DATA_DIR + tar_file_name
+                ftp_path = oss_file.replace(MEDIA_ROOT.strip('/'), '')
+                res = sftp_client.upload_file(target_file, ftp_path)
+                if res:
+                    oss_link = 'http://' + sftp_client.host + ':' + str(sftp_client.proxy_port) + ftp_path
+                    self.del_dir(file_path)
+                    BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
+                        update(state='success', job_url=oss_link)
+                else:
+                    BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
+                        update(state='success', job_url='ftp upload fail.')
+            else:
+                BaselineDownloadRecord.objects.filter(baseline_id=baseline_id). \
+                    update(state='fail', target_url='baseline not exists')
+        except Exception as e:
+            BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).update(state='fail', target_url=str(e))
+
+    def download_file(self, url, target_file):
+        req = requests.get(url)
+        with open(target_file, 'wb') as f:
+            f.write(req.content)
+
+    def del_dir(self, path):
+        while 1:
+            if not os.path.exists(path):
+                break
+            try:
+                shutil.rmtree(path)
+            except PermissionError as e:
+                err_file_path = str(e).split("\'", 2)[1]
+                if os.path.exists(err_file_path):
+                    os.chmod(err_file_path, stat.S_IWUSR)
+
+
+class BaselineUploadService(CommonService):
+    def post(self, data, file, operator):
+        if not operator or not operator.id:
+            code = 201
+            msg = '登录信息失效，请重新登录。'
+            return code, msg, None
+        file_path = MEDIA_ROOT + OFFLINE_DATA_DIR
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+        file_name = file_path + '/' + str(uuid.uuid4()) + '.' + 'tar'
+        error_list = dict()
+        try:
+            file_bytes = file.read()
+            open(file_name, 'wb').write(file_bytes)
+            tar_file = tarfile.open(file_name, 'r')
+            baseline_info = yaml.load(tar_file.extractfile('baseline.yaml').read(), Loader=yaml.FullLoader)
+            if baseline_info.get('test_type') != data.get('test_type'):
+                code = 201
+                msg = '测试类型不匹配'
+                return code, msg, None
+            baseline_dict = dict(
+                name=data.get('name', baseline_info.get('name')),
+                version=baseline_info.get('version'),
+                description=baseline_info.get('description'),
+                test_type=baseline_info.get('test_type'),
+                server_provider=baseline_info.get('server_provider'),
+                ws_id=data.get('ws_id'),
+                creator=operator.id,
+                update_user=operator.id
+            )
+            with transaction.atomic():
+                baseline = Baseline.objects.create(**baseline_dict)
+                baseline_detail_list = baseline_info.get('baseline_detail_list', list())
+                baseline_server_list = baseline_info.get('baseline_server_list', list())
+                code, msg, func_obj_list, perf_obj_list, server_obj_list, error_list = \
+                    self.build_baseline_data(baseline, baseline_detail_list, baseline_server_list, operator)
+                if code == 201:
+                    return code, msg, error_list
+                if func_obj_list:
+                    FuncBaselineDetail.objects.bulk_create(func_obj_list)
+                if perf_obj_list:
+                    PerfBaselineDetail.objects.bulk_create(perf_obj_list)
+                if server_obj_list:
+                    BaselineServerSnapshot.objects.bulk_create(server_obj_list)
+            os.remove(file_name)
+        except Exception as ex:
+            code = 201
+            msg = str(ex)
+        return code, msg, error_list
+
+    def build_baseline_data(self, baseline, baseline_detail_list, baseline_server_list, operator):
+        code = 200
+        msg = '上传成功。'
+        server_obj_list = list()
+        func_obj_list = list()
+        perf_obj_list = list()
+        test_suite_list = dict()
+        test_case_list = dict()
+        error_list = dict()
+        for detail in baseline_detail_list:
+            test_suite_name = detail.get('test_suite_name')
+            test_case_name = detail.get('test_case_name')
+            test_suite_id = test_suite_list.get(test_suite_name, None)
+            if not test_suite_id:
+                test_suite = TestSuite.objects.filter(name=test_suite_name).first()
+                if not test_suite:
+                    if test_suite_name not in error_list:
+                        error_list[test_suite_name] = list()
+                    if test_case_name not in error_list[test_suite_name]:
+                        error_list[test_suite_name].append(test_case_name)
+                    continue
+                test_suite_list[test_suite_name] = test_suite_id = test_suite.id
+            test_case_id = test_case_list.get(test_suite_name + test_case_name, None)
+            if not test_case_id:
+                test_case = TestCase.objects.filter(name=test_case_name, test_suite_id=test_suite_id).first()
+                if not test_case:
+                    if test_suite_name not in error_list:
+                        error_list[test_suite_name] = list()
+                    if test_case_name not in error_list[test_suite_name]:
+                        error_list[test_suite_name].append(test_case_name)
+                    continue
+                test_case_list[test_suite_name + test_case_name] = test_case_id = test_case.id
+            if baseline.test_type == 'functional':
+                func_obj = FuncBaselineDetail(
+                    baseline_id=baseline.id,
+                    test_job_id=0,
+                    test_suite_id=test_suite_id,
+                    test_case_id=test_case_id,
+                    sub_case_name=detail.get('sub_case_name'),
+                    impact_result=detail.get('impact_result'),
+                    bug=detail.get('bug'),
+                    description=detail.get('description'),
+                    note=detail.get('note'),
+                    creator=operator.id,
+                    update_user=operator.id
+                )
+                func_obj_list.append(func_obj)
+            else:
+                perf_obj = PerfBaselineDetail(
+                    baseline_id=baseline.id,
+                    test_job_id=0,
+                    test_suite_id=test_suite_id,
+                    test_case_id=test_case_id,
+                    server_ip=detail.get('server_ip'),
+                    server_sn=detail.get('server_sn'),
+                    server_sm_name=detail.get('server_sm_name'),
+                    server_instance_type=detail.get('server_instance_type'),
+                    server_image=detail.get('server_image'),
+                    server_bandwidth=detail.get('server_bandwidth'),
+                    run_mode=detail.get('run_mode'),
+                    source_job_id=0,
+                    metric=detail.get('metric'),
+                    test_value=detail.get('test_value'),
+                    cv_value=detail.get('cv_value'),
+                    max_value=detail.get('max_value'),
+                    min_value=detail.get('min_value'),
+                    value_list=detail.get('value_list'),
+                    note=detail.get('note'),
+                    creator=operator.id,
+                    update_user=operator.id
+                )
+                perf_obj_list.append(perf_obj)
+        for server_info in baseline_server_list:
+            test_suite_name = server_info.get('test_suite_name')
+            test_suite_id = test_suite_list.get(test_suite_name, None)
+            if not test_suite_id:
+                test_suite = TestSuite.objects.filter(name=test_suite_name).first()
+                if not test_suite:
+                    code = 201
+                    msg = 'suite %s 不存在，请先添加suite再上传。' % test_suite_name
+                    break
+                test_suite_list[test_suite_name] = test_suite_id = test_suite.id
+            test_case_name = server_info.get('test_case_name')
+            test_case_id = test_case_list.get(test_suite_name + test_case_name, None)
+            if not test_case_id:
+                test_case = TestCase.objects.filter(name=test_case_name, test_suite_id=test_suite_id).first()
+                if not test_case:
+                    code = 201
+                    msg = 'case %s 不存在，请先添加case再上传。' % test_case_name
+                    break
+                test_case_list[test_suite_name + test_case_name] = test_case_id = test_case.id
+            server_obj = BaselineServerSnapshot(
+                baseline_id=baseline.id,
+                test_job_id=0,
+                test_suite_id=test_suite_id,
+                test_case_id=test_case_id,
+                ip=server_info.get('ip'),
+                sn=server_info.get('sn'),
+                image=server_info.get('image'),
+                bandwidth=server_info.get('bandwidth'),
+                sm_name=server_info.get('sm_name'),
+                kernel_version=server_info.get('kernel_version'),
+                distro=server_info.get('distro'),
+                gcc=server_info.get('gcc'),
+                rpm_list=server_info.get('rpm_list'),
+                glibc=server_info.get('glibc'),
+                memory_info=server_info.get('memory_info'),
+                disk=server_info.get('disk'),
+                cpu_info=server_info.get('cpu_info'),
+                ether=server_info.get('ether'),
+            )
+            server_obj_list.append(server_obj)
+        return code, msg, func_obj_list, perf_obj_list, server_obj_list, error_list
 
 
 class FuncBaselineService(CommonService):
