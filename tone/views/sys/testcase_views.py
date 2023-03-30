@@ -8,7 +8,7 @@ from tone.schemas.sys.testcase_schemas import TestCaseSchema, TestCaseDetailSche
 from tone.serializers.sys.testcase_serializers import TestCaseSerializer, TestSuiteSerializer, TestMetricSerializer, \
     WorkspaceCaseRelationSerializer, TestSuiteCaseSerializer, TestSuiteWsCaseSerializer, TestDomainSerializer, \
     BriefSuiteSerializer, TestRetrieveCaseSerializer, TestRetrieveSuiteSerializer, RetrieveCaseSerializer, \
-    SysTemplateSerializer, SysJobSerializer, TestBusinessSerializer, BusinessSuiteSerializer
+    SysTemplateSerializer, SysJobSerializer, TestBusinessSerializer, BusinessSuiteSerializer, RetrieveCaseSerializer2
 from tone.services.sys.testcase_services import TestCaseService, TestSuiteService, TestMetricService, \
     WorkspaceCaseService, TestDomainService, SyncCaseToCacheService, WorkspaceRetrieveService, ManualSyncService, \
     TestBusinessService
@@ -537,7 +537,8 @@ class TestSuiteRetrieveView(CommonAPIView):
         2. 输入后，实时显示检索记录： 历史 + suite + conf  传参： （1）search_key （2）result: 搜索结果标识
         3. 检索确定后显示搜索列表： 全部 + suite + conf + domain 传参： （1）search_key
         """
-        serialize_flag, instance = self.service.search(request.data, self)
+        self.serializer_class = RetrieveCaseSerializer2
+        serialize_flag, instance = self.service.search(request.data)
         if serialize_flag:
             response_data = self.get_response_data(instance, many=True)
         else:
