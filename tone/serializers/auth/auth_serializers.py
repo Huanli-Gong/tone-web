@@ -232,10 +232,11 @@ class UserApproveSerializer(CommonSerializer):
 class PersonalUserSerializer(CommonSerializer):
     sys_role = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    ws_is_common = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'sys_role', 'avatar', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'sys_role', 'avatar', 'email', 'ws_is_common']
 
     @staticmethod
     def get_avatar(obj):
@@ -259,6 +260,11 @@ class PersonalUserSerializer(CommonSerializer):
             ws_role_map.setdefault(Role.objects.get(title=user).id, user)
         [ws.update({'title': ws_role_map.get(ws['role_id'])}) for ws in ws_list]
         return ws_list
+
+    def get_ws_is_common(self, obj):
+        ws_id = self.context['request'].GET.get('ws_id')
+        workspace = Workspace.objects.filter(id=ws_id).first()
+        return workspace.is_common if workspace else False
 
 
 class WsAdminSerializer(CommonSerializer):
