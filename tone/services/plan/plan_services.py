@@ -17,6 +17,7 @@ from tone.core.common.job_result_helper import get_server_ip_sn
 from tone.core.handle.report_handle import ReportHandle
 from tone.core.schedule.schedule_job import TestPlanScheduleJob
 from tone.core.utils.common_utils import pack_env_infos
+from tone.core.common.expection_handler.custom_error import JobTestException
 from tone.core.utils.permission_manage import check_operator_permission
 from tone.models import TestPlan, PlanStageRelation, PlanStagePrepareRelation, PlanStageTestRelation, datetime, \
     PlanInstance, PlanInstanceStageRelation, PlanInstancePrepareRelation, PlanInstanceTestRelation, ScheduleMap, \
@@ -66,7 +67,11 @@ class PlanService(CommonService):
     @staticmethod
     def get_env_info(origin_env_info):
         """获取全局变量"""
-        return pack_env_infos(origin_env_info)
+        try:
+            env_info = pack_env_infos(origin_env_info)
+        except JobTestException as e:
+            return False, e.args[0][1]
+        return True, env_info
 
     def create_plan(self, data, operator):
         """
@@ -127,7 +132,9 @@ class PlanService(CommonService):
         success, msg = self.check_plan_name(data)
         if not success:
             return False, msg
-
+        success, env_info = self.get_env_info(data.get('env_info', ''))
+        if not success:
+            return False, env_info
         update_fields = ['ws_id', 'name', 'description', 'project_id', 'test_obj', 'enable', 'cron_schedule',
                          'cron_info', 'blocking_strategy', 'auto_report', 'report_name', 'report_description',
                          'group_method', 'base_group', 'stage_id']
@@ -151,7 +158,7 @@ class PlanService(CommonService):
             'build_pkg_info': data.get('build_pkg_info', dict()),
             'rpm_info': rpm_info,
             'script_info': data.get('scripts', list()),
-            'env_info': self.get_env_info(data.get('env_info', '')),
+            'env_info': env_info,
             'notice_info': self.pack_notice_info(data.get('email_info', None),
                                                  data.get('ding_talk_info', None),
                                                  data.get('notice_name', None)),
@@ -317,6 +324,9 @@ class PlanService(CommonService):
             return False, ''
         if test_plan.name != data.get('name') and TestPlan.objects.filter(name=data.get('name')).exists():
             return False, '计划名称不能重复'
+        success, env_info = self.get_env_info(data.get('env_info', ''))
+        if not success:
+            return False, env_info
         update_data = dict()
         origin_cron_info = test_plan.cron_info
         allow_update_fields = ['name', 'description', 'project_id', 'test_obj', 'enable', 'cron_schedule',
@@ -341,7 +351,7 @@ class PlanService(CommonService):
             'build_pkg_info': data.get('build_pkg_info', dict()),
             'rpm_info': rpm_info,
             'script_info': data.get('scripts', list()),
-            'env_info': self.get_env_info(data.get('env_info', '')),
+            'env_info': env_info,
             'notice_info': self.pack_notice_info(data.get('email_info', None),
                                                  data.get('ding_talk_info', None),
                                                  data.get('notice_name', None)),
@@ -501,6 +511,9 @@ class PlanService(CommonService):
             return False, '计划未启用, 不可运行'
         # 仅运行
         auto_count = PlanInstance.objects.filter(plan_id=plan_id, query_scope='all').count() + 1
+        success, env_info = self.get_env_info(data.get('env_info', ''))
+        if not success:
+            return False, env_info
         create_data.update({
             'plan_id': plan_id,
             'run_mode': 'manual',
@@ -515,7 +528,7 @@ class PlanService(CommonService):
             'build_pkg_info': data.get('build_pkg_info', dict()),
             'rpm_info': rpm_info,
             'script_info': data.get('scripts', list()),
-            'env_info': self.get_env_info(data.get('env_info', '')),
+            'env_info': env_info,
             'notice_info': self.pack_notice_info(data.get('email_info', None),
                                                  data.get('ding_talk_info', None),
                                                  data.get('notice_name', None)),
