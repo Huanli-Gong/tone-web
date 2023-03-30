@@ -98,7 +98,7 @@ class FuncBaselineView(CommonAPIView):
     @method_decorator(views_catch_error)
     def put(self, request):
         """编辑fail_case信息"""
-        success, instance = self.service.update(request.data)
+        success, instance = self.service.update(request.data, request.user.id)
         if success:
             response_data = self.get_response_data(instance, many=False)
             return Response(response_data)
@@ -109,7 +109,7 @@ class FuncBaselineView(CommonAPIView):
     @method_decorator(views_catch_error)
     def post(self, request):
         """job结果执行加入基线详情"""
-        success, instance = self.service.create(request.data)
+        success, instance = self.service.create(request.data, request.user.id)
         if success:
             response_data = self.get_response_data(instance, many=True)
             return Response(response_data)
@@ -198,7 +198,7 @@ class PerfBaselineAddOneView(CommonAPIView):
 
     def post(self, request):
         """通过 Testconf 加入性能基线详情"""
-        success, instance = self.service.add_one_perf(request.data)
+        success, instance = self.service.add_one_perf(request.data, request.user.id)
         if success:
             response_data = self.get_response_data(instance, many=True)
         else:
@@ -224,7 +224,7 @@ class PerfBaselineBatchAddView(CommonAPIView):
         2）机器信息：SN，IP，规格，Image，Bandwidth，Runmode，来源Job。3）Metric基线值。所有属性值在加入基线时系统自动获取。
         性能基线可以在 1.TestSuite 2.Testconf 任何层级添加， 3.通过批量操作添加
         """
-        success, instance = self.service.add_perf(request.data)
+        success, instance = self.service.add_perf(request.data, request.user.id)
         if success:
             response_data = self.get_response_data(instance, many=True)
         else:
