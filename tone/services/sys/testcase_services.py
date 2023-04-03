@@ -1094,7 +1094,7 @@ class WorkspaceRetrieveService(CommonService):
         return False, RetrieveStatisticsSerializer(test_suite_queryset, many=True).data
 
     @staticmethod
-    def search(data, retrieve_view):
+    def search(data):
         search_key = data.get('search_key')
         search_type = data.get('search_type')  # all, suite, docker, domain
         result = list()
@@ -1130,7 +1130,6 @@ class WorkspaceRetrieveService(CommonService):
                 object_type='case', domain_id__in=domain_id_list).values_list('object_id', flat=True)
             case_domain_queryset = TestCase.objects.filter(id__in=case_id_list, test_suite_id__in=suite_id_list)
             domain_case_id_list = case_domain_queryset.values_list('id', flat=True)
-        retrieve_view.serializer_class = RetrieveCaseSerializer
         if search_type == 'suite':
             result = test_suite_queryset
         elif search_type == 'conf':
