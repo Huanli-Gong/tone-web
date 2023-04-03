@@ -22,4 +22,8 @@ urlpatterns = [
     path('perf/batch_add/', baseline_views.PerfBaselineBatchAddView.as_view(), name='baseline_batch_add'),
     # 性能对比基线
     path('perf/contrast/', baseline_views.ContrastBaselineView.as_view(), name='contrast_baseline'),
+    path('download/', baseline_views.BaselineDownloadView.as_view(), name='baseline_download'),
+    path('download/query/', baseline_views.BaselineDownloadRecordView.as_view(), name='download_query'),
+    path('upload/', baseline_views.UploadDataView.as_view(), name='offline_upload'),
+    path('list_by_name/', baseline_views.BaselineByNameView.as_view(), name='baseline_filter'),
 ]

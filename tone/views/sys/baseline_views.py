@@ -2,15 +2,16 @@ from django.utils.decorators import method_decorator
 
 from tone.core.common.expection_handler.error_catch import views_catch_error
 from tone.core.common.views import CommonAPIView
-from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail
+from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail, BaselineDownloadRecord
 from rest_framework.response import Response
 
 from tone.schemas.sys.baseline_schemas import BaselineSchema, FuncBaselineDetailSchema, PerfBaselineDetailSchema, \
-    SearchSuiteSchema, PerfBaselineBatchAddSchema, PerfBaselineAddOneSchema, ContrastBaselineSchema
+    SearchSuiteSchema, PerfBaselineBatchAddSchema, PerfBaselineAddOneSchema, ContrastBaselineSchema,\
+    BaselineUploadSchema, BaselineDownloadSchema, BaselineByNameSchema
 from tone.serializers.sys.baseline_serializers import BaselineSerializer, \
     FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
 from tone.services.sys.baseline_services import BaselineService, \
-    FuncBaselineService, PerfBaselineService, SuiteSearchServer, ContrastBaselineService
+    FuncBaselineService, PerfBaselineService, SuiteSearchServer, ContrastBaselineService, BaselineUploadService
 
 
 class AllBaselineView(CommonAPIView):
@@ -248,3 +249,59 @@ class ContrastBaselineView(CommonAPIView):
         else:
             response_data = self.get_response_code(code=201, msg=instance)
         return Response(response_data)
+
+
+class BaselineDownloadView(CommonAPIView):
+    schema_class = BaselineDownloadSchema
+    service_class = BaselineService
+
+    def get(self, request):
+        job_id = request.GET.get('baseline_id')
+        self.service.download(job_id)
+        response_data = self.get_response_code(code=200)
+        return Response(response_data)
+
+
+class BaselineDownloadRecordView(CommonAPIView):
+    schema_class = BaselineDownloadSchema
+
+    @method_decorator(views_catch_error)
+    def get(self, request):
+        baseline_id = request.GET.get('baseline_id')
+        record = BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).first()
+        if record:
+            response_data = self.get_response_only_for_data(record.to_dict())
+        else:
+            response_data = self.get_response_only_for_data(None)
+        return Response(response_data)
+
+
+class UploadDataView(CommonAPIView):
+    schema_class = BaselineUploadSchema
+    service_class = BaselineUploadService
+
+    @method_decorator(views_catch_error)
+    def post(self, request):
+        """
+        上传解析offline data
+        """
+        code, msg, data = self.service.post(request.POST, request.FILES.get('file'), operator=request.user)
+        if data:
+            return Response(self.get_reponse_for_error(data))
+        else:
+            return Response(self.get_response_code(code=code, msg=msg))
+
+
+class BaselineByNameView(CommonAPIView):
+    """所有基线"""
+    serializer_class = BaselineSerializer
+    queryset = Baseline.objects.all()
+    service_class = BaselineService
+    schema_class = BaselineByNameSchema
+
+    @method_decorator(views_catch_error)
+    def get(self, request):
+        baseline_list = self.service.filter_by_name(self.get_queryset(), request.GET)
+        response_data = self.get_response_data(baseline_list, page=False)
+        return Response(response_data)
+
