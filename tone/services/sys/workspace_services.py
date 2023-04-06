@@ -343,13 +343,15 @@ class WorkspaceHistoryService(CommonService):
                     ws_id=data.get('ws_id'),
                     role_id=Role.objects.get(title='ws_member').id
                 )
-                # 公共的WS创建 ws_member记录
+            # 公共的WS创建 ws_member记录
             elif Workspace.objects.get(id=data.get('ws_id')).is_common:
-                WorkspaceMember.objects.get_or_create(
-                    ws_id=data.get('ws_id'),
-                    user_id=operator,
-                    role_id=Role.objects.get(title='ws_member').id
-                )
+                if not WorkspaceMember.objects.filter(ws_id=data.get('ws_id'), user_id=operator,
+                                                      role_id=Role.objects.get(title='ws_member').id).exists():
+                    WorkspaceMember.objects.create(
+                        ws_id=data.get('ws_id'),
+                        user_id=operator,
+                        role_id=Role.objects.get(title='ws_member').id
+                    )
         if WorkspaceAccessHistory.objects.filter(
                 ws_id=data.get('ws_id'),
                 user_id=operator
