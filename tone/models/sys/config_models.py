@@ -14,7 +14,7 @@ class BaseConfig(BaseModel):
     creator = models.IntegerField(help_text='创建者', null=True)
     update_user = models.IntegerField(help_text='修改者', null=True)
     commit = models.TextField(max_length=64, null=True, blank=True, help_text='提交日志')
-    ws_id = models.CharField(max_length=16, null=True, blank=True, help_text='ws id')
+    ws_id = models.CharField(max_length=32, null=True, blank=True, help_text='ws id')
 
     class Meta:
         unique_together = ('config_key', 'ws_id',)
