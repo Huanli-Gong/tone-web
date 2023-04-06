@@ -245,10 +245,10 @@ class BaselineService(CommonService):
                     oss_link = 'http://' + sftp_client.host + ':' + str(sftp_client.proxy_port) + ftp_path
                     self.del_dir(file_path)
                     BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
-                        update(state='success', job_url=oss_link)
+                        update(state='success', target_url=oss_link)
                 else:
                     BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
-                        update(state='success', job_url='ftp upload fail.')
+                        update(state='success', target_url='ftp upload fail.')
             else:
                 BaselineDownloadRecord.objects.filter(baseline_id=baseline_id). \
                     update(state='fail', target_url='baseline not exists')
