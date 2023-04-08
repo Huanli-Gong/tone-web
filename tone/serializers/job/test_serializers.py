@@ -535,7 +535,7 @@ class JobTestResultSerializer(CommonSerializer):
                 business = BusinessSuiteRelation.objects.filter(test_suite_id=suite.test_suite_id,
                                                                 query_scope='all').first()
                 business_name = TestBusiness.objects.filter(id=business.business_id, query_scope='all').first().name
-            test_suite = TestSuite.objects.get(id=suite.test_suite_id)
+            test_suite = TestSuite.objects.get(id=suite.test_suite_id, query_scope='all')
             suite_data = {
                 'job_suite_id': suite.id,
                 'suite_id': suite.test_suite_id,
@@ -577,7 +577,7 @@ class JobTestResultSerializer(CommonSerializer):
             check_cases = TestJobCase.objects.filter(job_id=test_job.id, test_suite_id=suite.test_suite_id,
                                                      state__in=['success', 'fail', 'skip', 'stop']).count()
             if check_cases > 0:
-                test_suite = TestSuite.objects.get(id=suite.test_suite_id)
+                test_suite = TestSuite.objects.get(id=suite.test_suite_id, query_scope='all')
                 suite_data = {
                     'job_suite_id': suite.id,
                     'suite_id': suite.test_suite_id,

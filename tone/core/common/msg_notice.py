@@ -617,7 +617,7 @@ class OutSiteMsgHandle(object):
             for tag in tags:
                 if tag[0] == 'analytics':
                     can_link = True
-                if 'nightly-' in tag[0] or tag[0].endswith('-nig') or tag[0].endswith('-ni'):
+                if 'nightly' in tag[0] or tag[0].endswith('-nig') or tag[0].endswith('-ni'):
                     nightly_tag = tag[0]
             if not can_link:
                 nightly_tag = None

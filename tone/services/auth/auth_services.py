@@ -248,15 +248,16 @@ class UserInfoService(CommonService):
     def get_user_info(data, operator):
         ws_is_exist = None
         ws_is_public = None
+        ws_is_common = None
         ws_id = data.get('ws_id', '')
         if ws_id:
-            # 根据ws_id 查询workspace不存在
             workspace_obj = Workspace.objects.filter(id=ws_id).first()
             if workspace_obj is None:
                 ws_is_exist = False
             else:
                 ws_is_exist = True
                 ws_is_public = workspace_obj.is_public
+                ws_is_common = workspace_obj.is_common
         default_user_info = {
             'user_id': None,
             'role_title': 'sys_tourist',
@@ -267,6 +268,7 @@ class UserInfoService(CommonService):
             'ws_role_id': None,
             'ws_is_exist': ws_is_exist,
             'ws_is_public': ws_is_public,
+            'ws_is_common': ws_is_common,
         }
         if not operator:
             return default_user_info
@@ -281,6 +283,11 @@ class UserInfoService(CommonService):
             sys_role = Role.objects.filter(id=role_member.role_id).first()
             if work_member is not None:
                 role = Role.objects.filter(id=work_member.role_id).first()
+                if role is not None:
+                    ws_role_title = role.title
+                    ws_role_id = role.id
+            elif ws_is_common:
+                role = Role.objects.filter(title='ws_member').first()
                 if role is not None:
                     ws_role_title = role.title
                     ws_role_id = role.id

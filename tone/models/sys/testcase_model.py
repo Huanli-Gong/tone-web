@@ -34,7 +34,7 @@ class TestSuite(BaseModel):
     description = models.CharField(max_length=1024, null=True, blank=True, help_text='描述')
     owner = models.IntegerField(null=True, help_text='Owner')
     is_default = models.BooleanField(default=False, help_text='是否默认')
-    test_framework = models.CharField(max_length=64, choices=TEST_FRAMEWORK_CHOICES, default='tone')
+    test_framework = models.CharField(max_length=64, db_index=True, choices=TEST_FRAMEWORK_CHOICES, default='tone')
     view_type = models.CharField(max_length=64, choices=VIEW_TYPE_CHOICES, help_text='视图类型', default='Type1')
     certificated = models.BooleanField(default=False, help_text='是否认证')
 
@@ -44,7 +44,7 @@ class TestSuite(BaseModel):
 
 class TestCase(BaseModel):
 
-    name = models.CharField(max_length=255, help_text='Case名称')
+    name = models.CharField(max_length=255, db_index=True, help_text='Case名称')
     test_suite_id = models.IntegerField(db_index=True, help_text='关联suite')
     repeat = models.IntegerField(help_text='重复次数')
     timeout = models.IntegerField(help_text='超时时间')
@@ -100,7 +100,7 @@ class WorkspaceCaseRelation(BaseModel):
 
 class TestDomain(BaseModel):
 
-    name = models.CharField(max_length=64, help_text='name')
+    name = models.CharField(max_length=64, db_index=True, help_text='name')
     description = models.CharField(max_length=1024, null=True, blank=True, help_text='描述')
     creator = models.IntegerField(help_text='创建者', null=True)
     update_user = models.IntegerField(help_text='修改者', null=True)

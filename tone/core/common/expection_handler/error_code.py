@@ -65,7 +65,7 @@ class ErrorCode(object):
 
     TYPE_NONEXISTENT = (1303, "job_type不存在")
 
-    TYPE_DUPLICATION = (1304, "已存在同名job_type")
+    TYPE_DUPLICATION = (1304, "已存在同名Job类型")
 
     TYPE_ID_LACK = (1305, "缺少参数job_type id")
 
@@ -125,7 +125,7 @@ class ErrorCode(object):
 
     PRODUCT_NEED = (1370, "缺少参数product_id")
 
-    PROJECT_DUPLICATION = (1371, "已存在同名project")
+    PROJECT_DUPLICATION = (1371, "已存在同名项目名称")
 
     PRODUCT_VERSION_DUPLICATION = (1390, "已存在同名产品版本")
 

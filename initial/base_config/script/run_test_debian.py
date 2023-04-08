@@ -166,8 +166,8 @@ install_utils
 
 validate_ssh
 
-echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
-systemctl restart sshd
+# echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+# systemctl restart sshd
 
 if [ -z ${{CLUSTER_SERVERS+x}} ];then
     echo "##standalone test .." >> $LOG

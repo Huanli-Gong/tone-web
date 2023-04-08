@@ -278,7 +278,7 @@ class FuncAnalysisService(CommonService):
             order_by('-gmt_created')
         job_li = list()
         ws_id = Project.objects.get(id=project).ws_id
-        analytics_tag_id_set = {JobTag.objects.get(ws_id=ws_id, name='analytics').id}
+        analytics_tag_id_set = set(JobTag.objects.filter(ws_id=ws_id, name='analytics').values_list('id', flat=True))
         if tag:
             analytics_tag_id_set.add(tag)
         job_tag_list = JobTagRelation.objects.all()
@@ -297,7 +297,7 @@ class FuncAnalysisService(CommonService):
     def get_sub_case_map(queryset, start_time, end_time):
         sub_case_map = get_data_map(start_time, end_time)
         for job in queryset:
-            if not sub_case_map[datetime.strftime(job.start_time, "%Y-%m-%d")]:
+            if not sub_case_map.get(datetime.strftime(job.start_time, "%Y-%m-%d"), None):
                 get_case_map(sub_case_map, job)
         return sub_case_map
 

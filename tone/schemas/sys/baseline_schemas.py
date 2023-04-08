@@ -172,3 +172,29 @@ class ContrastBaselineSchema(BaseSchema):
             "suite_id": {'type': int, 'required': True, 'example': '56', 'desc': '关联SUITE ID'},
             "case_id": {'type': int, 'required': True, 'example': '307', 'desc': '关联CASE ID'},
         }
+
+
+class BaselineUploadSchema(BaseSchema):
+    def get_body_data(self):
+        return {
+            'file': {'type': str, 'required': True, 'example': '1', 'desc': 'form-data上传文件'},
+            'name': {'type': str, 'required': True, 'example': '1', 'desc': '基线名称'},
+            'ws_id': {'type': str, 'required': True, 'example': '2313', 'desc': 'workspace id'},
+            'test_type': {'type': str, 'required': True, 'example': 'functional',
+                          'desc': '测试类型（functional/performance）'}
+        }
+
+
+class BaselineDownloadSchema(BaseSchema):
+    def get_param_data(self):
+        return {
+            'baseline_id': {'type': int, 'required': True, 'example': "1", 'desc': '基线id'}
+        }
+
+
+class BaselineByNameSchema(BaseSchema):
+    def get_param_data(self):
+        return {
+            'name': {'type': str, 'required': False, 'example': '3.10.0-327.ali2010.rc6.alios7.x86_64',
+                     'desc': '根据基线名称搜索'},
+        }

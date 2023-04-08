@@ -536,6 +536,59 @@ class RetrieveCaseSerializer(CommonSerializer):
         return [{'ws_id': test_job[0], 'job_id': test_job[1]} for test_job in test_job_list if test_job[0]]
 
 
+class RetrieveCaseSerializer2(CommonSerializer):
+    domain_name_list = serializers.SerializerMethodField()
+    suite_name = serializers.SerializerMethodField()
+    run_mode = serializers.SerializerMethodField()
+    test_type = serializers.SerializerMethodField()
+    creator_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TestCase
+        exclude = ['is_deleted', 'is_default']
+
+    @staticmethod
+    def get_domain_name_list(obj):
+        domain_relation = DomainRelation.objects.filter(object_type='case', object_id=obj.id).values_list(
+            'domain_id', flat=True)
+        domain_name_list = TestDomain.objects.filter(id__in=domain_relation).values_list('name', flat=True)
+        return ','.join(domain_name_list)
+
+    @staticmethod
+    def get_test_type(obj):
+        test_type = None
+        test_suite = TestSuite.objects.filter(id=obj.test_suite_id).first()
+        if test_suite is not None:
+            test_type = test_suite.test_type
+        return test_type
+
+    @staticmethod
+    def get_suite_name(obj):
+        suite_name = None
+        test_suite = TestSuite.objects.filter(id=obj.test_suite_id).first()
+        if test_suite is not None:
+            suite_name = test_suite.name
+        return suite_name
+
+    @staticmethod
+    def get_creator_name(obj):
+        creator_name = None
+        test_suite = TestSuite.objects.filter(id=obj.test_suite_id).first()
+        if test_suite is not None:
+            creator = User.objects.filter(id=test_suite.owner).first()
+            if creator is not None:
+                creator_name = creator.first_name if creator.first_name else creator.last_name
+        return creator_name
+
+    @staticmethod
+    def get_run_mode(obj):
+        run_mode = None
+        test_suite = TestSuite.objects.filter(id=obj.test_suite_id).first()
+        if test_suite is not None:
+            run_mode = test_suite.run_mode
+        return run_mode
+
+
 class TestBusinessSerializer(CommonSerializer):
     creator_name = serializers.SerializerMethodField()
     update_user = serializers.SerializerMethodField()

@@ -97,3 +97,8 @@ class CommonAPIView(GenericAPIView, BaseView):
         new_data = {'data': data}
         new_data.update({'code': self.code, 'msg': self.msg})
         return new_data
+
+    def get_reponse_for_error(self, errors):
+        new_data = {'errors': errors}
+        new_data.update({'code': self.code, 'msg': self.msg})
+        return new_data

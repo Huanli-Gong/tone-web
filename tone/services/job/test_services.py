@@ -525,7 +525,8 @@ class JobTestService(CommonService):
                 )
                 with open(job_yaml, 'w', encoding='utf-8') as f:
                     yaml.dump(job_yaml_dict, f)
-                raw_sql = 'SELECT a.result_path,a.result_file,b.name AS test_suite_name, c.name AS test_case_name ' \
+                raw_sql = 'SELECT a.result_path,a.result_file,b.name AS test_suite_name, ' \
+                          'c.short_name AS test_case_name ' \
                           'FROM result_file a left join test_suite b ON a.test_suite_id=b.id ' \
                           'LEFT JOIN test_case c ON a.test_case_id=c.id where test_job_id=%s'
                 result_files = query_all_dict(raw_sql.replace('\'', ''), [test_job_id])
@@ -1255,9 +1256,11 @@ class JobDataConversionService(object):
             raise ValueError(f'Suite ID({item.get("test_suite")})不存在')
         item['test_suite'] = suite.first().name
         for case_item in item['cases']:
+            if not case_item.get('test_case'):
+                raise ValueError(f'test_config中缺少test_case')
             case = TestCase.objects.filter(id=case_item.get('test_case'))
             if not case.exists():
-                raise ValueError(f'Case ID({case.get("test_case")})不存在')
+                raise ValueError(f'Case ID({case_item.get("test_case")})不存在')
             case_item['test_case'] = case.first().name
             self.conv_server(case_item, conv_type)
 
@@ -1267,9 +1270,11 @@ class JobDataConversionService(object):
             raise ValueError(f'Suite名称({item.get("test_suite")})不存在')
         item['test_suite'] = suite.first().id
         for case_item in item['cases']:
+            if not case_item.get('test_case'):
+                raise ValueError(f'test_config中缺少test_case')
             case = TestCase.objects.filter(name=case_item.get('test_case'), test_suite_id=suite.first().id)
             if not case.exists():
-                raise ValueError(f'Case名称({case.get("test_case")})不存在')
+                raise ValueError(f'Case名称({case_item.get("test_case")})不存在')
             case_item['test_case'] = case.first().id
             self.conv_server(case_item, conv_type)
 
@@ -1424,7 +1429,8 @@ class MachineFaultService(CommonService):
                     return TestServer.objects.filter(q)
                 else:
                     test_server_snapshot = TestJobCase.objects.filter(
-                        job_id=job_id, state__in=['pending', 'running']).values('server_snapshot_id')
+                        job_id=job_id, state__in=['pending', 'running'], run_mode='standalone').\
+                        values('server_snapshot_id')
                     q = Q(id__in=test_server_snapshot) & Q(state='Broken')
                     return TestServerSnapshot.objects.filter(q)
             else:
