@@ -542,7 +542,10 @@ class JobTestService(CommonService):
                     file_dir = os.path.dirname(local_file)
                     if not os.path.exists(file_dir):
                         os.makedirs(file_dir)
-                    self.download_file(oss_file, local_file)
+                    try:
+                        self.download_file(oss_file, local_file)
+                    except Exception:
+                        continue
                 tf = tarfile.open(name=target_file, mode='w:gz')
                 tf.add(job_yaml, arcname='job.yaml')
                 tf.add(result_dir, arcname='result')
