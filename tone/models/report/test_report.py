@@ -16,7 +16,7 @@ class Report(BaseModel):
         ('plan', '计划'),
     )
     name = models.CharField(max_length=128, db_index=True, help_text='报告名称')
-    product_version = models.CharField(null=True, blank=True, max_length=64, help_text='产品版本')
+    product_version = models.CharField(null=True, blank=True, max_length=512, help_text='产品版本')
     project_id = models.IntegerField(null=True, blank=True, help_text='project')
     test_background = models.TextField(null=True, help_text='测试背景')
     test_method = models.TextField(null=True, help_text='测试方法')
