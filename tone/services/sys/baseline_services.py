@@ -809,12 +809,6 @@ class PerfBaselineService(CommonService):
     @back_fill_version
     def add_one_perf(self, data, user_id):
         """通过conf加入基线"""
-        sm_name = ''
-        instance_type = ''
-        image = ''
-        bandwidth = 10
-        machine = None
-        machine_ip = ''
         baseline_id = data.get('baseline_id')
         job_id = data.get('job_id')
         suite_id = data.get('suite_id')
@@ -826,11 +820,20 @@ class PerfBaselineService(CommonService):
         test_job = TestJob.objects.filter(id=job_id).first()
         if not test_job:
             return False, "关联job不存在!"
-        source_job_id = job_id
-        test_job_case = TestJobCase.objects.filter(job_id=job_id, test_suite_id=suite_id,
-                                                   test_case_id=case_id).first()
-        job_case_id = test_job_case.id
-        test_step_case = TestStep.objects.filter(job_id=job_id, job_case_id=job_case_id).first()
+        add_baseline_thread = ToneThread(self.add_one_perf_back,
+                                         (baseline_id, case_id, job_id, suite_id, test_job, user_id))
+        add_baseline_thread.start()
+        return True, None
+
+    def add_one_perf_back(self, baseline_id, case_id, job_id, suite_id, test_job, user_id):
+        machine = None
+        sm_name = ''
+        instance_type = ''
+        image = ''
+        bandwidth = 10
+        machine_ip = ''
+        test_job_case = TestJobCase.objects.filter(job_id=job_id, test_suite_id=suite_id, test_case_id=case_id).first()
+        test_step_case = TestStep.objects.filter(job_id=job_id, job_case_id=test_job_case.id).first()
         if test_step_case and test_step_case.server:
             server_object_id = test_step_case.server
             server_provider = 'aliyun'
@@ -851,25 +854,15 @@ class PerfBaselineService(CommonService):
         perf_res_list = PerfResult.objects.filter(test_job_id=job_id, test_suite_id=suite_id, test_case_id=case_id)
         create_list = []
         update_dict = dict()
-        thread_tasks = []
         for perf_res in perf_res_list:
-            thread_tasks.append(
-                ToneThread(self._get_add_perf_baseline_detail,
-                           (bandwidth, baseline_id, case_id, create_list, image, instance_type,
-                            job_id, machine, machine_ip, perf_res, sm_name, source_job_id, suite_id,
-                            test_job_case, update_dict, user_id))
-            )
-            thread_tasks[-1].start()
-        for thread_task in thread_tasks:
-            thread_task.join()
-            thread_task.get_result()
-        perf_baseline_detail_list = self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict,
-                                                                   test_job, baseline_id)
-        return True, perf_baseline_detail_list
+            self._get_add_perf_baseline_detail(bandwidth, baseline_id, case_id, create_list, image, instance_type,
+                                               job_id, machine, machine_ip, perf_res, sm_name, suite_id, test_job_case,
+                                               update_dict, user_id)
+            self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id)
 
     def _get_add_perf_baseline_detail(self, bandwidth, baseline_id, case_id, create_list, image, instance_type, job_id,
-                                      machine, machine_ip, perf_res, sm_name, source_job_id, suite_id, test_job_case,
-                                      update_dict, user_id):
+                                      machine, machine_ip, perf_res, sm_name, suite_id, test_job_case, update_dict,
+                                      user_id):
         perf_detail = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
                                                         test_case_id=case_id, metric=perf_res.metric)
         create_data = PerfBaselineDetail(
@@ -884,7 +877,7 @@ class PerfBaselineService(CommonService):
             server_image=image,
             server_bandwidth=bandwidth,
             run_mode=test_job_case.run_mode,
-            source_job_id=source_job_id,
+            source_job_id=job_id,
             metric=perf_res.metric,
             test_value=perf_res.test_value,
             cv_value=perf_res.cv_value,
@@ -901,9 +894,8 @@ class PerfBaselineService(CommonService):
             update_dict.setdefault(str(perf_detail[0].id), create_data)
 
     def _add_perf_baseline_detail(self, job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id):
-        add_list = []
         if create_list:
-            add_list.extend([perf for perf in PerfBaselineDetail.objects.bulk_create(create_list)])
+            PerfBaselineDetail.objects.bulk_create(create_list)
             if test_job.baseline_id == baseline_id:
                 metric_list = [metric.metric for metric in create_list]
                 PerfResult.objects.filter(test_job_id=job_id, test_suite_id=suite_id, test_case_id=case_id,
@@ -939,8 +931,6 @@ class PerfBaselineService(CommonService):
                              'source_job_id', 'metric', 'test_value', 'cv_value', 'max_value', 'min_value',
                              'value_list', 'note']
             PerfBaselineDetail.objects.bulk_update(perf_detail, update_fields)
-            add_list.extend([perf for perf in perf_detail])
-        return add_list
 
     @staticmethod
     def get_perf_res_id_list(job_id, suite_id_list, suite_data_list):
