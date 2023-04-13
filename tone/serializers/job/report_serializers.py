@@ -10,7 +10,7 @@ from rest_framework import serializers
 from datetime import datetime
 from tone.core.handle.report_handle import get_perf_data, get_func_data, get_old_report
 from tone.core.common.serializers import CommonSerializer
-from tone.models import User, TestCase, Project, TestSuite, TestMetric, CompareForm, ReportDetail
+from tone.models import User, TestCase, Project, TestSuite, TestMetric, CompareForm, ReportDetail, BaseConfig
 from tone.models.report.test_report import ReportTemplate, ReportTmplItem, ReportTmplItemSuite, Report
 
 
@@ -363,12 +363,13 @@ class ReportDetailSerializer(CommonSerializer):
     group_count = serializers.SerializerMethodField()
     old_report = serializers.SerializerMethodField()
     test_env = serializers.SerializerMethodField()
+    can_export = serializers.SerializerMethodField()
 
     class Meta:
         model = Report
         fields = ['id', 'name', 'test_background', 'test_conclusion', 'test_method', 'test_env', 'report_source',
                   'description', 'test_item', 'tmpl_id', 'gmt_created', 'creator', 'creator_name',
-                  'env_description', 'group_count', 'ws_id', 'old_report']
+                  'env_description', 'group_count', 'ws_id', 'old_report', 'can_export']
 
     @staticmethod
     def get_creator_name(obj):
@@ -411,6 +412,15 @@ class ReportDetailSerializer(CommonSerializer):
         if 'summary' in obj.test_conclusion and 'compare_groups' in obj.test_conclusion['summary']:
             group_count = len(obj.test_conclusion['summary']['compare_groups']) + 1
         return group_count
+
+    @staticmethod
+    def get_can_export(obj):
+        can_export = 0
+        report_export_config = BaseConfig.objects.filter(config_type='ws', ws_id=obj.ws_id,
+                                                         config_key='REPORT_EXPORT').first()
+        if report_export_config:
+            can_export = 1 if report_export_config.config_value == "1" else 0
+        return can_export
 
 
 class CompareFormSerializer(CommonSerializer):

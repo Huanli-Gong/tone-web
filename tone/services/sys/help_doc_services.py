@@ -358,10 +358,15 @@ class WorkspaceConfigService(CommonService):
                                                              ws_id=ws_id,
                                                              config_key='FUNC_RESULT_VIEW_TYPE',
                                                              config_value='1')
+            report_export = BaseConfig.objects.filter(config_type='ws', ws_id=ws_id, config_key='REPORT_EXPORT').first()
+            if not report_export:
+                report_export = BaseConfig.objects.create(config_type='ws', ws_id=ws_id, config_key='REPORT_EXPORT',
+                                                          config_value='0')
             ws_config.update({
                 'auto_recover_server': auto_recover.config_value,
                 'recover_server_protect_duration': recover_duration.config_value,
-                'func_result_view_type': func_view_config.config_value
+                'func_result_view_type': func_view_config.config_value,
+                'report_export': report_export.config_value
             })
         return ws_config
 
@@ -371,6 +376,7 @@ class WorkspaceConfigService(CommonService):
         auto_recover_server = data.get('auto_recover_server')
         recover_server_protect_duration = data.get('recover_server_protect_duration', '')
         func_result_view_type = data.get('func_result_view_type', '')
+        report_export = data.get('report_export', '')
         auto_recover = BaseConfig.objects.filter(
             config_type='ws', ws_id=ws_id, config_key='AUTO_RECOVER_SERVER').first()
         if auto_recover is not None and auto_recover.config_value != auto_recover_server:
@@ -393,4 +399,12 @@ class WorkspaceConfigService(CommonService):
                 BaseConfig.objects.filter(
                     config_type='ws', ws_id=ws_id, config_key='FUNC_RESULT_VIEW_TYPE').update(
                     config_value=func_result_view_type)
+        if report_export:
+            if report_export not in ['0', '1']:
+                return 201, 'report_export参数值格式不符合: 0 / 1'
+            report_export_config = BaseConfig.objects.filter(config_type='ws', ws_id=ws_id,
+                                                             config_key='REPORT_EXPORT').first()
+            if report_export_config and report_export_config.config_value != report_export:
+                report_export_config.config_value = report_export
+                report_export_config.save()
         return 200, 'success'
