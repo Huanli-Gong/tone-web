@@ -39,30 +39,21 @@ if [ $? -ne 0 ];then
     exit 1
 fi
 
-# clone_code "tone-matrix" $work_dir/tone/matrics
-#if [ $? -ne 0 ];then
-#    echo "git clone tone-matrix error"
-#    exit 1
-#fi
+pip3 install psutil > $logfile 2>&1
 
-cd $work_dir/tone && make install > $log 2>&1
-if [ $? -ne 0 ];then
-    echo "tone make install error"
-    exit 1
-fi
-
-tone_list_output=$(tone list)
+tone_list_output=$($work_dir/tone/tone list)
+tone_bin=$work_dir/tone/tone
 
 tone_list() {
   i=0
   while [ "$i" -lt $# ]; do
     if [ $((i % 2)) = 0 ]; then
       tmp=$((i + 1))
-      eval "echo \"suite:\${${tmp}}\""
-      eval "case_info=\`tone list \${${tmp}}\`"
+      eval "echo "suite:\${${tmp}}""
+      eval "case_info=\`$tone_bin list \${${tmp}}\`"
     else
       tmp=$((i + 1))
-      eval "echo \"type:\${${tmp}}\""
+      eval "echo "type:\${${tmp}}""
       echo "$case_info"
       echo "-------------------------------"
     fi
@@ -70,6 +61,6 @@ tone_list() {
   done
 }
 
-tone_list ${tone_list_output}
+tone_list $tone_list_output
 
 """
