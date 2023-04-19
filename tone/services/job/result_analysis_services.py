@@ -9,7 +9,7 @@ from datetime import datetime
 
 from django.db import connection
 from django.db.models import Q
-
+from tone.core.utils.common_utils import query_all_dict
 from tone.models import FuncResult, TestJob, JobTagRelation, User, TestJobCase, PerfResult, JobTag, \
     Project
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
@@ -29,13 +29,11 @@ class PerfAnalysisService(CommonService):
         project_id = data.get('project_id')
         if not project_id:
             assert project_id, AnalysisException(ErrorCode.PROJECT_ID_NEED)
-        test_job = TestJob.objects.filter(project_id=project_id)
-        if test_job:
-            metrics = PerfResult.objects.filter(test_suite_id=test_suite, test_case_id=test_case,
-                                                test_job_id__in=test_job.values_list('id', flat=True)). \
-                values_list('metric', flat=True).distinct()
-            metric_list = sorted(list(set(metrics)))
-            return metric_list
+        raw_sql = 'SELECT distinct metric FROM perf_result WHERE test_suite_id=%s AND test_case_id=%s AND ' \
+                  'test_job_id IN (SELECT id FROM test_job WHERE project_id=%s AND is_deleted=0) ORDER BY metric '
+        metric_result = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case, project_id])
+        metric_list = [m['metric'] for m in metric_result]
+        return metric_list
 
     def filter(self, data):
         metric_map = dict()
