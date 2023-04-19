@@ -16,7 +16,7 @@ clone_code(){
     rm -Rf $tone_install
     git clone --single-branch --branch $tone_branch https://gitee.com/anolis/tone-cli $1 > $log 2>&1
     if [ $? -ne 0 ]; then
-      echo git clone fail >>$logfile
+      echo git clone fail >>$log
       sleep 5
       continue
     else
