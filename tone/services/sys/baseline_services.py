@@ -285,7 +285,8 @@ class BaselineUploadService(CommonService):
         error_list = dict()
         try:
             file_bytes = file.read()
-            open(file_name, 'wb').write(file_bytes)
+            with open(file_name, 'wb') as f:
+                f.write(file_bytes)
             tar_file = tarfile.open(file_name, 'r')
             baseline_info = yaml.load(tar_file.extractfile('baseline.yaml').read(), Loader=yaml.FullLoader)
             if baseline_info.get('test_type') != data.get('test_type'):
@@ -316,6 +317,7 @@ class BaselineUploadService(CommonService):
                     PerfBaselineDetail.objects.bulk_create(perf_obj_list)
                 if server_obj_list:
                     BaselineServerSnapshot.objects.bulk_create(server_obj_list)
+            tar_file.close()
             os.remove(file_name)
         except Exception as ex:
             code = 201
