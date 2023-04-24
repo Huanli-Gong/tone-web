@@ -110,7 +110,8 @@ class BaseHandle(metaclass=ABCMeta):
                 'console': case.get('console', False),
                 'setup_info': case.get('setup_info', None),
                 'monitor_info': case.get('monitor_info', list()),
-                'server_object_id': case.get('server_object_id'),
+                'server_object_id': case.get('server_object_id') \
+                    if not case_dict.get('server_object_id') else case_dict.get('server_object_id'),
                 'server_tag_id': ','.join([str(i) for i in case.get('server_tag_id')])
                 if case.get('server_tag_id') else '',
                 'priority': case.get('priority', 10),

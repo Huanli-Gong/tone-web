@@ -28,7 +28,6 @@ from tone.core.common.services import CommonService
 from tone.core.common.constant import MonitorType, PERFORMANCE, PREPARE_STEP_STAGE_MAP
 from tone.core.utils.permission_manage import check_operator_permission
 from tone.core.utils.tone_thread import ToneThread
-from tone.core.utils.verify_tools import check_contains_chinese
 from tone.models import TestJob, TestJobCase, TestJobSuite, JobCollection, TestServerSnapshot, CloudServerSnapshot, \
     PerfResult, TestServer, TestClusterServer, CloudServer, BaseConfig, TestClusterSnapshot, JobDownloadRecord
 from tone.models import JobType, User, FuncResult, Baseline, BuildJob, Project, Product, ReportObjectRelation, \
@@ -466,10 +465,14 @@ class JobTestService(CommonService):
             job_id_li.append(job_id)
         if not self.check_delete_permission(operator, job_id_li):
             return False, '无权限删除非自己创建的job'
+        delete_thread = ToneThread(self._delete_jobs, (job_id_li,))
+        delete_thread.start()
+        return True, '删除成功'
+
+    def _delete_jobs(self, job_id_li):
         TestJob.objects.filter(id__in=job_id_li).delete()
         for job_id in job_id_li:
-            ToneThread(release_server, (job_id,)).start()
-        return True, '删除成功'
+            release_server(job_id)
 
     @staticmethod
     def create(data, operator):
@@ -542,7 +545,10 @@ class JobTestService(CommonService):
                     file_dir = os.path.dirname(local_file)
                     if not os.path.exists(file_dir):
                         os.makedirs(file_dir)
-                    self.download_file(oss_file, local_file)
+                    try:
+                        self.download_file(oss_file, local_file)
+                    except Exception:
+                        continue
                 tf = tarfile.open(name=target_file, mode='w:gz')
                 tf.add(job_yaml, arcname='job.yaml')
                 tf.add(result_dir, arcname='result')

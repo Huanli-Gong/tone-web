@@ -36,7 +36,7 @@ def sync_case_info_by_toneagent():
     request.set_sync('true')
     request.set_timeout(180)
     res = request.send_request()
-    if not res['SUCCESS']:
+    if not res['SUCCESS'] or res['RESULT']['TASK_STATUS'] != 'success':
         logger.warning('sync_case_info_by_toneagent: sync case failed: result:{}'.format(res))
         return False, res['ERROR_MSG']
     logger.info('sync_case_info_by_toneagent: sync case success: result:{}'.format(res))

@@ -119,15 +119,15 @@ EOF
 
 
 list_file(){{
-    for i in `ls $1`
+    local files=("$1"/*)      
+    for file in "${{files[@]}}"
     do
-      son="$1/$i"
-      if [ -d $son ] && [ $son != "." ] && [ $son != ".." ];then
-        list_file $son
-      else
-        echo ${{son:$TONE_RESULT_PATH_LEN}} >> $LOG
-        echo ${{son:$TONE_RESULT_PATH_LEN}}
-      fi
+        if [ -d "$file" ] && [ "$file" != "$1/." ] && [ "$file" != "$1/.." ]; then
+            list_file "$file"  
+        else
+            echo "${{file:$TONE_RESULT_PATH_LEN}}" >> "$LOG"
+            echo "${{file:$TONE_RESULT_PATH_LEN}}"
+        fi
     done
 }}
 

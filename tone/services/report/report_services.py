@@ -11,8 +11,7 @@ from django.db import transaction
 
 from tone.core.utils.permission_manage import check_operator_permission
 from tone.models import Report, ReportItem, ReportItemConf, ReportItemMetric, ReportItemSubCase, ReportObjectRelation, \
-    ReportItemSuite, TestJobCase, TestServerSnapshot, CloudServerSnapshot, PlanInstance, PlanInstanceTestRelation, \
-    PerfResult, FuncResult, TestMetric, ReportDetail, FuncBaselineDetail, PerfBaselineDetail
+    ReportItemSuite, PerfResult, FuncResult, TestMetric, ReportDetail, FuncBaselineDetail, PerfBaselineDetail
 from tone.core.common.job_result_helper import get_compare_result, get_func_compare_data
 from tone.core.handle.report_handle import save_report_detail, get_old_report, get_group_server_info
 from tone.core.common.services import CommonService
@@ -22,6 +21,7 @@ from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import ReportException
 from tone.core.utils.date_util import DateUtil
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
+from tone.core.utils.tone_thread import ToneThread
 
 
 class ReportTemplateService(CommonService):
@@ -301,12 +301,16 @@ class ReportService(CommonService):
             [ReportObjectRelation.objects.create(object_type='plan', object_id=plan_id, report_id=report.id) for plan_id
              in plan_li]
             report_id = report.id
-            perf_data = test_item.get('perf_data', list())
-            func_data = test_item.get('func_data', list())
-            self.save_test_item_v1(perf_data, report_id, 'performance', base_index)
-            self.save_test_item_v1(func_data, report_id, 'functional', base_index)
+            report_save = ToneThread(self.create_report_back_task, (base_index, report, report_id, test_item))
+            report_save.start()
+        return None
+
+    def create_report_back_task(self, base_index, report, report_id, test_item):
+        perf_data = test_item.get('perf_data', list())
+        func_data = test_item.get('func_data', list())
+        self.save_test_item_v1(perf_data, report_id, 'performance', base_index)
+        self.save_test_item_v1(func_data, report_id, 'functional', base_index)
         save_report_detail(report_id, base_index, get_old_report(report), report.is_automatic)
-        return report
 
     def save_test_item_v1(self, data, report_id, test_type, base_index):
         for item in data:

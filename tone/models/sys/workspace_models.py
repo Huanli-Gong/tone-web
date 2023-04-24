@@ -28,7 +28,7 @@ class Project(BaseModel):
     description = models.CharField(max_length=512, null=True, blank=True, help_text='描述')
     ws_id = models.CharField(max_length=8, db_index=True, help_text='关联Workspace')
     product_id = models.IntegerField(help_text='关联product', null=True)
-    product_version = models.CharField(max_length=128, null=True, blank=True, db_index=True, help_text='产品版本')
+    product_version = models.CharField(max_length=512, null=True, blank=True, db_index=True, help_text='产品版本')
     is_default = models.BooleanField(default=False, help_text='是否默认')
     priority = models.IntegerField(default=10, help_text="显示优先级")
     drag_modified = models.DateTimeField(auto_now_add=True, help_text='拖拽修改时间', null=True, blank=True)
