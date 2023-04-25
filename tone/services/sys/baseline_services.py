@@ -21,7 +21,7 @@ from tone.core.utils.tone_thread import ToneThread
 from tone.core.utils.common_utils import query_all_dict
 from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail, TestJob, PerfResult, TestJobCase, \
     TestSuite, TestCase, Project, TestStep, FuncResult, TestMetric, TestServerSnapshot, \
-    CloudServerSnapshot, BaselineServerSnapshot, BaselineDownloadRecord
+    CloudServerSnapshot, BaselineServerSnapshot, BaselineDownloadRecord, TestClusterSnapshot, TestClusterServerSnapshot
 from tone.services.portal.sync_portal_task_servers import sync_baseline, sync_baseline_del
 from tone.serializers.sys.baseline_serializers import FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
 
@@ -633,6 +633,26 @@ class FuncBaselineService(CommonService):
         sync_baseline.delay(baseline_id)
 
 
+def get_job_baseline_server(job_id, case_id):
+    snap_server_id = None
+    test_job_case = TestJobCase.objects.filter(job_id=job_id, test_case_id=case_id).first()
+    test_step_case = TestStep.objects.filter(job_id=job_id, job_case_id=test_job_case.id).first()
+    server_provider = test_job_case.server_provider
+    if test_job_case.run_mode == 'cluster':
+        test_cluster_snap = TestClusterSnapshot.objects.filter(id=test_job_case.server_snapshot_id).first()
+        baseline_server_snap = TestClusterServerSnapshot.objects.filter(
+            cluster_id=test_cluster_snap.id, baseline_server=True).first()
+        snap_server_id = baseline_server_snap.server_id
+    else:
+        if test_step_case and test_step_case.server:
+            snap_server_id = test_step_case.server
+    if server_provider == 'aliyun':
+        machine = CloudServerSnapshot.objects.filter(id=snap_server_id, query_scope='all').first()
+    else:
+        machine = TestServerSnapshot.objects.filter(id=snap_server_id, query_scope='all').first()
+    return server_provider, machine
+
+
 def save_baseline_server(baseline_id, server_provider, machine, job_id, suite_id, case_id):
     if not machine:
         return
@@ -837,21 +857,17 @@ class PerfBaselineService(CommonService):
         test_job_case = TestJobCase.objects.filter(job_id=job_id, test_suite_id=suite_id, test_case_id=case_id).first()
         test_step_case = TestStep.objects.filter(job_id=job_id, job_case_id=test_job_case.id).first()
         if test_step_case and test_step_case.server:
-            server_object_id = test_step_case.server
-            server_provider = 'aliyun'
-            machine = TestServerSnapshot.objects.filter(id=server_object_id, query_scope='all').first()
-            if machine is not None:
-                sm_name = machine.sm_name
-                machine_ip = machine.ip
-                server_provider = 'aligroup'
-            else:
-                machine = CloudServerSnapshot.objects.filter(id=server_object_id, query_scope='all').first()
+            server_provider, machine = get_job_baseline_server(job_id, case_id)
+            if server_provider == 'aliyun':
                 if machine is not None:
-                    server_provider = 'aliyun'
                     instance_type = machine.instance_type
                     image = machine.image
                     bandwidth = machine.bandwidth
-                    machine_ip = machine.private_ip
+                    machine_ip = machine.pub_ip
+            else:
+                if machine is not None:
+                    sm_name = machine.sm_name
+                    machine_ip = machine.ip
             save_baseline_server(baseline_id, server_provider, machine, job_id, suite_id, case_id)
         perf_res_list = PerfResult.objects.filter(test_job_id=job_id, test_suite_id=suite_id, test_case_id=case_id)
         create_list = []
@@ -1052,15 +1068,9 @@ class PerfBaselineService(CommonService):
                                                                test_job.server_provider, user_id)
             if perf_baseline_detail_obj:
                 perf_baseline_detail_list.append(perf_baseline_detail_obj)
-            baseline_server_obj = self._add_baseline_server(perf_result, job_id, baseline_id)
-            if baseline_server_obj:
-                exist_server = [server for server in baseline_server_list
-                                if server.baseline_id == baseline_server_obj.baseline_id and
-                                server.test_job_id == baseline_server_obj.test_job_id and
-                                server.test_suite_id == baseline_server_obj.test_suite_id and
-                                server.test_case_id == baseline_server_obj.test_case_id]
-                if len(exist_server) == 0:
-                    baseline_server_list.append(baseline_server_obj)
+            server_provider, machine = get_job_baseline_server(job_id, perf_result['test_case_id'])
+            save_baseline_server(baseline_id, server_provider, machine, job_id,
+                                 perf_result['test_suite_id'], perf_result['test_case_id'])
         if len(baseline_server_list) > 0:
             BaselineServerSnapshot.objects.bulk_create(baseline_server_list)
         PerfBaselineDetail.objects.bulk_create(perf_baseline_detail_list)
