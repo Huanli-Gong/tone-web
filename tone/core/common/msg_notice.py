@@ -626,7 +626,7 @@ class OutSiteMsgHandle(object):
         nightly_flag = 2
         if nightly_tag:
             analytics_tag = JobTag.objects.filter(name='analytics', ws_id=job_obj.ws_id).values_list('id')
-            tag_id_list = JobTag.objects.filter(name=nightly_tag).values_list('id')
+            tag_id_list = JobTag.objects.filter(name=nightly_tag, ws_id=job_obj.ws_id).values_list('id')
             analytics_task = JobTagRelation.objects.filter(tag_id__in=analytics_tag).values_list('job_id')
             nightly_task_list = JobTagRelation.objects.filter(tag_id__in=tag_id_list, job_id__in=analytics_task
                                                               ).exclude(job_id=job_obj.id).values_list('job_id')
@@ -656,16 +656,14 @@ class OutSiteMsgHandle(object):
                 presult_e['case_name'] = case_name
                 presult_e['suite_name'] = suite_name
                 if nightly_tag:
-                    job_tag = JobTag.objects.filter(name=nightly_tag).first()
-                    tag_id = job_tag.id if job_tag else ''
                     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
                     end_date = datetime.now().strftime('%Y-%m-%d')
                     presult_e['link'] = '{}/ws/{}/test_analysis/time?' \
                                         'test_type={}&show_type=0&provider_env={}&start_time={}&end_time={}&' \
-                                        'tag={}&project_id={}&test_suite_id={}&test_case_id={}&' \
+                                        'project_id={}&test_suite_id={}&test_case_id={}&' \
                                         'metric={}&title={}%2F{}'.\
                         format(get_skip_url(), job_obj.ws_id, job_obj.test_type, job_obj.server_provider, start_date,
-                               end_date, tag_id, job_obj.project_id, case_result.test_suite_id, case_id,
+                               end_date, job_obj.project_id, case_result.test_suite_id, case_id,
                                quote(case_result.metric), quote(suite_name), quote(conf_name))
                 else:
                     presult_e['link'] = ''
