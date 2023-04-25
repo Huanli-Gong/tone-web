@@ -471,10 +471,14 @@ class FuncBaselineService(CommonService):
                 if not TestCase.objects.filter(id__in=case_id_list).exists():
                     continue
                 suite_data = {}
-                suite_name = TestSuite.objects.get(id=suite_id).name
-                suite_data["test_suite_name"] = suite_name
-                suite_data["test_suite_id"] = suite_id
-                response_data.append(suite_data)
+                q = Q(id=suite_id)
+                if data.get('name'):
+                    q &= Q(name__icontains=data.get('name'))
+                if TestSuite.objects.filter(q).exists():
+                    suite_name = TestSuite.objects.filter(q).first().name
+                    suite_data["test_suite_name"] = suite_name
+                    suite_data["test_suite_id"] = suite_id
+                    response_data.append(suite_data)
         else:
             suite_id = data.get("test_suite_id", "")
             case_id = data.get("test_case_id", "")
