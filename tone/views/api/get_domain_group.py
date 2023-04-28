@@ -70,12 +70,12 @@ def get_domain_group_v1(suite_list):
         raw_sql = 'SELECT a.id,a.test_suite_id,b.test_type,d.name as domain FROM test_case a LEFT JOIN ' \
                   'test_suite b ON a.test_suite_id=b.id LEFT JOIN domain_relation c ON ' \
                   'c.object_type="case" AND c.object_id=a.id LEFT JOIN test_domain d ON ' \
-                  'c.domain_id=d.id WHERE a.is_deleted=0 AND b.is_deleted=0 AND c.is_deleted=0 AND' \
+                  'c.domain_id=d.id WHERE c.is_deleted=0 AND' \
                   ' d.is_deleted=0 AND (' + sql_filter + \
                   ') UNION SELECT a.id,a.test_suite_id,b.test_type,"其他" as domain FROM test_case' \
                   ' a LEFT JOIN test_suite b ' \
                   'ON a.test_suite_id=b.id WHERE a.id NOT IN (SELECT object_id from domain_relation WHERE ' \
-                  'object_type="case" AND is_deleted=0) AND a.is_deleted=0 AND b.is_deleted=0 AND ' \
+                  'object_type="case" AND is_deleted=0) AND ' \
                   '(' + sql_filter + ')'
         test_case_list = query_all_dict(raw_sql)
     for test_case in test_case_list:
