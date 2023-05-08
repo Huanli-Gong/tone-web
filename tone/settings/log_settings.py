@@ -108,47 +108,47 @@ LOGGING = {
     'loggers': {
         'acl': {
             'handlers': ['acl'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': True,
         },
         'schedule': {
             'handlers': ['schedule'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': False,
         },
         'sync_test_farm': {
             'handlers': ['sync_test_farm'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': False,
         },
         'message': {
             'handlers': ['message'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': False,
         },
         'test_plan': {
             'handlers': ['test_plan'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': False,
         },
         'callback': {
             'handlers': ['callback'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': False,
         },
         'aliyun': {
             'handlers': ['aliyun'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': False,
         },
         'error': {
             'handlers': ['error'],
-            'level': 'INFO',
+            'level': 'ERROR',
             'propagate': True,
         },
         '': {
             'handlers': ['all'],
-            'level': 'WARNING',
+            'level': 'ERROR',
         },
     },
 }
