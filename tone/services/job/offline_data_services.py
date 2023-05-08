@@ -18,7 +18,7 @@ from django.db import transaction
 from tone import settings
 from tone.core.utils.sftp_client import sftp_client
 from tone.models.job.upload_models import OfflineUpload
-from tone.models.job.job_models import TestJob, TestJobCase, TestJobSuite, TestStep
+from tone.models.job.job_models import TestJob, TestJobCase, TestJobSuite, TestStep, Product, Project
 from tone.models.sys.testcase_model import TestSuite, TestCase, TestMetric
 from tone.models.sys.server_models import TestServer, TestServerSnapshot, CloudServer, CloudServerSnapshot,\
     TestCluster, TestClusterServer
@@ -40,6 +40,22 @@ class OfflineDataUploadService(object):
             q &= Q(file_name__icontains=data.get('name'))
         if data.get('ws_id'):
             q &= Q(ws_id=data.get('ws_id'))
+        if data.get('state'):
+            q &= Q(state__in=data.getlist('state'))
+        if data.get('project_id'):
+            q &= Q(project_id__in=data.getlist('project_id'))
+        if data.get('baseline_id'):
+            q &= Q(baseline_id__in=data.getlist('baseline_id'))
+        if data.get('test_type'):
+            q &= Q(test_type__in=data.getlist('test_type'))
+        if data.get('uploader'):
+            q &= Q(uploader=data.get('uploader'))
+        if data.get('product_id'):
+            projects = Project.objects.filter(product_id__in=data.getlist('product_id')).values_list('id', flat=True)
+            if projects:
+                q &= Q(project_id__in=list(projects))
+        if data.get('start_time') and data.get('end_time'):
+            q &= Q(gmt_created__range=(data.get('start_time'), data.get('end_time')))
         return queryset.filter(q)
 
     def post(self, data, file, operator):

@@ -1419,37 +1419,50 @@ class MachineFaultService(CommonService):
             if not str(data.get('job_id')).isdigit():
                 raise JobTestException(ErrorCode.TEST_JOB_NONEXISTENT)
             job_id = data.get('job_id')
-            server_provider = TestJob.objects.filter(id=job_id).first().server_provider
-            cluster_server = TestJobCase.objects.filter(
-                job_id=job_id, state__in=['pending', 'running'], run_mode='cluster').values('server_object_id')
-            cluster_server_id = None
-            if cluster_server:
-                cluster_server_id = TestClusterServer.objects.filter(cluser_id__in=cluster_server).values('server_id')
-            test_server = TestJobCase.objects.filter(
-                job_id=job_id, state__in=['pending', 'running'], run_mode='standalone').values('server_object_id')
-            if cluster_server_id:
-                test_server.extend(cluster_server_id)
-            if server_provider == 'aligroup':
-                if test_server:
-                    q = Q(id__in=test_server) & Q(state='Broken')
-                    return TestServer.objects.filter(q)
-                else:
-                    test_server_snapshot = TestJobCase.objects.filter(
-                        job_id=job_id, state__in=['pending', 'running'], run_mode='standalone').\
-                        values('server_snapshot_id')
-                    q = Q(id__in=test_server_snapshot) & Q(state='Broken')
-                    return TestServerSnapshot.objects.filter(q)
-            else:
-                if test_server:
-                    q = Q(id__in=test_server) & Q(state='Broken')
-                    return CloudServer.objects.filter(q)
-                else:
-                    cloud_server_snapshot = TestJobCase.objects.filter(
-                        job_id=job_id, state__in=['pending', 'running']).values('server_snapshot_id')
-                    q = Q(id__in=cloud_server_snapshot) & Q(state='Broken')
-                    return CloudServerSnapshot.objects.filter(q)
+            return _get_machine_fault(job_id)
         else:
             raise JobTestException(ErrorCode.JOB_NEED)
+
+
+def _get_machine_fault(job_id):
+    server_provider = TestJob.objects.filter(id=job_id).first().server_provider
+    cluster_server = TestJobCase.objects.filter(
+        job_id=job_id, state__in=['pending', 'running'], run_mode='cluster').\
+        values_list('server_object_id', flat=True).distinct()
+    cluster_server_id = None
+    if cluster_server:
+        cluster_server_id = TestClusterServer.objects.filter(cluster_id__in=list(cluster_server)).\
+            values(server_object_id=F('server_id'))
+    if server_provider == 'aligroup':
+        test_server = TestJobCase.objects.filter(
+            job_id=job_id, state__in=['pending', 'running'], run_mode='standalone').values('server_object_id')
+        if cluster_server_id:
+            test_server.union(cluster_server_id)
+        if test_server:
+            queryset = TestServer.objects.all()
+            q = Q(id__in=test_server) & Q(state='Broken')
+            return queryset.filter(q)
+        else:
+            test_server_snapshot = TestJobCase.objects.filter(
+                job_id=job_id, state__in=['pending', 'running']).values('server_snapshot_id')
+            queryset = TestServerSnapshot.objects.all()
+            q = Q(id__in=test_server_snapshot) & Q(state='Broken')
+            return queryset.filter(q)
+    else:
+        test_server = TestJobCase.objects.filter(
+            job_id=job_id, state__in=['pending', 'running'], run_mode='standalone').values('server_object_id')
+        if cluster_server_id:
+            test_server.union(cluster_server_id)
+        if test_server:
+            queryset = CloudServer.objects.all()
+            q = Q(id__in=test_server) & Q(state='Broken')
+            return queryset.filter(q)
+        else:
+            cloud_server_snapshot = TestJobCase.objects.filter(
+                job_id=job_id, state__in=['pending', 'running']).values('server_snapshot_id')
+            queryset = CloudServerSnapshot.objects.all()
+            q = Q(id__in=cloud_server_snapshot) & Q(state='Broken')
+            return queryset.filter(q)
 
 
 def package_server_list(job):

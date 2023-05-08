@@ -279,7 +279,7 @@ class FuncAnalysisService(CommonService):
         analytics_tag_id_set = set(JobTag.objects.filter(ws_id=ws_id, name='analytics').values_list('id', flat=True))
         if tag:
             analytics_tag_id_set.add(tag)
-        job_tag_list = JobTagRelation.objects.all()
+        job_tag_list = JobTagRelation.objects.filter(job_id__in=func_job_ids)
         for job in job_queryset:
             job_tag_relation_ids = set()
             for job_tag in job_tag_list:
@@ -287,62 +287,77 @@ class FuncAnalysisService(CommonService):
                     job_tag_relation_ids.add(job_tag.tag_id)
             if analytics_tag_id_set.issubset(job_tag_relation_ids):
                 job_li.append(job)
-        sub_case_map = self.get_sub_case_map(job_li, start_time, end_time)
-        res_data = self.get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type)
+        sub_case_map, job_id_li = self.get_sub_case_map(job_li, start_time, end_time)
+        res_data = self.get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li)
         return res_data
 
     @staticmethod
     def get_sub_case_map(queryset, start_time, end_time):
         sub_case_map = get_data_map(start_time, end_time)
+        job_id_li = list()
         for job in queryset:
             if not sub_case_map.get(datetime.strftime(job.start_time, "%Y-%m-%d"), None):
-                get_case_map(sub_case_map, job)
-        return sub_case_map
+                get_case_map(sub_case_map, job, job_id_li)
+        return sub_case_map, job_id_li
 
     @staticmethod
-    def get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type):
+    def get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li):
         job_list = list()
         case_map = dict()
+        job_li = ','.join(str(e) for e in job_id_li)
         if show_type == 'pass_rate':
-            for key, value in sub_case_map.items():
-                if value:
-                    func_queryset = FuncResult.objects.filter(test_job_id=value.get('job_id'), test_suite_id=test_suite,
-                                                              test_case_id=test_case)
-                    all_case = func_queryset.count()
-                    pass_case = func_queryset.filter(sub_case_result=1).count()
-                    job_case = TestJobCase.objects.get(job_id=value.get('job_id'), test_suite_id=test_suite,
-                                                       test_case_id=test_case)
-                    case_map[key] = {**value,
-                                     **{'all_case': all_case, 'pass_case': pass_case,
-                                        'pass_rate': pass_case / all_case, 'note': job_case.analysis_note}}
-                    job_list.append(
-                        {**value, **{'server': get_job_case_run_server(job_case.id), 'note': job_case.analysis_note,
-                                     'result_obj_id': job_case.id}})
-                else:
-                    case_map[key] = value
+            raw_sql = 'SELECT COUNT(*) AS all_case,SUM(case when sub_case_result=1 then 1 ELSE 0 END ) AS ' \
+                      'pass_case,test_job_id FROM func_result WHERE test_job_id IN (' + job_li + ') AND ' \
+                      'test_suite_id=%s AND test_case_id=%s GROUP BY test_job_id '
+            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case])
         else:
             assert sub_case_name, AnalysisException(ErrorCode.SUB_CASE_NEED)
-            for key, value in sub_case_map.items():
-                if value:
-                    job_case = TestJobCase.objects.filter(job_id=value.get('job_id'), test_suite_id=test_suite,
-                                                          test_case_id=test_case).first()
-                    func_result = FuncResult.objects.filter(test_job_id=value.get('job_id'), test_suite_id=test_suite,
-                                                            test_case_id=test_case, sub_case_name=sub_case_name).first()
-                    job_list.append(
-                        {**value, **{
-                            'server': get_job_case_run_server(job_case.id),
-                            'server_id': get_job_case_run_server(job_case.id, return_field='id'),
-                            'server_description': get_job_case_run_server(job_case.id, return_field='description'),
-                            'server_provider': job_case.server_provider,
-                            'note': func_result.note
-                        },
-                         'result_obj_id': func_result.id}
-                    )
+            raw_sql = 'SELECT id,note,sub_case_result,test_job_id FROM func_result WHERE test_job_id ' \
+                      'IN (' + job_li + ') AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
+            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case, sub_case_name])
+        job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN (' + job_li + ')' \
+                       ' AND test_suite_id=%s AND test_case_id=%s'
+        job_cases = query_all_dict(job_case_sql.replace('\'', ''), [test_suite, test_case])
+        for key, value in sub_case_map.items():
+            if value:
+                job_case = [case for case in job_cases if case['job_id'] == value.get('job_id')]
+                analysis_note = None
+                job_case_id = 0
+                if len(job_case) > 0:
+                    job_case_id = job_case[0]['id']
+                    analysis_note = job_case[0]['analysis_note']
+                if show_type == 'pass_rate':
+                    all_case = 0
+                    pass_case = 0
+                    func_count = [count for count in func_queryset if count['test_job_id'] == value.get('job_id')]
+                    if len(func_count) > 0:
+                        all_case = func_count[0]['all_case']
+                        pass_case = func_count[0]['pass_case']
                     case_map[key] = {**value,
-                                     **{'result': FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result),
-                                        'note': func_result.note}}
+                                     **{'all_case': all_case, 'pass_case': pass_case,
+                                        'pass_rate': pass_case / all_case, 'note': analysis_note}}
+                    job_list.append(
+                        {**value, **{'server': get_job_case_run_server(job_case_id),
+                                     'note': analysis_note,
+                                     'result_obj_id': job_case_id}})
                 else:
-                    case_map[key] = value
+                    note = 0
+                    func_result_id = 0
+                    sub_case_result = None
+                    func_result = [result for result in func_queryset if
+                                   result['test_job_id'] == value.get('job_id')]
+                    if len(func_result) > 0:
+                        note = func_result[0]['note']
+                        func_result_id = func_result[0]['id']
+                        sub_case_result = func_result[0]['sub_case_result']
+                    job_list.append(
+                        {**value, **{'server': get_job_case_run_server(job_case_id), 'note': note},
+                         'result_obj_id': func_result_id})
+                    case_map[key] = {**value,
+                                     **{'result': FUNC_CASE_RESULT_TYPE_MAP.get(sub_case_result),
+                                        'note': note}}
+            else:
+                case_map[key] = value
         res_data = {
             'job_list': job_list,
             'case_map': case_map,
@@ -360,7 +375,7 @@ def get_data_map(start_time, end_time):
     return data_map
 
 
-def get_case_map(sub_case_map, job):
+def get_case_map(sub_case_map, job, job_id_li):
     _sub_case_map = {
         'job_id': job.id,
         'job_name': job.name,
@@ -370,4 +385,5 @@ def get_case_map(sub_case_map, job):
         'creator': User.objects.get(id=job.creator).first_name or User.objects.get(
             id=job.creator).last_name,
     }
+    job_id_li.append(job.id)
     sub_case_map[datetime.strftime(job.gmt_created, "%Y-%m-%d")] = _sub_case_map
