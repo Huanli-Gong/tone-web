@@ -5,10 +5,12 @@ Date:
 Author: Yfh
 """
 import json
+import urllib.parse as urlparse
 from datetime import datetime
+from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -95,7 +97,8 @@ def job_query(request):
                 'server_provider': job_case.server_provider,
                 'is_instance': bool(is_instance),
                 'run_server': get_job_case_run_server(job_case.id),
-            }
+            },
+            'log': get_log_file(job_case)
         }
         if job.test_type == 'performance':
             metric_results = PerfResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
@@ -148,6 +151,13 @@ def job_query(request):
     resp.data = resp_data
     resp.result = True
     return resp.json_resp()
+
+
+def get_log_file(job_case):
+    test_step = TestStep.objects.filter(job_case_id=job_case.id, stage='run_case')
+    if test_step.exists():
+        path = urlparse.urlparse(test_step.first().log_file).path
+        return f"http://{settings.TONE_STORAGE_DOMAIN}:{settings.TONE_STORAGE_PROXY_PORT}{path}"
 
 
 @api_catch_error
