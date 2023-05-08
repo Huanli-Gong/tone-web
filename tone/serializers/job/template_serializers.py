@@ -9,10 +9,10 @@ from rest_framework import serializers
 from tone.core.common.serializers import CommonSerializer
 from tone.core.utils.common_utils import kernel_info_format
 from tone.models import TestTemplate, TestTmplCase, TestTmplSuite, TemplateTagRelation, JobTypeItem, \
-    JobTypeItemRelation, JobTag
+    JobTypeItemRelation, JobTag, ServerTag
 from tone.models.job.job_models import JobType
 from tone.models.sys.auth_models import User
-from tone.core.common.job_result_helper import get_job_case_server, get_custom_server
+from tone.core.common.job_result_helper import get_rerun_case_server, get_custom_server
 
 
 class TestTemplateSerializer(CommonSerializer):
@@ -165,14 +165,16 @@ class TestTemplateDetailSerializer(CommonSerializer):
             }
             cases = list()
             for case in templates_cases.filter(test_suite_id=template_suite.test_suite_id):
-                ip, is_instance, _, _ = get_job_case_server(case.id, template=True)
+                server_obj = get_rerun_case_server(case, template=True)
+                server_tag_id = list() if not case.server_tag_id else \
+                    [tag for tag in ServerTag.objects.filter(id__in=str(case.server_tag_id).split(',')).
+                        values_list('id', flat=True)]
                 cases.append({
                     'test_case_id': case.test_case_id,
                     'setup_info': case.setup_info,
                     'cleanup_info': case.cleanup_info,
                     'server_object_id': case.server_object_id,
-                    'server_tag_id': case.server_tag_id if not case.server_tag_id else [
-                        int(tag_id) for tag_id in case.server_tag_id.split(',') if tag_id.isdigit()],
+                    'server_tag_id': server_tag_id,
                     'customer_server': get_custom_server(case.id, template=True),
                     'need_reboot': case.need_reboot,
                     'console': case.console,
@@ -180,8 +182,8 @@ class TestTemplateDetailSerializer(CommonSerializer):
                     'priority': case.priority,
                     'env_info': case.env_info,
                     'repeat': case.repeat,
-                    'ip': ip,
-                    'is_instance': is_instance,
+                    'ip': server_obj.ip,
+                    'is_instance': server_obj.is_instance,
                 })
             obj_dict['cases'] = cases
             test_config.append(obj_dict)
