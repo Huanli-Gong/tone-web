@@ -676,7 +676,7 @@ class TestSuiteService(CommonService):
                 job_id_list = TestJobCase.objects.filter(
                     state__in=['running', 'pending'],
                     test_case_id__in=delete_case_list).values_list('job_id', flat=True)
-                if TestJob.objects.filter(ws_id=ws_id, id__in=job_id_list).exists():
+                if TestJob.objects.filter(ws_id=ws_id, id__in=job_id_list, state__in=['running', 'pending']).exists():
                     return 200, flag
                 tmpl_id_list = TestTmplCase.objects.filter(
                     test_case_id__in=delete_case_list).values_list('tmpl_id', flat=True)
