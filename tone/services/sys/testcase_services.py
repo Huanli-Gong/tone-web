@@ -14,7 +14,7 @@ from tone.core.utils.config_parser import get_config_from_db
 from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, PerfResult, TestDomain, \
     DomainRelation, datetime, SuiteData, CaseData, BaseConfig, RoleMember, Role, TestJobCase, TestJob, \
-    TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite
+    TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite, Workspace
 from tone.serializers.sys.testcase_serializers import RetrieveCaseSerializer, RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
 from tone.tasks import sync_suite_case_toneagent
@@ -649,6 +649,8 @@ class TestSuiteService(CommonService):
             tmpl_id_list = TestTmplCase.objects.filter(
                 test_case_id__in=case_id_list).values_list('tmpl_id', flat=True)
             res_queryset = TestTemplate.objects.filter(id__in=tmpl_id_list)
+        ws_list = Workspace.objects.all().values_list('id', flat=True)
+        res_queryset = res_queryset.filter(ws_id__in=ws_list)
         return res_queryset, flag
 
     @staticmethod
