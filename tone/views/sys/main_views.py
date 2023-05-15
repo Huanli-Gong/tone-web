@@ -1,10 +1,20 @@
-from django.shortcuts import render
 
-
-# @login_required
-from tone import settings
+import os
+import mimetypes
+from django.http import HttpResponse
 
 
 def index(request):
-    static_url = settings.STATIC_URL.strip('/') if settings.ENV_TYPE == 'local' else 'static'
-    return render(request, 'index.html', context={'static_url': static_url})
+    base_path = os.path.dirname(__file__).split('tone' + os.sep)[0]
+    if request.path == '/':
+        index_file = os.path.join(base_path, 'static', 'front', 'index.html')
+    else:
+        index_file = os.path.join(base_path, 'static', request.path.rsplit('/static/', 1)[1])
+    content_type, _ = mimetypes.guess_type(index_file)
+    with open(index_file, 'rb') as f:
+        if index_file.endswith('.html'):
+            return HttpResponse(
+                f.read().decode().replace('{TONE_WEB_RENDER_TONE_FRONT_REPLACE_KEY}', 'static/front'),
+                content_type=content_type)
+        else:
+            return HttpResponse(f.read(), content_type=content_type)
