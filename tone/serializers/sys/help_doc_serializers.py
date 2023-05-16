@@ -10,6 +10,7 @@ class HelpDocSerializer(CommonSerializer):
     creator = serializers.SerializerMethodField()
     update_user = serializers.SerializerMethodField()
     brief_content = serializers.SerializerMethodField()
+    is_top = serializers.SerializerMethodField()
 
     class Meta:
         model = HelpDoc
@@ -35,6 +36,10 @@ class HelpDocSerializer(CommonSerializer):
         if creator:
             update_user = creator.first_name if creator.first_name else creator.last_name
         return update_user
+
+    @staticmethod
+    def get_is_top(obj):
+        return obj.order_id == 1
 
 
 class HelpDocDetailSerializer(HelpDocSerializer):
