@@ -7,7 +7,7 @@ from django.http import HttpResponse
 def index(request):
     base_path = os.path.dirname(__file__).split('tone' + os.sep)[0]
     if '/static/' in request.path:
-        index_file = os.path.join(base_path, 'static', request.path.rsplit('/static/', 1)[1])
+        index_file = os.path.join(base_path, 'static', request.path.split('/static/', 1)[1])
     else:
         index_file = os.path.join(base_path, 'static', 'front', 'index.html')
     content_type, _ = mimetypes.guess_type(index_file)
