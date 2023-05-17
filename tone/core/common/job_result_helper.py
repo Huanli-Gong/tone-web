@@ -1328,6 +1328,13 @@ def get_suite_conf_sub_case_v1(suite_id, suite_name, base_index, group_job_list,
     duplicate_conf = base_job_list.get('duplicate_conf', [])
     conf_list = list()
     job_id_list = ','.join(str(e) for e in base_job_list.get('job_list'))
+    part_sql = ''
+    if not is_all:
+        conf_id_list = list()
+        for conf in suite_info:
+            conf_id_list.append(conf.get('conf_id'))
+        conf_id_list_str = ','.join(str(e) for e in conf_id_list)
+        part_sql += ' AND a.test_case_id IN (' + conf_id_list_str + ')'
     if base_is_baseline:
         raw_sql = 'SELECT distinct a.baseline_id as test_job_id,a.test_case_id,b.name AS test_case_name, ' \
                   '0 AS success_case ,' \
@@ -1335,7 +1342,7 @@ def get_suite_conf_sub_case_v1(suite_id, suite_name, base_index, group_job_list,
                   'COUNT(a.test_case_id ) AS total_count ' \
                   'FROM func_baseline_detail a LEFT JOIN test_case b ON a.test_case_id = b.id ' \
                   'WHERE a.is_deleted=0 AND a.test_suite_id=%s AND a.baseline_id IN (' + \
-                  job_id_list + ') GROUP BY a.baseline_id, a.test_case_id'
+                  job_id_list + ') ' + part_sql + ' GROUP BY a.baseline_id, a.test_case_id'
     else:
         raw_sql = 'SELECT distinct a.test_job_id,a.test_case_id,b.name AS test_case_name, ' \
                   'SUM(case when a.sub_case_result=1 then 1 ELSE 0 END ) AS success_case ,' \
@@ -1343,13 +1350,7 @@ def get_suite_conf_sub_case_v1(suite_id, suite_name, base_index, group_job_list,
                   'COUNT(a.test_case_id ) AS total_count ' \
                   'FROM func_result a LEFT JOIN test_case b ON a.test_case_id = b.id ' \
                   'WHERE a.is_deleted=0 AND a.test_suite_id=%s AND a.test_job_id IN (' + \
-                  job_id_list + ') GROUP BY a.test_job_id, a.test_case_id'
-    if not is_all:
-        conf_id_list = list()
-        for conf in suite_info:
-            conf_id_list.append(conf.get('conf_id'))
-        conf_id_list_str = ','.join(str(e) for e in conf_id_list)
-        raw_sql += ' AND a.test_case_id IN (' + conf_id_list_str + ')'
+                  job_id_list + ') ' + part_sql + ' GROUP BY a.test_job_id, a.test_case_id'
     case_list = query_all_dict(raw_sql.replace('\'', ''), [suite_id])
     for test_job_id in base_job_list.get('job_list'):
         for case_info in [c for c in case_list if c['test_job_id'] == test_job_id]:
