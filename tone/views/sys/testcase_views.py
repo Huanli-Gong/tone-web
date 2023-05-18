@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 
 from tone.core.common.views import CommonAPIView, BaseView
+from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, TestDomain, TestBusiness
 from tone.schemas.sys.testcase_schemas import TestCaseSchema, TestCaseDetailSchema, TestCaseBatchSchema, \
     TestSuiteSchema, TestSuiteDetailSchema, TestMetricSchema, TestMetricDetailSchema, WorkspaceCaseSchema, \
@@ -369,6 +370,20 @@ class WorkspaceCaseView(CommonAPIView):
                 return Response(response_data)
             else:
                 self.serializer_class = TestSuiteWsCaseSerializer
+                queryset = self.service.filter(self.get_queryset(), request.GET)
+                response_data = self.get_response_data(queryset, page=page)
+                thread_tasks = []
+                for item in response_data['data']:
+                    thread_tasks.append(
+                        ToneThread(TestSuiteWsCaseSerializer.get_test_case_list,
+                                   (item['id'], request.GET.get('ws_id'), request.GET.get('test_type')))
+                    )
+                    thread_tasks[-1].start()
+                for index, thread_task in enumerate(thread_tasks):
+                    thread_task.join()
+                    test_case_list = thread_task.get_result()
+                    response_data['data'][index]['test_case_list'] = test_case_list
+                return Response(response_data)
         queryset = self.service.filter(self.get_queryset(), request.GET)
         response_data = self.get_response_data(queryset, page=page)
         return Response(response_data)
