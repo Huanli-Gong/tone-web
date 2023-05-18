@@ -271,3 +271,5 @@ class ErrorCode(object):
 
     TONE_AGENT_ERROR = (1383, "IP/SN 在toneagent中不存在！")
     STAR_AGENT_ERROR = (1384, "IP/SN 在staragent中不存在！")
+
+    TEST_TYPE_INCONSISTENT = (1345, "The type of the test case is inconsistent with the type of the job")
