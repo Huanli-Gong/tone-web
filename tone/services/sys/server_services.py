@@ -1645,7 +1645,6 @@ class ServerTagService(CommonService):
             if server_tag_old:
                 return False, 'name existed'
         update_data = dict()
-        update_data.update({'update_user': user_id})
         for field in allow_modify_fields:
             update_data.update({field: data.get(field)})
 
