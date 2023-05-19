@@ -116,8 +116,7 @@ BUSINESS = 'business'
 STABILITY = 'stability'
 
 # TestFarm 地址
-DAILY_SITE_URL = 'https://testone.aliyun.test/'
-PROD_SITE_URL = 'http://testfarm.opencoral.cn/'
+PROD_SITE_URL = 'https://testfarm.openanolis.cn/'
 
 WS_LOGO_DIR = '/wslogo'
 DOC_IMG_DIR = '/docimg'

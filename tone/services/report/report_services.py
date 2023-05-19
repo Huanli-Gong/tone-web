@@ -303,7 +303,7 @@ class ReportService(CommonService):
             report_id = report.id
             report_save = ToneThread(self.create_report_back_task, (base_index, report, report_id, test_item))
             report_save.start()
-        return None
+        return report
 
     def create_report_back_task(self, base_index, report, report_id, test_item):
         perf_data = test_item.get('perf_data', list())

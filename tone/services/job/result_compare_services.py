@@ -544,7 +544,7 @@ class CompareDuplicateService(CommonService):
             base_result = PerfBaselineDetail
             base_table = 'perf_baseline_detail'
         q = Q(test_job_id__in=job_id_list)
-        base_q = Q(baseline_id__in=base_id_list, query_scope='all')
+        base_q = Q(baseline_id__in=base_id_list)
         if len(suite_id_list) > 0:
             q &= Q(test_suite_id__in=suite_id_list)
             if len(base_id_list) > 0:
@@ -556,7 +556,6 @@ class CompareDuplicateService(CommonService):
         if len(conf_list) == 0 and len(suite_id_list) == 0:
             job_case_list = list()
             duplicate_case_id_list = list()
-            base_case_list = list()
         else:
             job_case_list = model_result.objects.filter(q).values_list('test_job_id', 'test_suite_id',
                                                                        'test_case_id').distinct()
@@ -569,10 +568,10 @@ class CompareDuplicateService(CommonService):
                 values_list('test_suite_id', 'test_case_id', 'test_suite_name', 'test_case_name'). \
                 annotate(dcount=Count('test_case_id')).filter(dcount__gt=1)
             if len(base_id_list) > 0:
-                base_case_list = base_result.objects.filter(base_q).values_list('baseline_id', 'test_suite_id',
-                                                                                'test_case_id').distinct()
+                base_case_list = base_result.objects.filter(base_q, query_scope='all').\
+                    values_list('baseline_id', 'test_suite_id', 'test_case_id').distinct()
                 job_case_list = chain(job_case_list, base_case_list)
-                duplicate_base_case_id_list = base_result.objects.filter(base_q). \
+                duplicate_base_case_id_list = base_result.objects.filter(base_q, query_scope='all'). \
                     extra(select={'test_suite_name': 'test_suite.name',
                                   'test_case_name': 'test_case.name'},
                           tables=['test_suite', 'test_case'],
