@@ -55,7 +55,9 @@ class OfflineDataUploadService(object):
             if projects:
                 q &= Q(project_id__in=list(projects))
         if data.get('start_time') and data.get('end_time'):
-            q &= Q(gmt_created__range=(data.get('start_time'), data.get('end_time')))
+            end_time = (datetime.datetime.strptime(data.get('end_time'), "%Y-%m-%d") +
+                        datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+            q &= Q(gmt_created__range=(data.get('start_time'), end_time))
         return queryset.filter(q)
 
     def post(self, data, file, operator):

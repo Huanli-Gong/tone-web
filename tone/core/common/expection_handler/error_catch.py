@@ -40,7 +40,7 @@ def views_catch_error(func):
                     msg = error_detail
                 else:
                     msg = '系统有误，请联系开发人员'
-            logger.error("error: {}".format(msg))
+            logger.info("error: {}".format(msg))
             return Response({'code': code, 'msg': msg})
 
     return wrapper
@@ -75,7 +75,7 @@ def api_catch_error(func):
             else:
                 resp.msg = msg
             resp.code = code
-            logger.error("error: {}".format(traceback.print_exc()))
+            logger.info("error: {}".format(traceback.print_exc()))
             return resp.json_resp()
 
     return wrapper
