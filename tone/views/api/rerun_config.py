@@ -7,11 +7,11 @@ Author: Yfh
 from tone.core.utils.common_utils import kernel_info_format, format_env_info
 from django.db.models import Q
 from tone.core.utils.tone_thread import ToneThread
-from tone.models import TestJob, TestJobSuite, TestJobCase, JobTagRelation, JobTag, FuncResult
+from tone.models import TestJob, TestJobSuite, TestJobCase, JobTagRelation, JobTag, FuncResult, ServerTag
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_catch import api_catch_error
 from tone.core.common.expection_handler.error_code import ErrorCode
-from tone.core.common.job_result_helper import get_job_case_server, get_custom_server, get_server_object_id
+from tone.core.common.job_result_helper import get_rerun_case_server, get_custom_server, get_server_object_id
 
 
 @api_catch_error
@@ -36,10 +36,9 @@ def config_query(request):
     if not data.get('notice', None):
         job_config['notice_info'] = list()
     is_all_case = True if not data.get('suite') or data.get('suite') == '1' else False
-    if is_all_case:
-        job_suites = TestJobSuite.objects.filter(job_id=job_id)
-    else:
-        job_suites = TestJobSuite.objects.filter(job_id=job_id, state='fail')
+    job_suites = TestJobSuite.objects.filter(job_id=job_id)
+    server_deleted = dict()
+    server_no_allocated = dict()
     for job_suite in job_suites:
         case_config = list()
         if is_all_case:
@@ -58,7 +57,7 @@ def config_query(request):
         thread_tasks = []
         for job_case in job_cases:
             thread_tasks.append(
-                ToneThread(_package_case, (case_config, data, job_case))
+                ToneThread(_package_case, (case_config, data, job_case, server_deleted, server_no_allocated))
             )
             thread_tasks[-1].start()
         for thread_task in thread_tasks:
@@ -76,21 +75,78 @@ def config_query(request):
         })
     job_config['tags'] = tag_config
     job_config['test_config'] = suite_config
+    job_config['server_deleted'] = server_deleted
+    job_config['server_no_allocated'] = server_no_allocated
     resp.data = job_config
     return resp.json_resp()
 
 
-def _package_case(case_config, data, job_case):
-    ip, is_instance, server_is_deleted, server_deleted  = get_job_case_server(job_case.id, data=data) \
-        if data.get('inheriting_machine') else get_job_case_server(job_case.id, is_config=True)
+def _package_case(case_config, data, job_case, server_deleted_list, server_no_allocated_list):
+    server_obj = get_rerun_case_server(job_case, data=data) \
+        if data.get('inheriting_machine') else get_rerun_case_server(job_case, is_config=True)
+    if server_obj.server_is_deleted:
+        if job_case.server_tag_id and not data.get('inheriting_machine'):
+            if 'dispatch_tags' not in server_deleted_list:
+                server_deleted_list['dispatch_tags'] = list()
+            server_exist = [delete_obj for delete_obj in server_deleted_list['dispatch_tags'] if
+                            delete_obj['id'] == server_obj.server_deleted_dict[0]['id']]
+            if not server_exist:
+                server_deleted_list['dispatch_tags'].extend(server_obj.server_deleted_dict)
+        else:
+            if not server_obj.is_instance and job_case.server_provider == 'aliyun':
+                if 'instance_setting' not in server_deleted_list:
+                    server_deleted_list['instance_setting'] = list()
+                server_exist = [delete_obj for delete_obj in server_deleted_list['instance_setting'] if
+                                delete_obj['id'] == server_obj.server_deleted_dict[0]['id']]
+                if not server_exist:
+                    server_deleted_list['instance_setting'].extend(server_obj.server_deleted_dict)
+            else:
+                if 'ips' not in server_deleted_list:
+                    server_deleted_list['ips'] = list()
+                server_exist = [delete_obj for delete_obj in server_deleted_list['ips'] if
+                                delete_obj['ip'] == server_obj.server_deleted_dict[0]['ip'] and
+                                delete_obj['sn'] == server_obj.server_deleted_dict[0]['sn']]
+                if not server_exist:
+                    server_deleted_list['ips'].extend(server_obj.server_deleted_dict)
+    if server_obj.server_no_allocated:
+        if job_case.server_tag_id:
+            if 'dispatch_tags' not in server_no_allocated_list:
+                server_no_allocated_list['dispatch_tags'] = list()
+            server_exist = [delete_obj for delete_obj in server_no_allocated_list['dispatch_tags'] if
+                            delete_obj['id'] == server_obj.server_no_allocated[0]['id']]
+            if not server_exist:
+                server_no_allocated_list['dispatch_tags'].extend(server_obj.server_no_allocated)
+        else:
+            if not server_obj.is_instance and job_case.server_provider == 'aliyun':
+                if 'instance_setting' not in server_no_allocated_list:
+                    server_no_allocated_list['instance_setting'] = list()
+                server_exist = [delete_obj for delete_obj in server_no_allocated_list['instance_setting'] if
+                                delete_obj['id'] == server_obj.server_no_allocated[0]['id']]
+                if not server_exist:
+                    server_no_allocated_list['instance_setting'].extend(server_obj.server_no_allocated)
+            else:
+                if 'ips' not in server_no_allocated_list:
+                    server_no_allocated_list['ips'] = list()
+                server_exist = [delete_obj for delete_obj in server_no_allocated_list['ips'] if
+                                delete_obj['ip'] == server_obj.server_no_allocated[0]['ip'] and
+                                delete_obj['sn'] == server_obj.server_no_allocated[0]['sn']]
+                if not server_exist:
+                    server_no_allocated_list['ips'].extend(server_obj.server_no_allocated)
+    server_tag_id = list() if not job_case.server_tag_id or data.get('inheriting_machine') else \
+        [tag for tag in ServerTag.objects.filter(id__in=str(job_case.server_tag_id).split(',')).
+            values_list('id', flat=True)]
+    server_obj_id = server_obj.server_object_id
+    if server_tag_id or server_obj.ip == '随机' or not server_obj.ip:
+        server_obj_id = None
+    elif not server_obj.server_object_id:
+        server_obj_id = get_server_object_id(job_case)
     case_config.append({
         'id': job_case.id,
         'test_case_id': job_case.test_case_id,
         'repeat': job_case.repeat,
         'customer_server': get_custom_server(job_case.id),
-        'server_object_id': None if ip == '随机' else get_server_object_id(job_case),
-        'server_tag_id': list() if not job_case.server_tag_id else [
-            int(tag_id) for tag_id in job_case.server_tag_id.split(',') if tag_id.isdigit()],
+        'server_object_id': server_obj_id,
+        'server_tag_id': server_tag_id,
         'env_info': job_case.env_info,
         'need_reboot': job_case.need_reboot,
         'setup_info': job_case.setup_info,
@@ -98,8 +154,6 @@ def _package_case(case_config, data, job_case):
         'console': job_case.console,
         'monitor_info': job_case.monitor_info,
         'priority': job_case.priority,
-        'ip': ip,
-        'is_instance': is_instance,
-        'server_is_deleted': server_is_deleted,
-        'server_deleted': server_deleted
+        'ip': server_obj.ip,
+        'is_instance': server_obj.is_instance
     })

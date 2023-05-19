@@ -679,7 +679,7 @@ class TestSuiteService(CommonService):
                 job_id_list = TestJobCase.objects.filter(
                     state__in=['running', 'pending'],
                     test_case_id__in=delete_case_list).values_list('job_id', flat=True)
-                if TestJob.objects.filter(ws_id=ws_id, id__in=job_id_list).exists():
+                if TestJob.objects.filter(ws_id=ws_id, id__in=job_id_list, state__in=['running', 'pending']).exists():
                     return 200, flag
                 tmpl_id_list = TestTmplCase.objects.filter(
                     test_case_id__in=delete_case_list).values_list('tmpl_id', flat=True)
@@ -819,6 +819,11 @@ class TestMetricService(CommonService):
             q &= Q(test_suite_id=suite_id)
         if case_id is not None:
             q &= Q(test_case_id=case_id)
+        if suite_id and not case_id:
+            exist_metrics = TestMetric.objects.filter(object_type='suite', object_id=suite_id).values_list('name',
+                                                                                                           flat=True)
+            if exist_metrics:
+                q &= ~Q(metric__in=exist_metrics)
         metrics = PerfResult.objects.filter(q).values_list('metric', flat=True).distinct().order_by('metric')
         metric_list = list()
         for metric_name in metrics:

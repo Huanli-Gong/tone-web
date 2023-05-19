@@ -319,9 +319,15 @@ class BaselineUploadService(CommonService):
                     BaselineServerSnapshot.objects.bulk_create(server_obj_list)
             tar_file.close()
             os.remove(file_name)
+        except KeyError:
+            code = 201
+            msg = '所选文件为空文件，请重新选择文件导入。'
+        except tarfile.ReadError:
+            code = 201
+            msg = '所选文件格式错误，请选择以 .tar 为后缀的文件导入。'
         except Exception as ex:
             code = 201
-            msg = str(ex)
+            msg = ''
         return code, msg, error_list
 
     def build_baseline_data(self, baseline, baseline_detail_list, baseline_server_list, operator):
