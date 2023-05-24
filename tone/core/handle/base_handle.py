@@ -24,7 +24,7 @@ from tone.services.sys.server_services import CloudServerService
 
 class BaseHandle(metaclass=ABCMeta):
 
-    def __init__(self, data, operator=None, obj=None):
+    def __init__(self, data, operator=None, obj=None, is_api=False):
         self.obj = obj
         self.data = data
         self.operator = operator
@@ -159,8 +159,8 @@ class BaseHandle(metaclass=ABCMeta):
         return notice_info
 
     @staticmethod
-    def pack_env_info(data):
-        return pack_env_infos(data)
+    def pack_env_info(data, delimiter=None):
+        return pack_env_infos(data, delimiter=delimiter)
 
     def _check_cluster_server_param(self, case_dict, run_mode, case, provider):
         case_dict['run_mode'] = run_mode

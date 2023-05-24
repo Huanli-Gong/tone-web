@@ -37,17 +37,19 @@ def list_shlex_data(shlex_data, list_equal_sign, list_equal_sign_index, list_con
     return list_shlex_data
 
 
-def pack_env_infos(data):
+def pack_env_infos(data, delimiter=None):
     """
     组装env_info
     """
+    if not data:
+        return dict()
+    if delimiter:
+        return parse_env_info_by_delimiter(data, delimiter=delimiter)
     list_equal_sign = []
     list_equal_sign_index = []
     list_connect_equal_sign_tuple = []
     list_comma_index = [0]
     list_shlex_data_list = []
-    if not data:
-        return dict()
     env_data = dict()
     env_data_list = []
     try:
@@ -120,3 +122,34 @@ def kernel_info_format(kernel_info):
         if name not in ['kernel', 'devel', 'headers']:
             new_kernel_info[name] = value
     return new_kernel_info
+
+
+def parse_env_info_by_delimiter(original_env_data, delimiter='\n'):
+    """
+    将字符串形式的 env_info 转换成字典。支持自定义分隔符，默认换行分割
+    例："a=1,b=2" -> {'a':1, 'b': 2}
+    """
+    if isinstance(original_env_data, dict):
+        return original_env_data
+    if original_env_data.count('=') == 1:
+        return {original_env_data.split('=')[0]: original_env_data.split('=')[1]}
+    if not delimiter:
+        if '\n' in original_env_data:
+            delimiter = '\n'
+        elif ',' in original_env_data:
+            delimiter = ','
+        else:
+            delimiter = ' '
+    env_data, new_li = dict(), list()
+    for item in original_env_data.split(delimiter):
+        if '=' in item and item.replace('=', ''):
+            # 判断['=' in item]：说明为一对正常的键值对
+            # 判断[item.replace('=', '')]不为空：避免出现 item 为 '=' 或者 '==' 的时候被当做一个键值对处理
+            new_li.append(item)
+        else:
+            # 说明非正常键值对，为上一对键值对的 value 值（因包含分隔符，所以被误分割）
+            new_li[-1] += f'{delimiter}{item}'
+    for item in new_li:
+        item_list = item.split('=', 1)
+        env_data[item_list[0]] = item_list[1]
+    return env_data

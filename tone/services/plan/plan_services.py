@@ -68,7 +68,7 @@ class PlanService(CommonService):
     def get_env_info(origin_env_info):
         """获取全局变量"""
         try:
-            env_info = pack_env_infos(origin_env_info)
+            env_info = pack_env_infos(origin_env_info, delimiter='\n')
         except JobTestException as e:
             return False, e.args[0][1]
         return True, env_info
