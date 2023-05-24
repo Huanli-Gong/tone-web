@@ -200,7 +200,7 @@ class PlanService(CommonService):
         if not name.strip():
             return False, '计划名称不能为空'
         # 计划名称不能重复
-        if TestPlan.objects.filter(name=name).exists():
+        if TestPlan.objects.filter(name=name, ws_id=data.get('ws_id')).exists():
             return False, '计划名称已存在'
         return True, ''
 
