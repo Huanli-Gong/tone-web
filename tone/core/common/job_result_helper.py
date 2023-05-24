@@ -1455,10 +1455,6 @@ def get_func_compare_data_v1(suite, conf, sub_case_name, compare_job_li):
     compare_data = list()
     for compare_job in compare_job_li:
         group_data = ''
-        duplicate_conf = compare_job.get('duplicate_conf', list())
-        has_duplicate = False
-        if len(duplicate_conf) > 0:
-            has_duplicate = True
         is_baseline = compare_job.get('is_baseline', 0)
         if is_baseline:
             func_results = FuncBaselineDetail.objects.filter(baseline_id__in=compare_job.get('job_list'),
@@ -1473,18 +1469,7 @@ def get_func_compare_data_v1(suite, conf, sub_case_name, compare_job_li):
                 group_data = FUNC_CASE_RESULT_TYPE_MAP.get(2)
             else:
                 group_data = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result)
-        if has_duplicate > 0:
-            d_conf = [d for d in duplicate_conf if conf == d['conf_id']]
-            if is_baseline:
-                job_result_count = func_results.filter(baseline_id=d_conf[0]['job_id']).count()
-            else:
-                job_result_count = func_results.filter(test_job_id=d_conf[0]['job_id']).count()
-            if len(d_conf) > 0 and job_result_count > 0:
-                compare_data.append(group_data)
-            else:
-                compare_data.append(group_data)
-        else:
-            compare_data.append(group_data)
+        compare_data.append(group_data)
     return compare_data
 
 
