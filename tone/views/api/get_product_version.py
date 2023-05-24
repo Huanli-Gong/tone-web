@@ -15,8 +15,11 @@ def get_product_version(request):
     resp = CommResp()
     data = request.GET
     product_id = data.get('product_id', None)
+    ws_id = data.get('ws_id', None)
     if product_id:
         product_version = TestJob.objects.filter(product_id=product_id).values('product_version').distinct()
+    elif ws_id:
+        product_version = TestJob.objects.filter(ws_id=ws_id).values('product_version').distinct()
     else:
         product_version = TestJob.objects.all().values('product_version').distinct()
     resp.data = sorted(
