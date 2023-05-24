@@ -270,7 +270,7 @@ class SimpleSuiteSerializer(CommonSerializer):
 
 class TestSuiteWsCaseSerializer(CommonSerializer):
     owner_name = serializers.SerializerMethodField()
-    test_case_list = serializers.SerializerMethodField()
+    # test_case_list = serializers.SerializerMethodField()
     domain_name_list = serializers.SerializerMethodField()
 
     class Meta:
@@ -284,10 +284,9 @@ class TestSuiteWsCaseSerializer(CommonSerializer):
             return None
         return owner.last_name or owner.first_name
 
-    def get_test_case_list(self, obj):
-        q = Q(test_suite_id=obj.id)
-        ws_id = self.context['request'].query_params.get('ws_id')
-        test_type = self.context['request'].query_params.get('test_type')
+    @classmethod
+    def get_test_case_list(cls, suite_id, ws_id=None, test_type=None):
+        q = Q(test_suite_id=suite_id)
         if ws_id:
             q &= Q(ws_id=ws_id)
         if test_type:
