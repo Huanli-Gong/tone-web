@@ -119,7 +119,7 @@ class JobTestService(CommonService):
             else:
                 return res, 0
         if data.get('name'):
-            query_sql.append('AND name LIKE "%{}%"'.format(data.get('name')))
+            query_sql.append('AND name LIKE "%{}%"'.format(data.get('name').replace('_', '\_').replace('%', '\%')))
         if data.get('job_id'):
             job_id = data.get('job_id')
             if isinstance(job_id, int):
