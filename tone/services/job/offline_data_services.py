@@ -176,8 +176,9 @@ class OfflineDataUploadService(object):
             msg = '上传文件 %s 不存在。' % local_file
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
             return
+        test_job_id = None
         try:
-            code, msg = self._upload_tar(local_file, req_data, offline_upload_id, operator)
+            code, msg, test_job_id = self._upload_tar(local_file, req_data, offline_upload_id, operator)
             os.remove(local_file)
         except Exception as ex:
             code = 201
@@ -185,6 +186,8 @@ class OfflineDataUploadService(object):
             msg = '上传失败:%s.' % str(ex)
         if code == 201:
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
+            if test_job_id:
+                TestJob.objects.filter(id=test_job_id).delete()
 
     def _upload_tar(self, filename, req_data, offline_id, operator):
         ws_id = req_data.get('ws_id')
@@ -197,28 +200,27 @@ class OfflineDataUploadService(object):
         code, msg, test_config = self.handle_test_config(args['test_config'], test_type)
         if code == 201:
             tar_file.close()
-            return code, msg
+            return code, msg, None
         job_data = self.build_job_data(args, req_data, test_config)
         _timestamp = int(round(time.time() * 1000000))
-        with transaction.atomic():
-            test_job = JobTestService().create(job_data, operator)
-            if not test_job:
-                code = 201
-                msg = 'Job创建失败。'
-                tar_file.close()
-                return code, msg
-            test_job_id = test_job.id
-            code, msg, start_date, end_date = self.handle_result_file(baseline_id, tar_file, test_job_id, test_type, ip,
-                                                                      args['test_config'], server_type, ws_id,
-                                                                      _timestamp)
-            if code == 201:
-                tar_file.close()
-                return code, msg
-            TestJob.objects.filter(id=test_job_id).update(start_time=start_date, end_time=end_date)
-            self._create_test_step(test_job_id)
-            if code == 200:
-                OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id,
-                                                                   state_desc='begin upload file to ftp.')
+        test_job = JobTestService().create(job_data, operator)
+        if not test_job:
+            code = 201
+            msg = 'Job创建失败。'
+            tar_file.close()
+            return code, msg, None
+        test_job_id = test_job.id
+        code, msg, start_date, end_date = self.handle_result_file(baseline_id, tar_file, test_job_id, test_type, ip,
+                                                                  args['test_config'], server_type, ws_id,
+                                                                  _timestamp)
+        if code == 201:
+            tar_file.close()
+            return code, msg, test_job_id
+        TestJob.objects.filter(id=test_job_id).update(start_time=start_date, end_time=end_date)
+        self._create_test_step(test_job_id)
+        if code == 200:
+            OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id,
+                                                               state_desc='begin upload file to ftp.')
         code, msg = self.upload_result_file(tar_file, test_job_id, test_type, _timestamp)
         if code == 200:
             OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id, state='success',
@@ -227,7 +229,7 @@ class OfflineDataUploadService(object):
         else:
             TestJob.objects.filter(id=test_job_id).delete()
         tar_file.close()
-        return code, msg
+        return code, msg, test_job_id
 
     def _save_server(self, args, req_ip, server_type, test_job_id, ws_id):
         server_snapshot_id = 0
