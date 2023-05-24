@@ -497,12 +497,10 @@ class JobTestService(CommonService):
             raise JobTestException(ErrorCode.TEST_JOB_NONEXISTENT)
 
     def download(self, test_job_id):
-        if JobDownloadRecord.objects.filter(job_id=test_job_id).exists():
-            JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='running')
-        else:
+        if not JobDownloadRecord.objects.filter(job_id=test_job_id).exists():
             JobDownloadRecord.objects.create(**dict({'job_id': test_job_id, 'state': 'running'}))
-        upload_thread = Thread(target=self._post_background, args=(test_job_id,))
-        upload_thread.start()
+            upload_thread = Thread(target=self._post_background, args=(test_job_id,))
+            upload_thread.start()
 
     def _post_background(self, test_job_id):
         try:
