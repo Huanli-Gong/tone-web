@@ -271,5 +271,8 @@ class ErrorCode(object):
 
     TONE_AGENT_ERROR = (1383, "IP/SN 在toneagent中不存在！")
     STAR_AGENT_ERROR = (1384, "IP/SN 在staragent中不存在！")
+    USERNAME_NEED = (805, "username is required !")
+    PRODUCT_PERMISSION_ERROR = (1005, "Product不存在或没有访问权限")
+    PRODUCT_NAME_NEED = (1392, "product 必须传")
 
     TEST_TYPE_INCONSISTENT = (1345, "The type of the test case is inconsistent with the type of the job")

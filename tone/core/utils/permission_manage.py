@@ -29,6 +29,44 @@ def check_operator_permission(operator_id, check_obj):
     return True
 
 
+def check_ws_operator_permission(user_name, ws_id):
+    """非系统管理员super_admin, sys_admin ws_member 只能操作自己"""
+    user = User.objects.filter(username=user_name).first()
+    if not user:
+        return False
+    sys_role_id = RoleMember.objects.get(user_id=user.id).role_id
+    sys_role = Role.objects.get(id=sys_role_id).title
+    if sys_role not in ['super_admin', 'sys_admin']:
+        ws_member = WorkspaceMember.objects.filter(ws_id=ws_id, user_id=user.id).first()
+        if ws_member:
+            operator_role_id = ws_member.role_id
+            operator_role = Role.objects.get(id=operator_role_id).title
+            allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin', 'ws_member']
+            if operator_role not in allow_list:
+                return False
+        else:
+            return False
+    return True
+
+
+def check_job_operator_permission(user_name, check_obj):
+    """非系统管理员super_admin, sys_admin ws_member 只能操作自己"""
+    user = User.objects.filter(username=user_name).first()
+    if not user:
+        return False
+    if not RoleMember.objects.filter(user_id=user.id).exists():
+        return False
+    sys_role_id = RoleMember.objects.get(user_id=user.id).role_id
+    sys_role = Role.objects.get(id=sys_role_id).title
+    if sys_role not in ['super_admin', 'sys_admin']:
+        operator_role_id = WorkspaceMember.objects.get(ws_id=check_obj.ws_id, user_id=user.id).role_id
+        operator_role = Role.objects.get(id=operator_role_id).title
+        allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin']
+        if operator_role not in allow_list and user.id != check_obj.creator:
+            return False
+    return True
+
+
 class ValidPermission(MiddlewareMixin):
     """权限校验"""
     @staticmethod

@@ -55,6 +55,11 @@ def api_catch_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except AssertionError as err:
+            resp = CommResp()
+            resp.code = err.args[0].args[0][0]
+            resp.msg = err.args[0].args[0][1]
+            return resp.json_resp()
         except Exception as err:
             resp = CommResp()
             logger = get_logger()
