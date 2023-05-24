@@ -649,6 +649,7 @@ class TestSuiteService(CommonService):
             tmpl_id_list = TestTmplCase.objects.filter(
                 test_case_id__in=case_id_list).values_list('tmpl_id', flat=True)
             res_queryset = TestTemplate.objects.filter(id__in=tmpl_id_list)
+        # 排除已经删除的workspace内的模版
         ws_list = Workspace.objects.all().values_list('id', flat=True)
         res_queryset = res_queryset.filter(ws_id__in=ws_list)
         return res_queryset, flag
