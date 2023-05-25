@@ -10,7 +10,7 @@ from datetime import datetime
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -19,6 +19,7 @@ from tone.core.common.job_result_helper import calc_job, get_job_case_server, ge
     splice_job_link
 from tone.services.sys.testcase_services import TestCaseInfoService
 from tone.services.job.test_services import package_server_list
+from tone.core.utils.permission_manage import check_job_operator_permission, check_ws_operator_permission
 
 
 def _replace_statics_key(case_statics):
@@ -48,6 +49,8 @@ def job_query(request):
     assert job_id, ValueError(ErrorCode.JOB_NEED)
     job = TestJob.objects.get(id=job_id) if TestJob.objects.filter(id=job_id) else None
     assert job, ValueError(ErrorCode.TEST_JOB_NONEXISTENT)
+    if not check_job_operator_permission(req_info.get('username', None), job):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     machine_file = ''
     machine_result = ResultFile.objects.filter(test_job_id=job_id, result_file='1/machine_info.json').first()
     if machine_result:
@@ -245,4 +248,20 @@ def update_cluster_is_instance(request):
                 update_dict[f'{cluster.id}'] = server.is_instance
     TestCluster.objects.bulk_update(cluster_list, fields=['is_instance'])
     resp.data = {'update_dict': update_dict}
+    return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def get_product_job_list(request):
+    resp = CommResp()
+    product = request.GET.get('product', None)
+    assert product, ValueError(ErrorCode.PRODUCT_NAME_NEED)
+    ws_id = request.GET.get('ws_id', None)
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    product = Product.objects.filter(name=product, ws_id=ws_id).first()
+    if not product or not check_ws_operator_permission(request.GET['username'], product.ws_id):
+        assert None, ValueError(ErrorCode.PRODUCT_PERMISSION_ERROR)
+    job_id_list = list(TestJob.objects.filter(product_id=product.id).values_list('id', flat=True))
+    resp.data = job_id_list
     return resp.json_resp()

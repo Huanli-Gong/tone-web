@@ -29,4 +29,5 @@ urlpatterns = [
     path('case/re_auto_report/', get_suite_info.reset_report, name='reset_report'),
     path('workspace/update_cluster_is_instance/', query_job.update_cluster_is_instance,
          name='update_cluster_is_instance'),
+    path('job/product/list/', query_job.get_product_job_list, name='job_product_list'),
 ]
