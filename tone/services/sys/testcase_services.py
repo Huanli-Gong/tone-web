@@ -807,6 +807,8 @@ class TestMetricService(CommonService):
                 case_id_list.append(case.id)
             TestMetric.objects.filter(name__in=metric_name_list, object_type='case',
                                       object_id__in=case_id_list).delete()
+            TestMetric.objects.filter(name__in=metric_name_list, object_type='suite',
+                                      object_id=data.get('object_id')).delete()
         else:
             TestMetric.objects.filter(id__in=data.get('id_list')).delete()
 
