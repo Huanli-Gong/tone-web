@@ -939,9 +939,9 @@ class EditorNoteService(CommonService):
             assert test_job_conf_id, JobTestException(ErrorCode.ID_NEED)
             TestJobCase.objects.filter(id=test_job_conf_id).update(note=note, not_update_time=True)
         elif editor_obj == 'perf_analysis':
-            result_obj_id = data.get('result_obj_id')
-            assert result_obj_id, JobTestException(ErrorCode.ID_NEED)
-            PerfResult.objects.filter(id=result_obj_id).update(note=note, not_update_time=True)
+            test_job_id = data.get('test_job_id')
+            assert test_job_id, JobTestException(ErrorCode.ID_NEED)
+            PerfResult.objects.filter(test_job_id=test_job_id).update(note=note, not_update_time=True)
         elif editor_obj == 'func_conf_analysis':
             result_obj_id = data.get('result_obj_id')
             assert result_obj_id, JobTestException(ErrorCode.ID_NEED)
