@@ -93,7 +93,8 @@ class PerfAnalysisService(CommonService):
                                                      test_case_id=test_case, metric=metric)
             if perf_results.exists():
                 perf_result = perf_results.first()
-                baseline_data['value'] = perf_result.baseline_value
+                baseline_data['value'] = '%.2f' % float(perf_result.baseline_value) \
+                    if perf_result.baseline_value else None
                 baseline_data['cv_value'] = perf_result.baseline_cv_value
         return baseline_data
 
