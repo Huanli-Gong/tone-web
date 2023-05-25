@@ -334,6 +334,8 @@ class WorkspaceHistoryService(CommonService):
             operator = data.get('user_id')
         if not operator:
             return
+        if not Workspace.objects.filter(id=data.get('ws_id')).exists():
+            return
         if not WorkspaceMember.objects.filter(ws_id=data.get('ws_id'), user_id=operator).exists():
             role_title = Role.objects.get(id=RoleMember.objects.get(user_id=operator).role_id).title
             # 超级管理员和系统管理员直接加入ws,并设置角色为 ws_member,拥有ws下所有配置权限
