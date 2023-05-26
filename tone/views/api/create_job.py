@@ -32,7 +32,7 @@ def job_create(request):
     data = json.loads(request.body)
     operator = request.user
     conversion_data(data)
-    handler = JobDataHandle(data, operator)
+    handler = JobDataHandle(data, operator, is_api=True)
     data_dic, case_list, suite_list, tag_list = handler.return_result()
     with transaction.atomic():
         test_job = TestJob.objects.create(**data_dic)

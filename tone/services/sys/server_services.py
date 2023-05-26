@@ -1849,7 +1849,7 @@ class AgentTaskInfoService(CommonService):
 
     @staticmethod
     def _parse_env_info(env_info):
-        env_info_dict = pack_env_infos(env_info)
+        env_info_dict = pack_env_infos(env_info, delimiter=',')
         new_info_data = []
         for k, v in env_info_dict.items():
             new_info_data.append(f'{k}={v}')
