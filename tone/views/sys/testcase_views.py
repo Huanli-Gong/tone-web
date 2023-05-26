@@ -231,8 +231,11 @@ class TestSuiteSyncView(CommonAPIView):
         """
         suite同步功能
         """
-        self.code, self.msg = self.service.sync_case(pk)
-        response_data = self.get_response_data(None, many=False)
+        success, msg = self.service.sync_case_from_gitee(pk)
+        if success:
+            response_data = self.get_response_code()
+        else:
+            response_data = self.get_response_code(code=201, msg=msg)
         return Response(response_data)
 
 

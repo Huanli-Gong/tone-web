@@ -14,24 +14,24 @@ from tone.services.sys.dashboard_services import calculate_benchmark_data
 logger = logging.getLogger('schedule')
 
 
-@app.task
-@lock_run_task(60 * 5, 'sync_suite_case_toneagent')
-def sync_suite_case_toneagent():
-    """
-    通过 Toneagent 端查询，定时同步suite，以及suite下的case数据到 SuiteData 和 CaseData 表中
-    :return:
-    """
-    return sync_suite_tone_task()
+# @app.task
+# @lock_run_task(60 * 5, 'sync_suite_case_toneagent')
+# def sync_suite_case_toneagent():
+#     """
+#     通过 Toneagent 端查询，定时同步suite，以及suite下的case数据到 SuiteData 和 CaseData 表中
+#     :return:
+#     """
+#     return sync_suite_tone_task()
 
 
-@app.task
-@lock_run_task(60 * 5, 'sync_suite_case_description')
-def sync_suite_case_description():
-    """
-    定时同步suite 描述到 SuiteData 和 CaseData 表中
-    :return:
-    """
-    return sync_suite_desc_tone_task()
+# @app.task
+# @lock_run_task(60 * 5, 'sync_suite_case_description')
+# def sync_suite_case_description():
+#     """
+#     定时同步suite 描述到 SuiteData 和 CaseData 表中
+#     :return:
+#     """
+#     return sync_suite_desc_tone_task()
 
 
 @app.task
