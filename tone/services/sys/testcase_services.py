@@ -19,7 +19,7 @@ from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, 
     TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite
 from tone.serializers.sys.testcase_serializers import RetrieveCaseSerializer, RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
-from tone.tasks import sync_suite_case_toneagent
+# from tone.tasks import sync_suite_case_toneagent
 
 
 class TestCaseInfoService(CommonService):
@@ -1231,8 +1231,8 @@ class ManualSyncService(CommonService):
             base_config_obj = BaseConfig.objects.create(config_type='sys', config_key='SUITE_SYNC_STATE',
                                                         config_value='running')
         if base_config_obj.config_value == 'waiting':
-            sync_suite_case_toneagent.delay()
-            BaseConfig.objects.filter(config_type='sys', config_key='SUITE_SYNC_STATE').update(config_value='running')
+            # sync_suite_case_toneagent.delay()
+            # BaseConfig.objects.filter(config_type='sys', config_key='SUITE_SYNC_STATE').update(config_value='running')
             return True, '同步命令开始执行成功'
         return False, '同步任务执行中，稍后再试'
 
