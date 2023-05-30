@@ -38,6 +38,7 @@ class BaseHandle(metaclass=ABCMeta):
         self.default_server = data.get('default_server')
         self.default_cluster = data.get('default_cluster')
         self.default_cloud_server = data.get('default_cloud_server')
+        self.is_api = is_api
 
     def __getattr__(self, item):
         return self.data.get(item)
