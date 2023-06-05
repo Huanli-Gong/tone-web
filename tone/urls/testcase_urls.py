@@ -36,4 +36,5 @@ urlpatterns = [
     path('business/brief/', testcase_views.BusinessBriefView.as_view(), name='business_brief'),
     path('workspace/business/brief/', testcase_views.WorkspaceBusinessBriefView.as_view(),
          name='workspace_business_brief'),
+    path('ws_case/params/', testcase_views.FrontSuiteParamsView.as_view(), name='front_params'),
 ]

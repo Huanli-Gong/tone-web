@@ -1,6 +1,7 @@
 import os
 import json
-
+import random
+import string
 import yaml
 from django.db import transaction
 from django.db.models import Q
@@ -15,9 +16,9 @@ from tone.core.common.services import CommonService
 from tone.core.utils.config_parser import get_config_from_db
 from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, PerfResult, TestDomain, \
-    DomainRelation, datetime, SuiteData, CaseData, BaseConfig, RoleMember, Role, TestJobCase, TestJob, \
+    DomainRelation, datetime, BaseConfig, RoleMember, Role, TestJobCase, TestJob, \
     TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite, Workspace
-from tone.serializers.sys.testcase_serializers import RetrieveCaseSerializer, RetrieveStatisticsSerializer, \
+from tone.serializers.sys.testcase_serializers import RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
 from tone.tasks import sync_suite_case_toneagent
 
@@ -681,14 +682,15 @@ class TestSuiteService(CommonService):
             suite_id_list.append(suite_id)
             case_id_list = TestCase.objects.filter(test_suite_id__in=suite_id_list).values_list('id', flat=True)
         if case_id_list_str:
-            case_id_list = case_id_list_str.split(',')
+            case_id_list = str(case_id_list_str).split(',')
         if flag == 'job':
-            job_id_list = TestJobCase.objects.filter(
-                test_case_id__in=case_id_list, state__in=['running', 'pending']).values_list('job_id', flat=True)
-            res_queryset = TestJob.objects.filter(id__in=job_id_list, state__in=['running', 'pending'])
+            job_id_list = TestJobCase.objects.filter(test_case_id__in=case_id_list, state__in=['running', 'pending']). \
+                values_list('job_id', flat=True).distinct()
+            res_queryset = TestJob.objects.filter(id__in=job_id_list)
         elif flag == 'pass':
             job_id_list = TestJobCase.objects.filter(
-                test_case_id__in=case_id_list, state__in=['running', 'pending']).values_list('job_id', flat=True)
+                test_case_id__in=case_id_list, state__in=['running', 'pending']). \
+                values_list('job_id', flat=True).distinct()
             if TestJob.objects.filter(id__in=job_id_list).exists():
                 return 200, flag
             tmpl_id_list = TestTmplCase.objects.filter(
@@ -1302,3 +1304,14 @@ class TestBusinessService(CommonService):
     def filter_suite(pk):
         suite_list = BusinessSuiteRelation.objects.filter(business_id=pk).values_list('test_suite_id', flat=True)
         return TestSuite.objects.filter(id__in=suite_list)
+
+
+class FrontSuiteParamsService(CommonService):
+
+    def get(self, key):
+        return json.loads(redis_cache.get_info(key))
+
+    def post(self, data):
+        key = ''.join(random.sample(string.ascii_letters + string.digits, 15))
+        ret = redis_cache.set_info(key, json.dumps(data), 5000)
+        return key
