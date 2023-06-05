@@ -20,7 +20,7 @@ from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, 
     TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite, Workspace
 from tone.serializers.sys.testcase_serializers import RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
-from tone.tasks import sync_suite_case_toneagent
+#from tone.tasks import sync_suite_case_toneagent
 
 
 class TestCaseInfoService(CommonService):
