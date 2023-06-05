@@ -113,5 +113,5 @@ class JobTypeDelView(CommonAPIView):
     service_class = JobTypeService
 
     @method_decorator(views_catch_error)
-    def get(self, request):
-        return Response(self.get_response_data(self.service.del_type_confirm(request.GET), many=True, page=True))
+    def post(self, request):
+        return Response(self.get_response_data(self.service.del_type_confirm(request.data), many=True, page=True))
