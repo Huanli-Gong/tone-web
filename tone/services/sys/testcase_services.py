@@ -108,7 +108,7 @@ class TestCaseService(CommonService):
     @staticmethod
     def get_domain_list(data):
         domain_list = list()
-        domain_list_str = data.get('domain_list_str')
+        domain_list_str = data.get('domain_list_str', None)
         if domain_list_str:
             domain_list = [int(domain.strip()) for domain in domain_list_str.split(',')]
         return domain_list
@@ -156,14 +156,18 @@ class TestCaseService(CommonService):
             # 删除WS关联的case
             WorkspaceCaseRelation.objects.filter(test_case_id=pk).delete()
 
-    def update_batch(self, data, operator):
+    def update_batch(self, data):
         # domain兼容多选
         domain_list = self.get_domain_list(data)
         case_list = data.get('case_id_list').split(',') or [data.get('case_id')]
-        timeout = data.get('timeout')
-        repeat = data.get('repeat')
-        self.create_domain_relation(case_list, domain_list, is_delete=True)
-        return TestCase.objects.filter(id__in=case_list).update(timeout=timeout, repeat=repeat)
+        timeout = data.get('timeout', None)
+        repeat = data.get('repeat', None)
+        if domain_list:
+            self.create_domain_relation(case_list, domain_list, is_delete=True)
+        if timeout:
+            TestCase.objects.filter(id__in=case_list).update(timeout=timeout)
+        if repeat:
+            TestCase.objects.filter(id__in=case_list).update(repeat=repeat)
 
     @staticmethod
     def remove_case(data, operator):
