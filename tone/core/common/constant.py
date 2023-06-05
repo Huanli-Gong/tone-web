@@ -140,11 +140,11 @@ ANALYSIS_SQL_MAP = {
         B.test_value,
         B.cv_value, 
         B.note,
-        B.id,
-        C.id,
+        B.id as result_obj_id,
+        B.metric,
+        C.id as job_case_id,
         C.run_mode,
-        E.id,
-        D.id
+        E.id as creator_id
     FROM
         test_job AS A,
         perf_result AS B,
@@ -160,7 +160,7 @@ ANALYSIS_SQL_MAP = {
         AND A.server_provider = '{provider_env}'
         AND A.test_type = 'performance' 
         AND A.project_id = {project} 
-        AND B.metric = '{metric}' 
+        AND B.metric IN ({metric}) 
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
         AND C.test_case_id = {test_case} 
@@ -194,11 +194,11 @@ ANALYSIS_SQL_MAP = {
         B.test_value,
         B.cv_value,
         B.note,
-        B.id,
-        C.id,
+        B.id as result_obj_id,
+        B.metric,
+        C.id as job_case_id,
         C.run_mode,
-        E.id,
-        D.id
+        E.id as creator_id
     FROM
         test_job AS A,
         perf_result AS B,
@@ -215,7 +215,7 @@ ANALYSIS_SQL_MAP = {
         AND A.server_provider = '{provider_env}'
         AND A.test_type = 'performance' 
         AND A.project_id = {project} 
-        AND B.metric = '{metric}' 
+        AND B.metric IN ({metric})  
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
         AND C.test_case_id = {test_case} 
@@ -252,14 +252,14 @@ ANALYSIS_SQL_MAP = {
         B.test_value,
         B.cv_value,
         B.note,
-        B.id,
+        B.id as result_obj_id,
+        B.metric,
         D.instance_type,
         D.image,
         D.bandwidth,
         C.run_mode,
-        C.id,
-        E.id,
-        D.id
+        C.id as job_case_id,
+        E.id as creator_id
     FROM
         test_job AS A,
         perf_result AS B,
@@ -275,7 +275,7 @@ ANALYSIS_SQL_MAP = {
         AND A.server_provider = '{provider_env}'
         AND A.test_type = 'performance'
         AND A.project_id = {project} 
-        AND B.metric = '{metric}'
+        AND B.metric IN ({metric})
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
         AND C.test_case_id = {test_case} 
@@ -300,8 +300,8 @@ ANALYSIS_SQL_MAP = {
     SELECT
         A.id,
         A.NAME,
-        A.gmt_created,
-        A.gmt_modified,
+        A.start_time,
+        A.end_time,
         A.build_pkg_info,
         E.first_name,
         E.last_name,
@@ -309,14 +309,14 @@ ANALYSIS_SQL_MAP = {
         B.test_value,
         B.cv_value,
         B.note,
-        B.id,
+        B.id as result_obj_id,
+        B.metric,
         D.instance_type,
         D.image,
         D.bandwidth,
         C.run_mode,
-        C.id,
-        E.id,
-        D.id
+        C.id as job_case_id,
+        E.id as creator_id
     FROM
         test_job AS A,
         perf_result AS B,
@@ -333,7 +333,7 @@ ANALYSIS_SQL_MAP = {
         AND A.server_provider = '{provider_env}'
         AND A.test_type = 'performance' 
         AND A.project_id = {project} 
-        AND B.metric = '{metric}' 
+        AND B.metric IN ({metric}) 
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
         AND C.test_case_id = {test_case} 
