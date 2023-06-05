@@ -480,14 +480,23 @@ class JobTestService(CommonService):
         with transaction.atomic():
             data_dic, case_list, suite_list, tag_list = handler.return_result()
             test_job = TestJob.objects.create(**data_dic)
+            suite_obj_list = list()
             for suite in suite_list:
                 suite['job_id'] = test_job.id
-                TestJobSuite.objects.create(**suite)
+                suite_obj_list.append(TestJobSuite(**suite))
+            case_obj_list = list()
             for case in case_list:
                 case['job_id'] = test_job.id
-                TestJobCase.objects.create(**case)
+                case_obj_list.append(TestJobCase(**case))
+            tag_obj_list = list()
             for tag in tag_list:
-                JobTagRelation.objects.create(tag_id=tag, job_id=test_job.id)
+                tag_obj_list.append(JobTagRelation(tag_id=tag, job_id=test_job.id))
+            if suite_obj_list:
+                TestJobSuite.objects.bulk_create(suite_obj_list)
+            if case_obj_list:
+                TestJobCase.objects.bulk_create(case_obj_list)
+            if tag_obj_list:
+                JobTagRelation.objects.bulk_create(tag_obj_list)
             return test_job
 
     @staticmethod
