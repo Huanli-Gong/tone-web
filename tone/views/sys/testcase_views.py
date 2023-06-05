@@ -12,7 +12,7 @@ from tone.serializers.sys.testcase_serializers import TestCaseSerializer, TestSu
     SysTemplateSerializer, SysJobSerializer, TestBusinessSerializer, BusinessSuiteSerializer, RetrieveCaseSerializer2
 from tone.services.sys.testcase_services import TestCaseService, TestSuiteService, TestMetricService, \
     WorkspaceCaseService, TestDomainService, SyncCaseToCacheService, WorkspaceRetrieveService, ManualSyncService, \
-    TestBusinessService
+    TestBusinessService, FrontSuiteParamsService
 
 
 class TestCaseView(CommonAPIView):
@@ -608,8 +608,8 @@ class SysCaseDelView(CommonAPIView):
     serializer_class = SysTemplateSerializer
     service_class = TestSuiteService
 
-    def get(self, request):
-        instance, flag = self.service.sys_case_confirm(request, request.GET)
+    def post(self, request):
+        instance, flag = self.service.sys_case_confirm(request, request.data)
         if flag == 'job':
             self.serializer_class = SysJobSerializer
         if flag == 'pass':
@@ -678,3 +678,16 @@ class TestBusinessDetailView(CommonAPIView):
         self.service.delete(pk)
         response_data = self.get_response_code()
         return Response(response_data)
+
+
+class FrontSuiteParamsView(CommonAPIView):
+    serializer_class = TestBusinessSerializer
+    service_class = FrontSuiteParamsService
+
+    def get(self, request):
+        pk = request.GET['pk']
+        return Response(self.get_response_only_for_data(self.service.get(pk)))
+
+    def post(self, request):
+        key = self.service.post(request.data)
+        return Response(self.get_response_only_for_data(key))
