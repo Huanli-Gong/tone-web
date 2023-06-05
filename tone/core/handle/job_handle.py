@@ -19,6 +19,7 @@ from tone.core.common.constant import MonitorType
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import JobTestException
 from tone.core.common.job_result_helper import get_server_ip_sn
+from tone.core.utils.tone_thread import ToneThread
 
 
 class JobDataHandle(BaseHandle):
@@ -303,8 +304,15 @@ class JobDataHandle(BaseHandle):
             assert test_config, JobTestException(ErrorCode.TEST_CONF_NEED)
             if not isinstance(test_config, list):
                 assert test_config, JobTestException(ErrorCode.TEST_CONF_LIST)
+            thread_tasks = []
             for suite in test_config:
-                self.pack_suite(suite, provider)
+                thread_tasks.append(
+                    ToneThread(self.pack_suite, (suite, provider))
+                )
+                thread_tasks[-1].start()
+            for thread_task in thread_tasks:
+                thread_task.join()
+                thread_task.get_result()
         elif self.data_from == 'template':
             template_obj = self.template_obj
             if self.data.get('test_config'):
