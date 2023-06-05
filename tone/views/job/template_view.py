@@ -119,5 +119,5 @@ class TemplateDelView(CommonAPIView):
     order_by = ['gmt_created']
 
     @method_decorator(views_catch_error)
-    def get(self, request):
-        return Response(self.get_response_data(self.service.del_confirm(request.GET), many=True, page=True))
+    def post(self, request):
+        return Response(self.get_response_data(self.service.del_confirm(request.data), many=True, page=True))
