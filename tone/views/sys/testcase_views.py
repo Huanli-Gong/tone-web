@@ -95,7 +95,7 @@ class TestCaseBatchView(CommonAPIView):
         """
         批量修改case的领域，超时时间和执行次数
         """
-        self.service.update_batch(request.data, operator=1)
+        self.service.update_batch(request.data)
         response_data = self.get_response_code()
         return Response(response_data)
 
