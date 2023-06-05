@@ -242,7 +242,7 @@ ANALYSIS_SQL_MAP = {
     'group_perf_aliyun': """
     SELECT
         A.id,
-        A.NAME,
+        A.name,
         A.start_time,
         A.end_time,
         A.build_pkg_info,
@@ -299,7 +299,7 @@ ANALYSIS_SQL_MAP = {
     'group_perf_aliyun_tag': """
     SELECT
         A.id,
-        A.NAME,
+        A.name,
         A.start_time,
         A.end_time,
         A.build_pkg_info,
