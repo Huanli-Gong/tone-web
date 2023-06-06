@@ -557,9 +557,9 @@ class CompareDuplicateService(CommonService):
             job_case_list = list()
             duplicate_case_id_list = list()
         else:
-            job_case_list = model_result.objects.filter(q).values_list('test_job_id', 'test_suite_id',
-                                                                       'test_case_id').distinct()
-            duplicate_case_id_list = model_result.objects.filter(q). \
+            job_case_list = model_result.objects.filter(q, query_scope='all').\
+                values_list('test_job_id', 'test_suite_id', 'test_case_id').distinct()
+            duplicate_case_id_list = model_result.objects.filter(q, query_scope='all'). \
                 extra(select={'test_suite_name': 'test_suite.name',
                               'test_case_name': 'test_case.name'},
                       tables=['test_suite', 'test_case'],
