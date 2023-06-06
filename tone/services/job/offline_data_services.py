@@ -226,8 +226,6 @@ class OfflineDataUploadService(object):
             OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id, state='success',
                                                                state_desc='')
             msg = 'upload success.'
-        else:
-            TestJob.objects.filter(id=test_job_id).delete()
         tar_file.close()
         return code, msg, test_job_id
 
