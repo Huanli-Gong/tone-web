@@ -554,7 +554,8 @@ class JobTestService(CommonService):
                     if not os.path.exists(file_dir):
                         os.makedirs(file_dir)
                     try:
-                        self.download_file(oss_file, local_file)
+                        if not self.download_file(oss_file, local_file):
+                            continue
                     except Exception:
                         continue
                 tf = tarfile.open(name=target_file, mode='w:gz')
@@ -577,8 +578,10 @@ class JobTestService(CommonService):
 
     def download_file(self, url, target_file):
         req = requests.get(url)
-        with open(target_file, 'wb') as f:
-            f.write(req.content)
+        if req.ok:
+            with open(target_file, 'wb') as f:
+                f.write(req.content)
+        return req.ok
 
     def del_dir(self, path):
         while 1:
