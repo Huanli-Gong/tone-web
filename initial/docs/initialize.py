@@ -4,7 +4,7 @@ from tone.models import HelpDoc, User
 
 class HelpDocDataInitialize(object):
     """
-    from initial.base_config.initialize import HelpDocDataInitialize
+    from initial.docs.initialize import HelpDocDataInitialize
     HelpDocDataInitialize().initialize_help_data()
     """
     def initialize_help_data(self):
