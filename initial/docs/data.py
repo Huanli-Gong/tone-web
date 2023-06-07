@@ -6,10 +6,6 @@ DOCS_LIST = [
         'content': doc_content.OVERVIEW_DOC,
     },
     {
-        'title': '对外服务API',
-        'content': doc_content.API_DOC,
-    },
-    {
         'title': '如何创建一个Job',
         'content': doc_content.CREATE_JOB_DOC,
     },
@@ -48,6 +44,10 @@ DOCS_LIST = [
     {
         'title': '如何添加Job模版',
         'content': doc_content.JOB_TMPL_DOC,
+    },
+    {
+        'title': '对外服务API',
+        'content': doc_content.API_DOC,
     },
     {
         'title': 'FAQ',
