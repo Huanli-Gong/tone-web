@@ -29,9 +29,11 @@ class ConfigParser(object):
             self.property_dic = os.environ
         return self.property_dic
 
-    def get(self, key, read_now=False):
+    def get(self, key, default_value=None, read_now=False):
         if read_now:
             self.read()
+        if not self._get(str, key) or self._get(str, key) == 'None':
+            return default_value
         return self._get(str, key)
 
     def getboolean(self, key, read_now=False):
