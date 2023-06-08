@@ -53,28 +53,29 @@ class PerfAnalysisService(CommonService):
         assert end_time, AnalysisException(ErrorCode.END_TIME_NEED)
         end_time = date_add(end_time, 1)
         job_list = []
-        with connection.cursor() as cursor:
-            sql = self.get_sql(provider_env, tag)
-            for metric in metrics:
-                cursor.execute(
-                    sql.format(project=project, test_suite=test_suite, test_case=test_case, metric=metric,
-                               start_time=datetime.strptime(start_time, '%Y-%m-%d'),
-                               end_time=datetime.strptime(end_time, '%Y-%m-%d'), tag=tag, provider_env=provider_env))
-                rows = cursor.fetchall()
-                if rows:
-                    metric_data = self.get_metric_data(rows, provider_env)
-                    result_data = self.get_result_data(metric_data, provider_env, start_time, end_time)
-                    job_list = self.get_job_list(result_data, provider_env)
-                    baseline_data = self.get_baseline_data(test_suite, test_case, metric, job_list)
-                    metric_map[metric] = {
-                        'result_data': result_data,
-                        'baseline_data': baseline_data
-                    }
-                else:
-                    metric_map[metric] = {
-                        'result_data': {},
-                        'baseline_data': {'value': '', 'cv_value': ''}
-                    }
+        sql = self.get_sql(provider_env, tag)
+        metrics_str = ','.join("'" + e + "'" for e in metrics)
+        raw_sql = sql.format(project=project, test_suite=test_suite, test_case=test_case, metric=metrics_str,
+                             start_time=datetime.strptime(start_time, '%Y-%m-%d'),
+                             end_time=datetime.strptime(end_time, '%Y-%m-%d'), tag=tag, provider_env=provider_env)
+        metrics_result = query_all_dict(raw_sql)
+        for metric in metrics:
+            metric_result = [result for result in metrics_result if result['metric'] == metric]
+            if metric_result:
+                metric_data = self.get_metric_data(metric_result, provider_env)
+                result_data = self.get_result_data(metric_data, provider_env, start_time, end_time)
+                job_list = self.get_job_list(result_data, provider_env)
+                baseline_data = self.get_baseline_data(test_suite, test_case, metric, job_list)
+                metric_map[metric] = {
+                    'result_data': result_data,
+                    'baseline_data': baseline_data
+                }
+            else:
+                metric_map[metric] = {
+                    'result_data': {},
+                    'baseline_data': {'value': 'null', 'cv_value': 'null'}
+                }
+
         res_data = {
             'job_list': job_list,
             'metric_map': metric_map
@@ -93,7 +94,8 @@ class PerfAnalysisService(CommonService):
                                                      test_case_id=test_case, metric=metric)
             if perf_results.exists():
                 perf_result = perf_results.first()
-                baseline_data['value'] = perf_result.baseline_value
+                baseline_data['value'] = '%.2f' % float(perf_result.baseline_value) \
+                    if perf_result.baseline_value else None
                 baseline_data['cv_value'] = perf_result.baseline_cv_value
         return baseline_data
 
@@ -128,49 +130,50 @@ class PerfAnalysisService(CommonService):
         metric_data = list()
         if provider_env == 'aligroup':
             for row in rows:
-                server = get_job_case_run_server(row[12]) if row[13] == 'cluster' else row[7]
+                server = get_job_case_run_server(row['job_case_id']) if row['run_mode'] == 'cluster' else row['ip']
                 metric_data.append(
                     {
-                        'job_id': row[0],
-                        'job_name': row[1],
-                        'start_time': datetime.strftime(row[2], "%Y-%m-%d %H:%M:%S"),
-                        'end_time': datetime.strftime(row[3], "%Y-%m-%d %H:%M:%S"),
-                        'commit_id': json.loads(row[4]).get('commit_id', None),
-                        'creator': row[5] or row[6],
+                        'job_id': row['id'],
+                        'job_name': row['name'],
+                        'start_time': datetime.strftime(row['start_time'], "%Y-%m-%d %H:%M:%S")
+                        if row['start_time'] else None,
+                        'end_time': datetime.strftime(row['end_time'], "%Y-%m-%d %H:%M:%S")
+                        if row['end_time'] else None,
+                        'commit_id': json.loads(row['build_pkg_info']).get('commit_id', None),
+                        'creator': row['first_name'] or row['last_name'],
                         'server': server,
-                        'value': row[8],
-                        'cv_value': row[9],
-                        'note': row[10],
-                        'result_obj_id': row[11],
-                        # test_job_case.id未使用，所以跳过[12]
-                        # test_job_case.run_mode未使用，所以跳过[13]
-                        'creator_id': row[14],
-                        'server_id': row[15]
+                        'value': row['test_value'],
+                        'cv_value': row['cv_value'],
+                        'note': row['note'],
+                        'result_obj_id': row['result_obj_id'],
+                        # C.id和C.run_mode未取值，所以跳过
+                        'creator_id': row['creator_id']
                     }
                 )
         else:
             for row in rows:
-                server = get_job_case_run_server(row[16]) if row[15] == 'cluster' else row[7]
+                server = get_job_case_run_server(row['job_case_id']) if row['run_mode'] == 'cluster' \
+                    else row['private_ip']
                 metric_data.append(
                     {
-                        'job_id': row[0],
-                        'job_name': row[1],
-                        'start_time': datetime.strftime(row[2], "%Y-%m-%d %H:%M:%S"),
-                        'end_time': datetime.strftime(row[3], "%Y-%m-%d %H:%M:%S"),
-                        'commit_id': json.loads(row[4]).get('commit_id', None),
-                        'creator': row[5] or row[6],
+                        'job_id': row['id'],
+                        'job_name': row['name'],
+                        'start_time': datetime.strftime(row['start_time'], "%Y-%m-%d %H:%M:%S")
+                        if row['start_time'] else None,
+                        'end_time': datetime.strftime(row['end_time'], "%Y-%m-%d %H:%M:%S")
+                        if row['end_time'] else None,
+                        'commit_id': json.loads(row['build_pkg_info']).get('commit_id', None),
+                        'creator': row['first_name'] or row['last_name'],
                         'server': server,
-                        'value': row[8],
-                        'cv_value': row[9],
-                        'note': row[10],
-                        'result_obj_id': row[11],
-                        'instance_type': row[12],
-                        'image': row[13],
-                        'bandwidth': row[14],
-                        'run_mode': row[15],
-                        # test_job_case.id未使用，所以跳过[16]
-                        'creator_id': row[17],
-                        'server_id': row[18]
+                        'value': row['test_value'],
+                        'cv_value': row['cv_value'],
+                        'note': row['note'],
+                        'result_obj_id': row['result_obj_id'],
+                        'instance_type': row['instance_type'],
+                        'image': row['image'],
+                        'bandwidth': row['bandwidth'],
+                        'run_mode': row['run_mode'],
+                        'creator_id': row['creator_id']
                     }
                 )
         return metric_data
@@ -288,7 +291,9 @@ class FuncAnalysisService(CommonService):
             if analytics_tag_id_set.issubset(job_tag_relation_ids):
                 job_li.append(job)
         sub_case_map, job_id_li = self.get_sub_case_map(job_li, start_time, end_time)
-        res_data = self.get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li)
+        res_data = None
+        if job_id_li:
+            res_data = self.get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li)
         return res_data
 
     @staticmethod
@@ -296,7 +301,7 @@ class FuncAnalysisService(CommonService):
         sub_case_map = get_data_map(start_time, end_time)
         job_id_li = list()
         for job in queryset:
-            if not sub_case_map.get(datetime.strftime(job.start_time, "%Y-%m-%d"), None):
+            if job.start_time and not sub_case_map.get(datetime.strftime(job.start_time, "%Y-%m-%d"), None):
                 get_case_map(sub_case_map, job, job_id_li)
         return sub_case_map, job_id_li
 
@@ -380,8 +385,8 @@ def get_case_map(sub_case_map, job, job_id_li):
         'job_id': job.id,
         'job_name': job.name,
         'commit_id': job.build_pkg_info.get('commit_id'),
-        'start_time': datetime.strftime(job.start_time, "%Y-%m-%d %H:%M:%S"),
-        'end_time': datetime.strftime(job.end_time, "%Y-%m-%d %H:%M:%S"),
+        'start_time': datetime.strftime(job.start_time, "%Y-%m-%d %H:%M:%S") if job.start_time else None,
+        'end_time': datetime.strftime(job.end_time, "%Y-%m-%d %H:%M:%S") if job.end_time else None,
         'creator': User.objects.get(id=job.creator).first_name or User.objects.get(
             id=job.creator).last_name,
     }

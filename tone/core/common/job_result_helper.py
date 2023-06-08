@@ -602,77 +602,90 @@ def get_test_config(test_job_id, detail_server=False):
     test_config = list()
     job_suites = TestJobSuite.objects.filter(job_id=test_job_id)
     job_cases = TestJobCase.objects.filter(job_id=test_job_id)
+
+    thread_tasks = []
     for job_suite in job_suites:
-        test_suite_name = TestSuite.objects.get_value(
-                id=job_suite.test_suite_id) and TestSuite.objects.get_value(id=job_suite.test_suite_id).name
-        obj_dict = {
-            'test_suite_id': job_suite.test_suite_id,
-            'test_suite_name': test_suite_name,
-            'test_suite': test_suite_name,
-            'need_reboot': job_suite.need_reboot,
-            'setup_info': job_suite.setup_info,
-            'cleanup_info': job_suite.cleanup_info,
-            'monitor_info': list(job_suite.monitor_info),
-            'priority': job_suite.priority,
-            'run_mode': TestSuite.objects.get_value(id=job_suite.test_suite_id) and TestSuite.objects.get_value(
-                id=job_suite.test_suite_id).run_mode,
-        }
-        if WorkspaceCaseRelation.objects.filter(test_type='business',
-                                                test_suite_id=job_suite.test_suite_id,
-                                                query_scope='all').exists():
-            business_relation = BusinessSuiteRelation.objects.filter(test_suite_id=test_job_id,
-                                                                     query_scope='all').first()
-            if business_relation:
-                test_business = TestBusiness.objects.filter(id=business_relation.business_id,
-                                                            query_scope='all').first()
-                if test_business:
-                    obj_dict.update({'business_name': test_business.name})
-        cases = list()
-        for case in job_cases.filter(test_suite_id=job_suite.test_suite_id):
-            ip, is_instance, _, _ = get_job_case_server(case.id, is_config=True)
-            test_case_name = TestCase.objects.get_value(id=case.test_case_id) and TestCase.objects.get_value(
-                    id=case.test_case_id).name
-            server_info = get_job_case_run_server(case.id, return_field='obj')
-            server = ({
-                'ip': ip
-            })
-            if detail_server and server_info:
-                if type(server_info) is CloudServerSnapshot:
-                    server = ({
-                        'instance': server_info.instance_id
-                    })
-                else:
-                    server['ip'] = server_info.ip
-                server['distro'] = server_info.distro
-                server['kernel_version'] = server_info.kernel_version
-                server['glibc'] = server_info.glibc
-                server['gcc'] = server_info.gcc
-                server['memory_info'] = server_info.memory_info
-                server['disk'] = server_info.disk
-                server['cpu_info'] = server_info.cpu_info
-                server['ether'] = server_info.ether
-            cases.append({
-                'test_case_id': case.test_case_id,
-                'test_case_name': test_case_name,
-                'test_case': test_case_name,
-                'setup_info': case.setup_info,
-                'cleanup_info': case.cleanup_info,
-                'server_ip': ip,
-                'server_id': server_info.id if server_info else None,
-                'server_description': get_job_case_run_server(case.id, return_field='description'),
-                'is_instance': is_instance,
-                'need_reboot': case.need_reboot,
-                'console': case.console,
-                'monitor_info': list(case.monitor_info),
-                'priority': case.priority,
-                'env_info': dict(case.env_info),
-                'repeat': case.repeat,
-                'run_mode': case.run_mode,
-                'server': server
-            })
-        obj_dict['cases'] = cases
-        test_config.append(obj_dict)
+        thread_tasks.append(
+            ToneThread(_get_cases_by_job_job_suite, (test_job_id, job_cases, job_suite, detail_server))
+        )
+        thread_tasks[-1].start()
+    for thread_task in thread_tasks:
+        thread_task.join()
+        job_suite_cases = thread_task.get_result()
+        test_config.append(job_suite_cases)
     return test_config
+
+
+def _get_cases_by_job_job_suite(test_job_id, job_cases, job_suite, detail_server):
+    test_suite_name = TestSuite.objects.get_value(
+        id=job_suite.test_suite_id) and TestSuite.objects.get_value(id=job_suite.test_suite_id).name
+    obj_dict = {
+        'test_suite_id': job_suite.test_suite_id,
+        'test_suite_name': test_suite_name,
+        'test_suite': test_suite_name,
+        'need_reboot': job_suite.need_reboot,
+        'setup_info': job_suite.setup_info,
+        'cleanup_info': job_suite.cleanup_info,
+        'monitor_info': list(job_suite.monitor_info),
+        'priority': job_suite.priority,
+        'run_mode': TestSuite.objects.get_value(id=job_suite.test_suite_id) and TestSuite.objects.get_value(
+            id=job_suite.test_suite_id).run_mode,
+    }
+    if WorkspaceCaseRelation.objects.filter(test_type='business',
+                                            test_suite_id=job_suite.test_suite_id,
+                                            query_scope='all').exists():
+        business_relation = BusinessSuiteRelation.objects.filter(test_suite_id=test_job_id,
+                                                                 query_scope='all').first()
+        if business_relation:
+            test_business = TestBusiness.objects.filter(id=business_relation.business_id,
+                                                        query_scope='all').first()
+            if test_business:
+                obj_dict.update({'business_name': test_business.name})
+    cases = list()
+    for case in job_cases.filter(test_suite_id=job_suite.test_suite_id):
+        ip, is_instance, _, _ = get_job_case_server(case.id, is_config=True)
+        test_case_name = TestCase.objects.get_value(id=case.test_case_id) and TestCase.objects.get_value(
+            id=case.test_case_id).name
+        server_info = get_job_case_run_server(case.id, return_field='obj')
+        server = ({
+            'ip': ip
+        })
+        if detail_server and server_info:
+            if type(server_info) is CloudServerSnapshot:
+                server = ({
+                    'instance': server_info.instance_id
+                })
+            else:
+                server['ip'] = server_info.ip
+            server['distro'] = server_info.distro
+            server['kernel_version'] = server_info.kernel_version
+            server['glibc'] = server_info.glibc
+            server['gcc'] = server_info.gcc
+            server['memory_info'] = server_info.memory_info
+            server['disk'] = server_info.disk
+            server['cpu_info'] = server_info.cpu_info
+            server['ether'] = server_info.ether
+        cases.append({
+            'test_case_id': case.test_case_id,
+            'test_case_name': test_case_name,
+            'test_case': test_case_name,
+            'setup_info': case.setup_info,
+            'cleanup_info': case.cleanup_info,
+            'server_ip': ip,
+            'server_id': server_info.id if server_info else None,
+            'server_description': get_job_case_run_server(case.id, return_field='description'),
+            'is_instance': is_instance,
+            'need_reboot': case.need_reboot,
+            'console': case.console,
+            'monitor_info': list(case.monitor_info),
+            'priority': case.priority,
+            'env_info': dict(case.env_info),
+            'repeat': case.repeat,
+            'run_mode': case.run_mode,
+            'server': server
+        })
+    obj_dict['cases'] = cases
+    return obj_dict
 
 
 def __get_server_value(server, server_provider, return_field):
@@ -1125,12 +1138,18 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
                                 case_info['conf_id']]
         else:
             case_result_list = [result for result in job_result_list if result['test_case_id'] == case_info['conf_id']]
-        thread_tasks.append(
-            ToneThread(_get_suite_conf_metric_v1, (case_info, suite_obj, group_list, base_index, base_is_baseline,
-                                                   case_result_list, duplicate_conf, baseline_result_list,
-                                                   job_result_list, base_job_list))
-        )
-        thread_tasks[-1].start()
+        for base_job_id in base_job_list.get('job_list'):
+            base_perf_result = [perf_result for perf_result in case_result_list if
+                                perf_result.get('test_job_id') == base_job_id]
+            if _check_has_duplicate(duplicate_conf, case_info['conf_id']):
+                if not _check_duplicate_hit(duplicate_conf, case_info['conf_id'], base_job_id):
+                    continue
+            thread_tasks.append(
+                ToneThread(_get_suite_conf_metric_v1, (case_info, suite_obj, group_list, base_index, base_is_baseline,
+                                                       base_perf_result, baseline_result_list, job_result_list,
+                                                       base_job_id))
+            )
+            thread_tasks[-1].start()
     for thread_task in thread_tasks:
         thread_task.join()
         conf_obj = thread_task.get_result()
@@ -1169,7 +1188,7 @@ def _check_duplicate_hit(duplicate_conf, conf_id, test_job_id):
 
 
 def _get_suite_conf_metric_v1(conf_info, suite_obj, group_list, base_index, base_is_baseline, perf_results,
-                              base_duplicate_conf, baseline_result_list, job_result_list, base_job_list):
+                              baseline_result_list, job_result_list, base_job_id):
     conf_id = conf_info['conf_id']
     if not suite_obj.get('compare_count'):
         suite_obj['compare_count'] = [{'all': 0, 'increase': 0, 'decline': 0} for _ in range(len(group_list))]
@@ -1224,12 +1243,6 @@ def _get_suite_conf_metric_v1(conf_info, suite_obj, group_list, base_index, base
             'obj_id': compare_job_id[0] if len(compare_job_id) > 0 else job_list[0],
             'is_baseline': is_baseline
         }))
-    base_job_id = base_job_list.get('job_list')[0]
-    if _check_has_duplicate(base_duplicate_conf, conf_id):
-        for perf_result in perf_results:
-            if _check_duplicate_hit(base_duplicate_conf, conf_id, perf_result.get('test_job_id')):
-                base_job_id = perf_result.get('test_job_id')
-                break
     conf_compare_data.insert(base_index, dict({
         'is_job': base_is_job,
         'obj_id': base_job_id,
@@ -1251,8 +1264,7 @@ def _get_suite_conf_metric_v1(conf_info, suite_obj, group_list, base_index, base
 
 def get_metric_list_v1(perf_results, compare_result_li, compare_count, base_index, base_job_id):
     metric_list = list()
-    base_perf_result = [perf_result for perf_result in perf_results if perf_result.get('test_job_id') == base_job_id]
-    for perf_result in base_perf_result:
+    for perf_result in perf_results:
         metric = perf_result.get('metric')
         exist_metric_list = [m for m in metric_list if m['metric'] == metric]
         if len(exist_metric_list) > 0:
@@ -1442,10 +1454,6 @@ def get_func_compare_data_v1(suite, conf, sub_case_name, compare_job_li):
     compare_data = list()
     for compare_job in compare_job_li:
         group_data = ''
-        duplicate_conf = compare_job.get('duplicate_conf', list())
-        has_duplicate = False
-        if len(duplicate_conf) > 0:
-            has_duplicate = True
         is_baseline = compare_job.get('is_baseline', 0)
         if is_baseline:
             func_results = FuncBaselineDetail.objects.filter(baseline_id__in=compare_job.get('job_list'),
@@ -1460,18 +1468,7 @@ def get_func_compare_data_v1(suite, conf, sub_case_name, compare_job_li):
                 group_data = FUNC_CASE_RESULT_TYPE_MAP.get(2)
             else:
                 group_data = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result)
-        if has_duplicate > 0:
-            d_conf = [d for d in duplicate_conf if conf == d['conf_id']]
-            if is_baseline:
-                job_result_count = func_results.filter(baseline_id=d_conf[0]['job_id']).count()
-            else:
-                job_result_count = func_results.filter(test_job_id=d_conf[0]['job_id']).count()
-            if len(d_conf) > 0 and job_result_count > 0:
-                compare_data.append(group_data)
-            else:
-                compare_data.append(group_data)
-        else:
-            compare_data.append(group_data)
+        compare_data.append(group_data)
     return compare_data
 
 

@@ -874,8 +874,8 @@ class ServerDelConfirmView(CommonAPIView):
     serializer_class = SysTemplateSerializer
     service_class = TestServerService
 
-    def get(self, request):
-        return Response(self.get_response_data(self.service.del_server_confirm(request.GET), many=True, page=True))
+    def post(self, request):
+        return Response(self.get_response_data(self.service.del_server_confirm(request.data), many=True, page=True))
 
 
 class SyncVmView(CommonAPIView):

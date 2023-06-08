@@ -52,7 +52,7 @@ def get_domain_group(conf_list):
 def get_domain_group_v1(suite_list):
     res_data = {'functional': dict(), 'performance': dict(), 'business': dict()}
     conf_id_list = list()
-    sql_filter = '1=1'
+    sql_filter = ''
     suite_id_list = list()
     for suite in suite_list:
         if suite.get('is_all'):
@@ -60,20 +60,23 @@ def get_domain_group_v1(suite_list):
                 suite_id_list.append(suite.get('suite_id'))
         else:
             conf_id_list.extend(suite.get('conf_list'))
-    if len(suite_id_list) > 0:
-        sql_filter += ' and a.test_suite_id in (' + ','.join(str(e) for e in suite_id_list) + ')'
-    if len(conf_id_list) > 0:
+    if len(suite_id_list) > 0 and len(conf_id_list) > 0:
+        sql_filter += ' a.test_suite_id in (' + ','.join(str(e) for e in suite_id_list) + ')'
         sql_filter += ' or a.id in (' + ','.join(str(e) for e in conf_id_list) + ')'
+    elif len(suite_id_list) > 0:
+        sql_filter += ' a.test_suite_id in (' + ','.join(str(e) for e in suite_id_list) + ')'
+    elif len(conf_id_list) > 0:
+        sql_filter += ' a.id in (' + ','.join(str(e) for e in conf_id_list) + ')'
     if len(suite_id_list) == 0 and len(conf_id_list) == 0:
         test_case_list = list()
     else:
-        raw_sql = 'SELECT a.id,a.test_suite_id,b.test_type,d.name as domain FROM test_case a LEFT JOIN ' \
-                  'test_suite b ON a.test_suite_id=b.id LEFT JOIN domain_relation c ON ' \
+        raw_sql = 'SELECT a.id,a.test_suite_id,b.test_type,d.name as domain FROM test_suite b LEFT JOIN ' \
+                  'test_case a ON a.test_suite_id=b.id LEFT JOIN domain_relation c ON ' \
                   'c.object_type="case" AND c.object_id=a.id LEFT JOIN test_domain d ON ' \
                   'c.domain_id=d.id WHERE c.is_deleted=0 AND' \
                   ' d.is_deleted=0 AND (' + sql_filter + \
-                  ') UNION SELECT a.id,a.test_suite_id,b.test_type,"其他" as domain FROM test_case' \
-                  ' a LEFT JOIN test_suite b ' \
+                  ') UNION SELECT a.id,a.test_suite_id,b.test_type,"其他" as domain FROM test_suite' \
+                  ' b LEFT JOIN test_case a ' \
                   'ON a.test_suite_id=b.id WHERE a.id NOT IN (SELECT object_id from domain_relation WHERE ' \
                   'object_type="case" AND is_deleted=0) AND ' \
                   '(' + sql_filter + ')'

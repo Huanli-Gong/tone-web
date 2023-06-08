@@ -74,12 +74,13 @@ class ToneModelObjects(BaseManager.from_queryset(ToneQuerySet)):
             JobModel.objects.filter(name='xxx', query_scope='all')
         """
         if not kwargs.get('query_scope'):
-            kwargs['is_deleted'] = False
+            return super(ToneModelObjects, self).filter(*args, **kwargs).extra(where={'is_deleted is False'})
         else:
             if kwargs.get('query_scope') == 'deleted':
-                kwargs["is_deleted"] = True
+                kwargs.pop('query_scope')
+                return super(ToneModelObjects, self).filter(*args, **kwargs).extra(where={'is_deleted is True'})
             kwargs.pop('query_scope')
-        return super(ToneModelObjects, self).filter(*args, **kwargs)
+            return super(ToneModelObjects, self).filter(*args, **kwargs)
 
     def all(self, query_scope=None):
         if query_scope:

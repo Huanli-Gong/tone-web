@@ -740,7 +740,7 @@ class PerfBaselineService(CommonService):
         machine = data.get("server_sn")
         # 展开suite
         if not any([test_suite_id, machine, test_case_id]):
-            response_data = self.get_test_suite_name(queryset)
+            response_data = self.get_test_suite_name(queryset, data.get('name'))
         elif test_suite_id:
             queryset = queryset.filter(test_suite_id=test_suite_id)
             if machine is not None:
@@ -786,7 +786,7 @@ class PerfBaselineService(CommonService):
             sync_baseline.delay(baseline_id)
 
     @staticmethod
-    def get_test_suite_name(queryset):
+    def get_test_suite_name(queryset, name):
         """获取suite_name展开信息"""
         suite_id_list = queryset.values_list("test_suite_id", flat=True)
         suite_list = []
@@ -794,11 +794,15 @@ class PerfBaselineService(CommonService):
             # 被删除suite的基线不再展示
             if not TestSuite.objects.filter(id=suite_id).exists():
                 continue
-            suite_name_data = {}
-            suite_name = TestSuite.objects.get(id=suite_id).name
-            suite_name_data["test_suite_name"] = suite_name
-            suite_name_data["test_suite_id"] = suite_id
-            suite_list.append(suite_name_data)
+            q = Q(id=suite_id)
+            suite_data = {}
+            if name:
+                q &= Q(name__icontains=name)
+            if TestSuite.objects.filter(q).exists():
+                suite_name = TestSuite.objects.filter(q).first().name
+                suite_data["test_suite_name"] = suite_name
+                suite_data["test_suite_id"] = suite_id
+                suite_list.append(suite_data)
         return suite_list
 
     @staticmethod

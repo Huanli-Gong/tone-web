@@ -1,6 +1,7 @@
 from django.db import transaction
 
 from initial.base_config.initialize import BaseConfigDataInitialize
+from initial.docs.initialize import HelpDocDataInitialize
 from initial.job_type.initialize import JobTypeDataInitialize
 from initial.role_type.initialize import RoleTypeDataInitialize
 from initial.workspace.initialize import WorkspaceDataInitialize
@@ -17,6 +18,8 @@ def initialize_all():
         RoleTypeDataInitialize().initialize_role_type_item()
         # 公共ws
         WorkspaceDataInitialize().initialize_common_ws()
+        # 帮助文档
+        HelpDocDataInitialize().initialize_help_data()
     return 'success!'
 
 

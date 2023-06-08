@@ -19,6 +19,7 @@ from tone.core.common.constant import MonitorType
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import JobTestException
 from tone.core.common.job_result_helper import get_server_ip_sn
+from tone.core.utils.tone_thread import ToneThread
 
 
 class JobDataHandle(BaseHandle):
@@ -27,6 +28,10 @@ class JobDataHandle(BaseHandle):
         """
         组装data_dic、tag_list数据
         """
+        if self.is_api:
+            env_info_delimiter = self.data.get('env_ifs')
+        else:
+            env_info_delimiter = '\n'
         if self.data_from == 'custom':
             self.data_dic['job_type_id'] = job_type_id = self.data.get('job_type')
             assert job_type_id, JobTestException(ErrorCode.TYPE_ID_LACK)
@@ -65,8 +70,8 @@ class JobDataHandle(BaseHandle):
                                                                      ding=self.data.get('ding_token', None),
                                                                      subject=self.data.get('notice_subject', None))
             self.data_dic['kernel_version'] = self.data_dic['show_kernel_version'] = self.data.get('kernel_version')
-            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info')) if self.data.get(
-                'env_info') else dict()
+            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter)\
+                if self.data.get('env_info') else dict()
             self.data_dic['server_provider'] = self.provider = job_type.server_type
             self.data_dic['test_type'] = job_type.test_type
             if self.data.get('project'):
@@ -148,10 +153,10 @@ class JobDataHandle(BaseHandle):
                                                                                                    template_obj.kernel_version)
             if api:
                 template_env = copy.deepcopy(template_obj.env_info)
-                template_env.update(self.pack_env_info(self.data.get('env_info')))
+                template_env.update(self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter))
                 self.data_dic['env_info'] = template_env
             else:
-                self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'))
+                self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter)
             assert job_type_id, JobTestException(ErrorCode.TYPE_ID_LACK)
             self.ws_id = JobType.objects.get(id=job_type_id).ws_id
             self.data_dic['ws_id'] = self.ws_id
@@ -196,7 +201,7 @@ class JobDataHandle(BaseHandle):
                                                                  ding=self.data.get('ding_token', None),
                                                                  subject=self.data.get('notice_subject', None))
             self.data_dic['kernel_version'] = self.data_dic['show_kernel_version'] = self.data.get('kernel_version')
-            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'))
+            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter)
             assert job_type_id, JobTestException(ErrorCode.TYPE_ID_LACK)
             self.ws_id = JobType.objects.get(id=job_type_id).ws_id
             self.data_dic['ws_id'] = self.ws_id
@@ -245,8 +250,8 @@ class JobDataHandle(BaseHandle):
                                                                  ding=self.data.get('ding_msg', None),
                                                                  subject=self.data.get('notice_name', None))
             self.data_dic['kernel_version'] = self.data_dic['show_kernel_version'] = self.data.get('kernel_version')
-            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info')) if self.data.get(
-                'env_info') else dict()
+            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter)\
+                if self.data.get('env_info') else dict()
             self.data_dic['server_provider'] = self.provider = job_type.server_type
             self.data_dic['test_type'] = job_type.test_type
             product_version = self.data.get('product_version', None)
@@ -299,8 +304,15 @@ class JobDataHandle(BaseHandle):
             assert test_config, JobTestException(ErrorCode.TEST_CONF_NEED)
             if not isinstance(test_config, list):
                 assert test_config, JobTestException(ErrorCode.TEST_CONF_LIST)
+            thread_tasks = []
             for suite in test_config:
-                self.pack_suite(suite, provider)
+                thread_tasks.append(
+                    ToneThread(self.pack_suite, (suite, provider))
+                )
+                thread_tasks[-1].start()
+            for thread_task in thread_tasks:
+                thread_task.join()
+                thread_task.get_result()
         elif self.data_from == 'template':
             template_obj = self.template_obj
             if self.data.get('test_config'):

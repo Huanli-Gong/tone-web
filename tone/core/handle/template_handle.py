@@ -74,7 +74,7 @@ class TestTemplateHandle(BaseHandle):
                                                                  'notice_name', None) or self.data.get(
                                                                  'notice_subject', None))
         self.data_dic['kernel_version'] = self.data.get('kernel_version')
-        self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info')) if self.data.get(
+        self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter='\n') if self.data.get(
             'env_info') else dict()
         self.data_dic['server_provider'] = self.provider = job_type.server_type
         if self.data.get('project'):

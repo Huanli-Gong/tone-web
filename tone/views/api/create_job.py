@@ -32,7 +32,7 @@ def job_create(request):
     data = json.loads(request.body)
     operator = request.user
     conversion_data(data)
-    handler = JobDataHandle(data, operator)
+    handler = JobDataHandle(data, operator, is_api=True)
     data_dic, case_list, suite_list, tag_list = handler.return_result()
     with transaction.atomic():
         test_job = TestJob.objects.create(**data_dic)
@@ -91,6 +91,8 @@ def conversion_data(data):  # noqa: C901
             if not TestSuite.objects.filter(name=suite.get('test_suite')).exists():
                 raise ValueError(ErrorCode.SUITE_NOT_EXISTS)
             test_suite = TestSuite.objects.get(name=suite.get('test_suite'))
+            if test_suite.test_type != job_type.test_type:
+                raise ValueError(ErrorCode.TEST_TYPE_INCONSISTENT)
             suite['test_suite'] = test_suite.id
             run_mode = test_suite.run_mode
             for case in suite['cases']:

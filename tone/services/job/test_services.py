@@ -119,7 +119,7 @@ class JobTestService(CommonService):
             else:
                 return res, 0
         if data.get('name'):
-            query_sql.append('AND name LIKE "%{}%"'.format(data.get('name')))
+            query_sql.append('AND name LIKE "%{}%"'.format(data.get('name').replace('_', '\_').replace('%', '\%')))
         if data.get('job_id'):
             job_id = data.get('job_id')
             if isinstance(job_id, int):
@@ -480,14 +480,23 @@ class JobTestService(CommonService):
         with transaction.atomic():
             data_dic, case_list, suite_list, tag_list = handler.return_result()
             test_job = TestJob.objects.create(**data_dic)
+            suite_obj_list = list()
             for suite in suite_list:
                 suite['job_id'] = test_job.id
-                TestJobSuite.objects.create(**suite)
+                suite_obj_list.append(TestJobSuite(**suite))
+            case_obj_list = list()
             for case in case_list:
                 case['job_id'] = test_job.id
-                TestJobCase.objects.create(**case)
+                case_obj_list.append(TestJobCase(**case))
+            tag_obj_list = list()
             for tag in tag_list:
-                JobTagRelation.objects.create(tag_id=tag, job_id=test_job.id)
+                tag_obj_list.append(JobTagRelation(tag_id=tag, job_id=test_job.id))
+            if suite_obj_list:
+                TestJobSuite.objects.bulk_create(suite_obj_list)
+            if case_obj_list:
+                TestJobCase.objects.bulk_create(case_obj_list)
+            if tag_obj_list:
+                JobTagRelation.objects.bulk_create(tag_obj_list)
             return test_job
 
     @staticmethod
@@ -497,12 +506,11 @@ class JobTestService(CommonService):
             raise JobTestException(ErrorCode.TEST_JOB_NONEXISTENT)
 
     def download(self, test_job_id):
-        if JobDownloadRecord.objects.filter(job_id=test_job_id).exists():
-            JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='running')
-        else:
+        if not JobDownloadRecord.objects.filter(job_id=test_job_id).exists():
             JobDownloadRecord.objects.create(**dict({'job_id': test_job_id, 'state': 'running'}))
-        upload_thread = Thread(target=self._post_background, args=(test_job_id,))
-        upload_thread.start()
+            upload_thread = Thread(target=self._post_background, args=(test_job_id,))
+            upload_thread.start()
+        return True
 
     def _post_background(self, test_job_id):
         try:
@@ -546,7 +554,8 @@ class JobTestService(CommonService):
                     if not os.path.exists(file_dir):
                         os.makedirs(file_dir)
                     try:
-                        self.download_file(oss_file, local_file)
+                        if not self.download_file(oss_file, local_file):
+                            continue
                     except Exception:
                         continue
                 tf = tarfile.open(name=target_file, mode='w:gz')
@@ -569,8 +578,10 @@ class JobTestService(CommonService):
 
     def download_file(self, url, target_file):
         req = requests.get(url)
-        with open(target_file, 'wb') as f:
-            f.write(req.content)
+        if req.ok:
+            with open(target_file, 'wb') as f:
+                f.write(req.content)
+        return req.ok
 
     def del_dir(self, path):
         while 1:
@@ -941,9 +952,9 @@ class EditorNoteService(CommonService):
             assert test_job_conf_id, JobTestException(ErrorCode.ID_NEED)
             TestJobCase.objects.filter(id=test_job_conf_id).update(note=note, not_update_time=True)
         elif editor_obj == 'perf_analysis':
-            result_obj_id = data.get('result_obj_id')
-            assert result_obj_id, JobTestException(ErrorCode.ID_NEED)
-            PerfResult.objects.filter(id=result_obj_id).update(note=note, not_update_time=True)
+            test_job_id = data.get('test_job_id')
+            assert test_job_id, JobTestException(ErrorCode.ID_NEED)
+            PerfResult.objects.filter(test_job_id=test_job_id).update(note=note, not_update_time=True)
         elif editor_obj == 'func_conf_analysis':
             result_obj_id = data.get('result_obj_id')
             assert result_obj_id, JobTestException(ErrorCode.ID_NEED)

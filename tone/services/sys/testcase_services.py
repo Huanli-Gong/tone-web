@@ -1,9 +1,12 @@
 import os
 import json
-
+import random
+import string
+import yaml
 from django.db import transaction
 from django.db.models import Q
 
+from tone import settings
 from tone.core.cloud import constant
 from tone.core.cloud.constant import TestType
 from tone.core.common.constant import TEST_SUITE_REDIS_KEY
@@ -13,11 +16,11 @@ from tone.core.common.services import CommonService
 from tone.core.utils.config_parser import get_config_from_db
 from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, PerfResult, TestDomain, \
-    DomainRelation, datetime, SuiteData, CaseData, BaseConfig, RoleMember, Role, TestJobCase, TestJob, \
+    DomainRelation, datetime, BaseConfig, RoleMember, Role, TestJobCase, TestJob, \
     TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite, Workspace
-from tone.serializers.sys.testcase_serializers import RetrieveCaseSerializer, RetrieveStatisticsSerializer, \
+from tone.serializers.sys.testcase_serializers import RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
-from tone.tasks import sync_suite_case_toneagent
+#from tone.tasks import sync_suite_case_toneagent
 
 
 class TestCaseInfoService(CommonService):
@@ -106,7 +109,7 @@ class TestCaseService(CommonService):
     @staticmethod
     def get_domain_list(data):
         domain_list = list()
-        domain_list_str = data.get('domain_list_str')
+        domain_list_str = data.get('domain_list_str', None)
         if domain_list_str:
             domain_list = [int(domain.strip()) for domain in domain_list_str.split(',')]
         return domain_list
@@ -154,14 +157,18 @@ class TestCaseService(CommonService):
             # 删除WS关联的case
             WorkspaceCaseRelation.objects.filter(test_case_id=pk).delete()
 
-    def update_batch(self, data, operator):
+    def update_batch(self, data):
         # domain兼容多选
         domain_list = self.get_domain_list(data)
         case_list = data.get('case_id_list').split(',') or [data.get('case_id')]
-        timeout = data.get('timeout')
-        repeat = data.get('repeat')
-        self.create_domain_relation(case_list, domain_list, is_delete=True)
-        return TestCase.objects.filter(id__in=case_list).update(timeout=timeout, repeat=repeat)
+        timeout = data.get('timeout', None)
+        repeat = data.get('repeat', None)
+        if domain_list:
+            self.create_domain_relation(case_list, domain_list, is_delete=True)
+        if timeout:
+            TestCase.objects.filter(id__in=case_list).update(timeout=timeout)
+        if repeat:
+            TestCase.objects.filter(id__in=case_list).update(repeat=repeat)
 
     @staticmethod
     def remove_case(data, operator):
@@ -511,35 +518,110 @@ class TestSuiteService(CommonService):
             return self._sync_case_from_aktf(suite_id)
         return self._sync_case_from_tone(suite_id)
 
+    def sync_case_from_gitee(self, suite_id):
+        suite = TestSuite.objects.filter(id=suite_id).first()
+        try:
+            cases, doc, configs = self.get_case_info_by_gitee(suite.name, suite.test_type)
+        except Exception as e:
+            return False, 'get case info from gitee failed'
+        try:
+            self._sync_case_to_db(suite, cases, doc, configs)
+        except Exception as e:
+            return False, 'sync case to db failed'
+        return True, 'success'
+
     @staticmethod
-    def _sync_case_from_tone(suite_id):
-        suite = TestSuite.objects.get(id=suite_id)
-        case_obj_list = []
-        # 从SuiteData中查询 suite_name, 获取suite下的case name list
-        suite_data = SuiteData.objects.filter(name=suite.name, test_type=suite.test_type).first()
-        if not suite_data:
-            return ErrorCode.SUITE_DATA_NOT_EXISTS[0], ErrorCode.SUITE_DATA_NOT_EXISTS[1]
-        suite.doc = suite_data.description
-        suite.save()
-        case_name_list = CaseData.objects.filter(suite_id=suite_data.id).values_list('name', flat=True)
-        exist_test_case_id_list = []
+    def get_case_info_by_gitee(test_suite, test_type):
+        """
+        gitee:
+            test	  ioengine    time_based  direct    size
+            read1	  psync       1           1         36G
+            read2	  psync       1           1         36G
+
+        return: [
+            'test=read1,ioengine=psync,time_based=1,direct=1,size=36G',
+            'test=read2,ioengine=psync,time_based=1,direct=1,size=36G'
+            ]
+        """
+        tone_cli_path = os.path.join(os.curdir, '.tone-cli')
+        clone_cmd = f'git clone --single-branch --branch master {settings.TONE_CLI_REPO} {tone_cli_path}'
+        pull_cmd = f'cd {tone_cli_path} && git pull'
+        if os.path.exists(tone_cli_path):
+            os.system(pull_cmd)
+        else:
+            os.system(clone_cmd)
+
+        case_list, title_list, metric_list = [], [], []
+        case_file = f'{tone_cli_path}/conf/{test_type}/{test_suite}.conf'
+        doc_file1 = f'{tone_cli_path}/tests/{test_suite}/Readme.md'
+        doc_file2 = f'{tone_cli_path}/tests/{test_suite}/readme.md'
+        config_file = f'{tone_cli_path}/tests/{test_suite}/config.yaml'
+
+        # 获取 cases
+        with open(case_file) as f:
+            for index, line in enumerate(f.readlines()):
+                if not line.strip():
+                    continue
+                if index == 0:
+                    title_list = line.split()
+                    continue
+                case_name = ''
+                for i, item in enumerate(line.split()):
+                    case_name += f'{title_list[i]}={item},'
+                case_list.append(case_name.strip(','))
+        if not case_list:
+            case_list = ['default']
+
+        # todo 获取 doc
+        doc = ''
+        if os.path.exists(doc_file1):
+            doc_file = doc_file1
+        elif os.path.exists(doc_file2):
+            doc_file = doc_file2
+        else:
+            doc_file = None
+        if doc_file:
+            with open(doc_file) as f:
+                doc = f.read()
+
+        # 获取 metric
+        config_data = None
+        if os.path.exists(config_file):
+            with open(config_file) as f:
+                config_data = yaml.load(f.read(), Loader=yaml.FullLoader)
+            print(config_data)
+
+        return case_list, doc, config_data
+
+    @staticmethod
+    def _sync_case_to_db(suite, case_name_list, doc='', configs=None):
+        case_obj_list, exist_test_case_id_list = [], []
         for case_name in case_name_list:
             short_name = '-'.join([item.split('=')[-1] for item in case_name.split(',')])
-            cases = TestCase.objects.filter(test_suite_id=suite_id, name=case_name)
+            if configs and configs.get(short_name):
+                timeout = configs[short_name]['timeout']
+                repeat = configs[short_name]['repeat']
+            else:
+                timeout = 3600
+                repeat = 1 if suite.test_type == TestType.FUNCTIONAL else 3
+            cases = TestCase.objects.filter(test_suite_id=suite.id, name=case_name)
             if cases.exists():
                 exist_test_case_id_list.append(cases.first().id)
-                cases.update(doc=suite_data.description, short_name=short_name)
+                cases.update(doc=doc, short_name=short_name)
                 continue
             case_obj_list.append(TestCase(
                 name=case_name,
                 test_suite_id=suite.id,
-                repeat=1 if suite.test_type == 'functional' else 3,
-                timeout=3600,
-                doc=suite_data.description,
+                repeat=repeat,
+                timeout=timeout,
+                doc=doc,
                 description='',
                 is_default=suite.is_default,
                 short_name=short_name
             ))
+        if not case_obj_list:
+            # 说明数据库中数据与 gitee 数据已经同步
+            return
         with transaction.atomic():
             TestCase.objects.bulk_create(case_obj_list)
             TestCase.objects.filter(test_suite_id=suite.id).exclude(name__in=case_name_list).delete()
@@ -548,73 +630,47 @@ class TestSuiteService(CommonService):
                 test_case_id__in=exist_test_case_id_list).delete()
             WorkspaceCaseRelation.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
-        suite_domain_list = DomainRelation.objects.filter(object_type='suite', object_id=suite_id)
+        suite_domain_list = DomainRelation.objects.filter(object_type='suite', object_id=suite.id)
         suite_domain_id_list = []
         for suite_domain in suite_domain_list:
             suite_domain_id_list.append(suite_domain.domain_id)
-        test_case_id_list = list(TestCase.objects.filter(test_suite_id=suite_id).values_list('id', flat=True))
-        case_domain_id = list(DomainRelation.objects.filter(object_type='case',
-                                                            object_id__in=test_case_id_list
-                                                            ).values_list('object_id', flat=True))
-        case_domain_noneid_list = []
+        test_case_id_list = list(TestCase.objects.filter(test_suite_id=suite.id).values_list('id', flat=True))
+        case_domain_id = list(DomainRelation.objects.filter(
+            object_type='case',
+            object_id__in=test_case_id_list
+        ).values_list('object_id', flat=True))
+        case_domain_none_id_list = []
         for test_case_id in test_case_id_list:
             if test_case_id not in case_domain_id:
-                case_domain_noneid_list.append(test_case_id)
+                case_domain_none_id_list.append(test_case_id)
         for index in range(len(suite_domain_id_list)):
-            for case_domain_noneid in case_domain_noneid_list:
-                update_dict = {'object_type': 'case',
-                               'object_id': case_domain_noneid,
-                               'domain_id': suite_domain_list[index].domain_id}
+            for case_domain_noneid in case_domain_none_id_list:
+                update_dict = {
+                    'object_type': 'case',
+                    'object_id': case_domain_noneid,
+                    'domain_id': suite_domain_list[index].domain_id
+                }
                 DomainRelation.objects.create(**update_dict)
-        return 200, 'sync case success'
 
-    def _sync_case_from_aktf(self, pk):
-        test_suite = TestSuite.objects.filter(id=pk).first()
-        if not test_suite:
-            return 201, 'suite not exist'
-        result, success = TestSuiteService.get_cases(test_suite.name)
-        if success == 200:
-            try:
-                assert result['JOBRESULT'].strip(), 'LKP_SYNC returns null args:%s' % test_suite.name
-                assert result['SUCCESS'], result['ERRORMSG']
-                for line in [r for r in result['JOBRESULT'].split('\n') if r.strip()]:
-                    TestSuiteService._case_add(test_suite, line)
-            except Exception as err:
-                return 202, "同步失败:" + str(err)
-        return success, ''
-
-    @staticmethod
-    def get_cases(suite_name, test_framework='LKP_SYNC'):
-        return None, False
-
-    @staticmethod
-    def _case_add(test_suite, case_info):
-        items = case_info.split(' ')
-        try:
-            name = os.path.splitext(items[0][2:])[0]
-        except Exception:
-            name = items[0][2:]
-        if not name.strip():
-            return
-        cases = TestCase.objects.filter(Q(test_suite_id=test_suite.id), Q(name=name) | Q(name=items[0][2:]))
-        if cases.exists():
-            for case in cases:
-                case.name = name
-                case.save()
-        else:
-            repeat = 1
-            if items[1] == 'performance':
-                repeat = 3
-            case = TestCase(
-                name=name,
-                test_suite_id=test_suite.id,
-                repeat=repeat,
-                timeout=3600,
-                doc='',
-                description='',
-                is_default=test_suite.is_default
-            )
-            case.save()
+        # 保存性能case 默认指标
+        if suite.test_type == TestType.PERFORMANCE and configs:
+            metric_list = []
+            for case_name in case_name_list:
+                short_name = '-'.join([item.split('=')[-1] for item in case_name.split(',')])
+                if not configs.get(short_name):
+                    continue
+                metrics = configs[short_name]['metrics']
+                for k, v in metrics.items():
+                    metric_list.append(TestMetric(
+                        name=k,
+                        cv_threshold=v['cv'] / 100,
+                        cmp_threshold=v['avg'] / 100,
+                        direction='increase' if v['direct'] == 'up' else 'decline',
+                        object_type='case',
+                        object_id=TestCase.objects.get(name=case_name, test_suite_id=suite.id).id
+                    ))
+            if metric_list:
+                TestMetric.objects.bulk_create(metric_list)
 
     @staticmethod
     def sys_case_confirm(request, data):
@@ -630,14 +686,15 @@ class TestSuiteService(CommonService):
             suite_id_list.append(suite_id)
             case_id_list = TestCase.objects.filter(test_suite_id__in=suite_id_list).values_list('id', flat=True)
         if case_id_list_str:
-            case_id_list = case_id_list_str.split(',')
+            case_id_list = str(case_id_list_str).split(',')
         if flag == 'job':
-            job_id_list = TestJobCase.objects.filter(
-                test_case_id__in=case_id_list, state__in=['running', 'pending']).values_list('job_id', flat=True)
-            res_queryset = TestJob.objects.filter(id__in=job_id_list, state__in=['running', 'pending'])
+            job_id_list = TestJobCase.objects.filter(test_case_id__in=case_id_list, state__in=['running', 'pending']). \
+                values_list('job_id', flat=True).distinct()
+            res_queryset = TestJob.objects.filter(id__in=job_id_list)
         elif flag == 'pass':
             job_id_list = TestJobCase.objects.filter(
-                test_case_id__in=case_id_list, state__in=['running', 'pending']).values_list('job_id', flat=True)
+                test_case_id__in=case_id_list, state__in=['running', 'pending']). \
+                values_list('job_id', flat=True).distinct()
             if TestJob.objects.filter(id__in=job_id_list).exists():
                 return 200, flag
             tmpl_id_list = TestTmplCase.objects.filter(
@@ -649,6 +706,7 @@ class TestSuiteService(CommonService):
             tmpl_id_list = TestTmplCase.objects.filter(
                 test_case_id__in=case_id_list).values_list('tmpl_id', flat=True)
             res_queryset = TestTemplate.objects.filter(id__in=tmpl_id_list)
+        # 排除已经删除的workspace内的模版
         ws_list = Workspace.objects.all().values_list('id', flat=True)
         res_queryset = res_queryset.filter(ws_id__in=ws_list)
         return res_queryset, flag
@@ -806,6 +864,8 @@ class TestMetricService(CommonService):
                 case_id_list.append(case.id)
             TestMetric.objects.filter(name__in=metric_name_list, object_type='case',
                                       object_id__in=case_id_list).delete()
+            TestMetric.objects.filter(name__in=metric_name_list, object_type='suite',
+                                      object_id=data.get('object_id')).delete()
         else:
             TestMetric.objects.filter(id__in=data.get('id_list')).delete()
 
@@ -1248,3 +1308,14 @@ class TestBusinessService(CommonService):
     def filter_suite(pk):
         suite_list = BusinessSuiteRelation.objects.filter(business_id=pk).values_list('test_suite_id', flat=True)
         return TestSuite.objects.filter(id__in=suite_list)
+
+
+class FrontSuiteParamsService(CommonService):
+
+    def get(self, key):
+        return json.loads(redis_cache.get_info(key))
+
+    def post(self, data):
+        key = ''.join(random.sample(string.ascii_letters + string.digits, 15))
+        ret = redis_cache.set_info(key, json.dumps(data), 5000)
+        return key

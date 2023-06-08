@@ -221,7 +221,7 @@ class TestPlanDetailSerializer(CommonSerializer):
     @staticmethod
     def get_env_info(obj):
         if isinstance(obj.env_info, dict):
-            return ','.join(['{}={}'.format(key, value) for key, value in obj.env_info.items()])
+            return '\n'.join(['{}={}'.format(key, value) for key, value in obj.env_info.items()])
         return obj.env_info
 
     @staticmethod

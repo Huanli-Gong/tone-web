@@ -68,7 +68,7 @@ class PlanService(CommonService):
     def get_env_info(origin_env_info):
         """获取全局变量"""
         try:
-            env_info = pack_env_infos(origin_env_info)
+            env_info = pack_env_infos(origin_env_info, delimiter='\n')
         except JobTestException as e:
             return False, e.args[0][1]
         return True, env_info
@@ -200,7 +200,7 @@ class PlanService(CommonService):
         if not name.strip():
             return False, '计划名称不能为空'
         # 计划名称不能重复
-        if TestPlan.objects.filter(name=name).exists():
+        if TestPlan.objects.filter(name=name, ws_id=data.get('ws_id')).exists():
             return False, '计划名称已存在'
         return True, ''
 

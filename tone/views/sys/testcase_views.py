@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 
 from tone.core.common.views import CommonAPIView, BaseView
+from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, TestDomain, TestBusiness
 from tone.schemas.sys.testcase_schemas import TestCaseSchema, TestCaseDetailSchema, TestCaseBatchSchema, \
     TestSuiteSchema, TestSuiteDetailSchema, TestMetricSchema, TestMetricDetailSchema, WorkspaceCaseSchema, \
@@ -11,7 +12,7 @@ from tone.serializers.sys.testcase_serializers import TestCaseSerializer, TestSu
     SysTemplateSerializer, SysJobSerializer, TestBusinessSerializer, BusinessSuiteSerializer, RetrieveCaseSerializer2
 from tone.services.sys.testcase_services import TestCaseService, TestSuiteService, TestMetricService, \
     WorkspaceCaseService, TestDomainService, SyncCaseToCacheService, WorkspaceRetrieveService, ManualSyncService, \
-    TestBusinessService
+    TestBusinessService, FrontSuiteParamsService
 
 
 class TestCaseView(CommonAPIView):
@@ -94,7 +95,7 @@ class TestCaseBatchView(CommonAPIView):
         """
         批量修改case的领域，超时时间和执行次数
         """
-        self.service.update_batch(request.data, operator=1)
+        self.service.update_batch(request.data)
         response_data = self.get_response_code()
         return Response(response_data)
 
@@ -230,8 +231,11 @@ class TestSuiteSyncView(CommonAPIView):
         """
         suite同步功能
         """
-        self.code, self.msg = self.service.sync_case(pk)
-        response_data = self.get_response_data(None, many=False)
+        success, msg = self.service.sync_case_from_gitee(pk)
+        if success:
+            response_data = self.get_response_code()
+        else:
+            response_data = self.get_response_code(code=201, msg=msg)
         return Response(response_data)
 
 
@@ -362,13 +366,27 @@ class WorkspaceCaseView(CommonAPIView):
             self.serializer_class = BriefSuiteSerializer
             page = False
         else:
-            if request.GET.get('scope') == 'all' or int(request.GET.get('page_size', 10)) >= 100:
+            if request.GET.get('scope') == 'all' or int(request.GET.get('page_size', 10)) > 100:
                 data = TestCaseService().get_ws_all_cases(self.get_queryset(), request)
                 response_data = self.get_response_code()
                 response_data['data'] = data
                 return Response(response_data)
             else:
                 self.serializer_class = TestSuiteWsCaseSerializer
+                queryset = self.service.filter(self.get_queryset(), request.GET)
+                response_data = self.get_response_data(queryset, page=page)
+                thread_tasks = []
+                for item in response_data['data']:
+                    thread_tasks.append(
+                        ToneThread(TestSuiteWsCaseSerializer.get_test_case_list,
+                                   (item['id'], request.GET.get('ws_id'), request.GET.get('test_type')))
+                    )
+                    thread_tasks[-1].start()
+                for index, thread_task in enumerate(thread_tasks):
+                    thread_task.join()
+                    test_case_list = thread_task.get_result()
+                    response_data['data'][index]['test_case_list'] = test_case_list
+                return Response(response_data)
         queryset = self.service.filter(self.get_queryset(), request.GET)
         response_data = self.get_response_data(queryset, page=page)
         return Response(response_data)
@@ -590,8 +608,8 @@ class SysCaseDelView(CommonAPIView):
     serializer_class = SysTemplateSerializer
     service_class = TestSuiteService
 
-    def get(self, request):
-        instance, flag = self.service.sys_case_confirm(request, request.GET)
+    def post(self, request):
+        instance, flag = self.service.sys_case_confirm(request, request.data)
         if flag == 'job':
             self.serializer_class = SysJobSerializer
         if flag == 'pass':
@@ -660,3 +678,16 @@ class TestBusinessDetailView(CommonAPIView):
         self.service.delete(pk)
         response_data = self.get_response_code()
         return Response(response_data)
+
+
+class FrontSuiteParamsView(CommonAPIView):
+    serializer_class = TestBusinessSerializer
+    service_class = FrontSuiteParamsService
+
+    def get(self, request):
+        pk = request.GET['pk']
+        return Response(self.get_response_only_for_data(self.service.get(pk)))
+
+    def post(self, request):
+        key = self.service.post(request.data)
+        return Response(self.get_response_only_for_data(key))
