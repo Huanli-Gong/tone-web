@@ -111,7 +111,6 @@ function upload_dir(){{
     mirror -R $dir ${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER
     by
 EOF
-
     file_result_path="http://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_PROXY_PORT}}/${{TONE_STORAGE_BUCKET}}/${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER/"
     echo $file_result_path >> $LOG
     echo $file_result_path
