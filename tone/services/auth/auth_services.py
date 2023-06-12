@@ -1,6 +1,5 @@
 import uuid
 
-
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
@@ -89,8 +88,8 @@ class AuthService(CommonService):
             return False, '两次输入的新密码不一致'
 
         if authenticate(
-            username=User.objects.get(id=user_id).username,
-            password=new_password
+                username=User.objects.get(id=user_id).username,
+                password=new_password
         ):
             return False, '新密码不能与旧密码一致'
 

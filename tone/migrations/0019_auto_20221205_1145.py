@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('tone', '0018_auto_20221020_1005'),
     ]
@@ -14,7 +13,8 @@ class Migration(migrations.Migration):
             name='ReleaseServerRecord',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('server_id', models.IntegerField(help_text='机器ID', unique=True)),
@@ -35,7 +35,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='cloudserver',
             name='channel_type',
-            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')], default='toneagent', help_text='通道类型', max_length=64),
+            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')],
+                                   default='toneagent', help_text='通道类型', max_length=64),
         ),
         migrations.AlterField(
             model_name='cloudserver',
@@ -45,12 +46,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='cloudserver',
             name='release_rule',
-            field=models.IntegerField(choices=[(0, '用完不释放'), (1, '用完释放'), (2, '有失败用例时不释放（保留24小时）')], default=1, help_text='用完释放'),
+            field=models.IntegerField(
+                choices=[(0, '用完不释放'), (1, '用完释放'), (2, '有失败用例时不释放（保留24小时）')], default=1,
+                help_text='用完释放'),
         ),
         migrations.AlterField(
             model_name='cloudserversnapshot',
             name='channel_type',
-            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')], default='toneagent', help_text='通道类型', max_length=64),
+            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')],
+                                   default='toneagent', help_text='通道类型', max_length=64),
         ),
         migrations.AlterField(
             model_name='cloudserversnapshot',
@@ -60,21 +64,26 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='cloudserversnapshot',
             name='release_rule',
-            field=models.IntegerField(choices=[(0, '用完不释放'), (1, '用完释放'), (2, '有失败用例时不释放（保留24小时）')], default=1, help_text='用完释放'),
+            field=models.IntegerField(
+                choices=[(0, '用完不释放'), (1, '用完释放'), (2, '有失败用例时不释放（保留24小时）')], default=1,
+                help_text='用完释放'),
         ),
         migrations.AlterField(
             model_name='planinstancepreparerelation',
             name='channel_type',
-            field=models.CharField(blank=True, choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')], default='otheragent', help_text='通道类型', max_length=64, null=True),
+            field=models.CharField(blank=True, choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')],
+                                   default='otheragent', help_text='通道类型', max_length=64, null=True),
         ),
         migrations.AlterField(
             model_name='testserver',
             name='channel_type',
-            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')], help_text='通道类型', max_length=64),
+            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')],
+                                   help_text='通道类型', max_length=64),
         ),
         migrations.AlterField(
             model_name='testserversnapshot',
             name='channel_type',
-            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')], help_text='通道类型', max_length=64),
+            field=models.CharField(choices=[('otheragent', 'otheragent'), ('toneagent', 'toneagent')],
+                                   help_text='通道类型', max_length=64),
         ),
     ]

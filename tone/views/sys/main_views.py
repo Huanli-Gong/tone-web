@@ -1,4 +1,3 @@
-
 import os
 import mimetypes
 from django.http import HttpResponse

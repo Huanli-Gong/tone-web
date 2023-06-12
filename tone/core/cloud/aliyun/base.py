@@ -53,7 +53,7 @@ class MultiPartForm(object):
 
         # Add the form fields
         parts.extend([part_boundary, 'Content-Disposition: form-data; name="%s"' % name,
-                     'Content-Type: text/plain; charset=UTF-8', '', value]
+                      'Content-Type: text/plain; charset=UTF-8', '', value]
                      for name, value in self.form_fields
                      )
 

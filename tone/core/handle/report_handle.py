@@ -705,11 +705,11 @@ def get_server_info(tag, objs):  # nq  c901
                   'glibc,memory_info,disk,cpu_info,ether FROM test_server_snapshot ' \
                   'WHERE is_deleted=0  AND ' \
                   'job_id IN (' + job_id_str + ') AND distro IS NOT NULL UNION ' \
-                  'SELECT private_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
-                  'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
-                  'FROM cloud_server_snapshot ' \
-                  'WHERE is_deleted=0 AND ' \
-                  'job_id IN (' + job_id_str + ') AND distro IS NOT null'
+                                               'SELECT private_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
+                                               'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
+                                               'FROM cloud_server_snapshot ' \
+                                               'WHERE is_deleted=0 AND ' \
+                                               'job_id IN (' + job_id_str + ') AND distro IS NOT null'
         all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=None)
         for server_info in all_server_info:
             ip = server_info.get('ip')
@@ -777,10 +777,10 @@ def get_group_server_info(base_group, compare_groups):
         raw_sql = 'SELECT job_id,ip,sm_name,distro,rpm_list,kernel_version,gcc,' \
                   'glibc,memory_info,disk,cpu_info,ether FROM test_server_snapshot ' \
                   'WHERE job_id IN (' + job_id_str + ') UNION ' \
-                  'SELECT job_id,pub_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
-                  'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
-                  'FROM cloud_server_snapshot ' \
-                  'WHERE job_id IN (' + job_id_str + ')'
+                                                     'SELECT job_id,pub_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
+                                                     'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
+                                                     'FROM cloud_server_snapshot ' \
+                                                     'WHERE job_id IN (' + job_id_str + ')'
         all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=None)
     for group in groups:
         group_ip_list = list()

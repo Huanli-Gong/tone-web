@@ -1320,7 +1320,7 @@ class TestClusterServerService(CommonService):
         if TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'],
                                             var_name=post_data['var_name']).exists():
             return False, '变量名已存在'
-        test_server = TestServer.objects.\
+        test_server = TestServer.objects. \
             filter((Q(ip=post_data['ip']) | Q(sn=post_data['ip'])) & Q(ws_id=post_data['ws_id']))
         update_owner(post_data)
         if test_server:

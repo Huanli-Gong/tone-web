@@ -23,7 +23,7 @@ from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestJob, JobType, Project, Product, TestJobCase, TestJobSuite, TestCase, TestSuite, \
     JobTagRelation, JobTag, TestStep, FuncResult, PerfResult, ResultFile, User, TestMetric, FuncBaselineDetail, \
     TestServerSnapshot, CloudServerSnapshot, PlanInstanceTestRelation, PlanInstance, ReportObjectRelation, Report, \
-    BusinessSuiteRelation, TestBusiness, JobMonitorItem, MonitorInfo, BaseConfig, TestClusterSnapshot, TestCluster,\
+    BusinessSuiteRelation, TestBusiness, JobMonitorItem, MonitorInfo, BaseConfig, TestClusterSnapshot, TestCluster, \
     CloudServer
 from tone.models.sys.baseline_models import Baseline, PerfBaselineDetail
 

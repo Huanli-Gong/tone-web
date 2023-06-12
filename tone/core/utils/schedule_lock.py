@@ -23,5 +23,7 @@ def lock_run_task(timeout, lock_flag="serial_task"):
             finally:
                 if is_locked:
                     release(lock_id)
+
         return lock_run
+
     return wrapper

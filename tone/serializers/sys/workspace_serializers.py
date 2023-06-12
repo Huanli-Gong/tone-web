@@ -244,9 +244,9 @@ class WorkspaceMemberSerializer(CommonSerializer):
         fields = ['user_info', 'is_owner', 'join_date']
 
     def get_user_info(self, obj):
-        is_self = False   # 是否本人
-        is_admin = False    # 是否系统级管理员
-        can_update = False    # 是否可修改角色
+        is_self = False  # 是否本人
+        is_admin = False  # 是否系统级管理员
+        can_update = False  # 是否可修改角色
         user_obj = User.objects.filter(id=obj.user_id).first()
         user_info = UserBriefSerializer(user_obj, many=False).data
         view_request = self.context.get('request', '')

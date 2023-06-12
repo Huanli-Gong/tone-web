@@ -5,6 +5,7 @@ Date:
 Author: Yfh
 """
 from tone.core.common.load_files import load_operations_module
+
 OPERATION_CLS = [
     'tone.core.common.operation_module.machine_management',
 ]

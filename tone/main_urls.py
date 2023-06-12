@@ -19,26 +19,24 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include, re_path
 
-
 from tone.views.sys import main_views
 
 urlpatterns = [
-    # include
-    path('api/sys/', include('tone.urls.sys_urls'), name='sys'),
-    path('api/auth/', include('tone.urls.auth_urls'), name='auth'),
-    path('api/case/', include('tone.urls.testcase_urls'), name='case'),
-    path('api/server/', include('tone.urls.server_urls'), name='server'),
-    path('api/job/', include('tone.urls.job_urls'), name='job'),
-    path('api/baseline/', include('tone.urls.baseline_urls'), name='baseline'),
-    path('api/portal/', include('tone.urls.portal_urls'), name='portal'),
-    path('api/plan/', include('tone.urls.plan_urls'), name='plan'),
-    path('api/report/', include('tone.urls.report_urls'), name='report'),
-    # api
-    path('api/', include('tone.urls.api_urls'), name='sys'),
-    # admin
-    path('admin/', include('tone.urls.admin_urls'), name='admin'),
+                  # include
+                  path('api/sys/', include('tone.urls.sys_urls'), name='sys'),
+                  path('api/auth/', include('tone.urls.auth_urls'), name='auth'),
+                  path('api/case/', include('tone.urls.testcase_urls'), name='case'),
+                  path('api/server/', include('tone.urls.server_urls'), name='server'),
+                  path('api/job/', include('tone.urls.job_urls'), name='job'),
+                  path('api/baseline/', include('tone.urls.baseline_urls'), name='baseline'),
+                  path('api/portal/', include('tone.urls.portal_urls'), name='portal'),
+                  path('api/plan/', include('tone.urls.plan_urls'), name='plan'),
+                  path('api/report/', include('tone.urls.report_urls'), name='report'),
+                  # api
+                  path('api/', include('tone.urls.api_urls'), name='sys'),
+                  # admin
+                  path('admin/', include('tone.urls.admin_urls'), name='admin'),
 
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
+              ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 urlpatterns.append(re_path(r'', main_views.index))

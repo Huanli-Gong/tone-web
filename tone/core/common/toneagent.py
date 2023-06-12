@@ -127,7 +127,6 @@ class QueryTaskRequest(ToneAgentRequest):
         return self.request(self._api, self._request_data)
 
 
-
 class RemoveAgentRequest(ToneAgentRequest):
     def __init__(self, access_key, secret_key):
         self._api = 'api/agent/remove'

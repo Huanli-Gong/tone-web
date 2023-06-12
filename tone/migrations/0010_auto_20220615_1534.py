@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('tone', '0009_auto_20220602_1845'),
     ]
@@ -18,21 +17,29 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='cloudserver',
             name='history_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='历史状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='历史状态', max_length=64),
         ),
         migrations.AddField(
             model_name='cloudserversnapshot',
             name='history_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='历史状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='历史状态', max_length=64),
         ),
         migrations.AddField(
             model_name='testserver',
             name='history_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='历史状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='历史状态', max_length=64),
         ),
         migrations.AddField(
             model_name='testserversnapshot',
             name='history_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='历史状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='历史状态', max_length=64),
         ),
     ]

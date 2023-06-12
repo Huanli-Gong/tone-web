@@ -47,7 +47,7 @@ def create_superuser(request):
     user = User.objects.create_user(
         username,
         password=password,
-        ** {
+        **{
             'emp_id': str((User.objects.count() + 1)).zfill(6),
             'first_name': username,
             'last_name': username,

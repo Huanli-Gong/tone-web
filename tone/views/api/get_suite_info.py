@@ -44,7 +44,7 @@ def get_metric_list(request):
 def get_suite_increase(request):
     resp = CommResp()
     last_sync_time = request.GET['last_sync_time']
-    queryset = TestCase.objects.filter(gmt_modified__gt=datetime.strptime(last_sync_time, '%Y-%m-%d %H:%M:%S')).\
+    queryset = TestCase.objects.filter(gmt_modified__gt=datetime.strptime(last_sync_time, '%Y-%m-%d %H:%M:%S')). \
         extra(select={'suite_name': 'test_suite.name',
                       'suite_id': 'test_suite.id',
                       'test_type': 'test_suite.test_type'},

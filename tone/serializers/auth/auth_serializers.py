@@ -292,7 +292,6 @@ class WsAdminSerializer(CommonSerializer):
 
 
 class TaskMsgSerializer(CommonSerializer):
-
     class Meta:
         model = InSiteSimpleMsg
         fields = ['id', 'subject', 'content', 'msg_type', 'msg_object_id', 'is_read', 'gmt_created']

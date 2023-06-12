@@ -30,7 +30,6 @@ def sync_case_to_cache_job():
 
 schedule.every(3).minutes.do(sync_case_to_cache_job)
 
-
 while True:
     schedule.run_pending()
     time.sleep(1)

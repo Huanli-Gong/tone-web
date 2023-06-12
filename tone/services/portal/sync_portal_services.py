@@ -13,7 +13,6 @@ from tone.models import TestSuite, TestCase, TestDomain, TestMetric, TestJob, Pr
     TestJobCase, ResultFile, CloudServerSnapshot, FuncBaselineDetail, PerfBaselineDetail, TestJobSuite
 from tone.settings import APP_DOMAIN
 
-
 logger = logging.getLogger('sync_test_farm')
 
 
@@ -196,7 +195,7 @@ class SyncPortalService(CommonService):
         ip = ''
         sn = ''
         case_state = ''
-        test_job_case = TestJobCase.objects.\
+        test_job_case = TestJobCase.objects. \
             filter(job_id=test_job_id, test_suite_id=test_suite_id, test_case_id=test_case_id).first()
         if test_job_case:
             case_state = self.STATUS_SW.get(test_job_case.state, 0)
@@ -279,7 +278,7 @@ class SyncPortalService(CommonService):
         test_job = TestJob.objects.filter(id=test_job_id).first()
         if not test_job:
             return 201, 'test job not existed.'
-        test_suite_id_list = PerfResult.objects.\
+        test_suite_id_list = PerfResult.objects. \
             filter(test_job_id=test_job_id).values_list('test_suite_id', flat=True).distinct()
         test_suite_list = list()
         for test_suite_id in test_suite_id_list:
@@ -289,14 +288,14 @@ class SyncPortalService(CommonService):
             test_job_suite = TestJobSuite.objects.filter(job_id=test_job_id, test_suite_id=test_suite_id).first()
             if not test_job_suite:
                 return 201, 'test_job_suite error.'
-            test_case_id_list = PerfResult.objects.filter(test_job_id=test_job_id, test_suite_id=test_suite_id).\
+            test_case_id_list = PerfResult.objects.filter(test_job_id=test_job_id, test_suite_id=test_suite_id). \
                 values_list('test_case_id', flat=True).distinct()
             test_case_list = list()
             for test_case_id in test_case_id_list:
                 test_case = TestCase.objects.filter(id=test_case_id).first()
                 if not test_case:
                     return 201, 'test_case not existed'
-                perf_result_list = PerfResult.objects.\
+                perf_result_list = PerfResult.objects. \
                     filter(test_job_id=test_job_id, test_suite_id=test_suite_id, test_case_id=test_case_id)
                 metric_list = list()
                 for perf_result in perf_result_list:
@@ -355,7 +354,7 @@ class SyncPortalService(CommonService):
         test_job = TestJob.objects.filter(id=test_job_id).first()
         if not test_job:
             return 201, 'test job not existed.'
-        test_suite_id_list = FuncResult.objects.\
+        test_suite_id_list = FuncResult.objects. \
             filter(test_job_id=test_job_id).values_list('test_suite_id', flat=True).distinct()
         test_suite_list = list()
         for test_suite_id in test_suite_id_list:
@@ -502,7 +501,7 @@ class SyncPortalService(CommonService):
             test_suite = TestSuite.objects.filter(id=test_suite_id).first()
             if not test_suite:
                 break
-            test_case_id_list = FuncBaselineDetail.objects.\
+            test_case_id_list = FuncBaselineDetail.objects. \
                 filter(baseline_id=baseline_id, test_suite_id=test_suite_id). \
                 values_list('test_case_id', flat=True).distinct()
             test_case_list = list()

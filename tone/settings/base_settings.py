@@ -28,7 +28,6 @@ DEBUG = False if cp.get('env') == 'prod' else True
 
 ALLOWED_HOSTS = ['*']
 
-
 # Application definition
 
 # sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
@@ -97,7 +96,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
@@ -110,7 +108,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = False
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/

@@ -70,4 +70,3 @@ class OutSiteMsg(BaseModel):
 
     class Meta:
         db_table = 'outsite_mesg'
-

@@ -150,7 +150,8 @@ class ApproveInfo(BaseModel):
     relation_data = json.JSONField(default={}, help_text='关联数据')
     reason = models.CharField(max_length=1024, help_text='申请理由', null=True, blank=True, db_index=True)
     action = models.CharField(max_length=32, choices=ACTION_CHOICES, help_text='操作类型')
-    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='waiting', help_text='审批状态', db_index=True)
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='waiting', help_text='审批状态',
+                              db_index=True)
     proposer = models.IntegerField(help_text='申请人', db_index=True)
     approver = models.IntegerField(help_text='审批人', null=True, blank=True, db_index=True)
     refuse_reason = models.CharField(max_length=512, null=True, blank=True)

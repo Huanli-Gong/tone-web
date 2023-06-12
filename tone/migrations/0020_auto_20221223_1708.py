@@ -3,8 +3,8 @@
 from django.db import migrations, models
 import django_extensions.db.fields.json
 
-class Migration(migrations.Migration):
 
+class Migration(migrations.Migration):
     dependencies = [
         ('tone', '0019_auto_20221205_1145'),
     ]

@@ -43,7 +43,6 @@ class TestSuite(BaseModel):
 
 
 class TestCase(BaseModel):
-
     name = models.CharField(max_length=255, db_index=True, help_text='Case名称')
     test_suite_id = models.IntegerField(db_index=True, help_text='关联suite')
     repeat = models.IntegerField(help_text='重复次数')
@@ -99,7 +98,6 @@ class WorkspaceCaseRelation(BaseModel):
 
 
 class TestDomain(BaseModel):
-
     name = models.CharField(max_length=64, db_index=True, help_text='name')
     description = models.CharField(max_length=1024, null=True, blank=True, help_text='描述')
     creator = models.IntegerField(help_text='创建者', null=True)
@@ -145,7 +143,6 @@ class SuiteData(BaseModel):
 
 
 class CaseData(BaseModel):
-
     name = models.CharField(max_length=255, help_text='Case名称')
     suite_id = models.IntegerField(db_index=True, help_text='关联suite')
     description = models.TextField(null=True, blank=True, help_text='描述文档')

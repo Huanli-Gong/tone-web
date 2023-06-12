@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('tone', '0023_auto_20230224_1003'),
     ]
@@ -14,11 +13,13 @@ class Migration(migrations.Migration):
             name='BaselineDownloadRecord',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('baseline_id', models.IntegerField(db_index=True, help_text='baseline id')),
-                ('state', models.CharField(choices=[('running', '文件打包中'), ('success', '成功'), ('fail', '失败')], default='running', help_text='state', max_length=64)),
+                ('state', models.CharField(choices=[('running', '文件打包中'), ('success', '成功'), ('fail', '失败')],
+                                           default='running', help_text='state', max_length=64)),
                 ('target_url', models.CharField(help_text='baseline下载链接', max_length=256, null=True)),
             ],
             options={
@@ -43,7 +44,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='testsuite',
             name='test_framework',
-            field=models.CharField(choices=[('aktf', 'aktf'), ('tone', 'tone')], db_index=True, default='tone', max_length=64),
+            field=models.CharField(choices=[('aktf', 'aktf'), ('tone', 'tone')], db_index=True, default='tone',
+                                   max_length=64),
         ),
         migrations.AlterField(
             model_name='user',

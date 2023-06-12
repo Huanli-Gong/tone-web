@@ -87,7 +87,7 @@ def count_prefresult_state_num(job_id, test_suite_id=None, test_case_id=None):
         cursor.execute(search_sql)
         count = cursor.fetchall()
         for i in count:
-            count_dict[str(i[0])+'_count'] = i[1]
+            count_dict[str(i[0]) + '_count'] = i[1]
         total = sum(count_dict.values())
     return count_dict, total
 

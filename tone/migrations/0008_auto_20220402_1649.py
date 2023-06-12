@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('tone', '0007_auto_20220310_1027'),
     ]
@@ -13,22 +12,30 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='cloudserver',
             name='real_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='真实状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='真实状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='cloudserver',
             name='state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='cloudserversnapshot',
             name='real_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='真实状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='真实状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='cloudserversnapshot',
             name='state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='testjob',
@@ -38,21 +45,29 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='testserver',
             name='real_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='真实状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='真实状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='testserver',
             name='state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='testserversnapshot',
             name='real_state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='真实状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='真实状态', max_length=64),
         ),
         migrations.AlterField(
             model_name='testserversnapshot',
             name='state',
-            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available', help_text='状态', max_length=64),
+            field=models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                                            ('Reserved', 'Reserved'), ('Unusable', 'Unusable')], default='Available',
+                                   help_text='状态', max_length=64),
         ),
     ]

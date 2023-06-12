@@ -169,7 +169,7 @@ class CloudServerSerializer(CommonSerializer):
 
     @staticmethod
     def get_bandwidth(obj):
-        bandwidth = 10   # 云上机器镜像最小为10
+        bandwidth = 10  # 云上机器镜像最小为10
         if str(obj.bandwidth).isdigit():
             if int(obj.bandwidth) > 10:
                 bandwidth = obj.bandwidth

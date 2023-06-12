@@ -17,7 +17,6 @@ from tone.models import RoleMember, WorkspaceMember, Role, ApproveInfo, InSiteWo
 from tone.serializers.job.test_serializers import JobTestResultSerializer, JobTestSummarySerializer
 from tone.services.portal.sync_portal_task_servers import save_report
 
-
 logger = logging.getLogger('message')
 callback_logger = logging.getLogger('callback')
 EMAIL_CC = ''
@@ -666,7 +665,7 @@ class OutSiteMsgHandle(object):
                     presult_e['link'] = '{}/ws/{}/test_analysis/time?' \
                                         'test_type={}&show_type=0&provider_env={}&start_time={}&end_time={}&' \
                                         'tag={}&project_id={}&test_suite_id={}&test_case_id={}&' \
-                                        'metric={}&title={}%2F{}'.\
+                                        'metric={}&title={}%2F{}'. \
                         format(get_skip_url(), job_obj.ws_id, job_obj.test_type, job_obj.server_provider, start_date,
                                end_date, tag_id, job_obj.project_id, case_result.test_suite_id, case_id,
                                quote(case_result.metric), quote(suite_name), quote(conf_name))
@@ -905,7 +904,7 @@ class OutSiteMsgHandle(object):
         ip = machine_obj.ip if machine_type == 'aligroup' else machine_obj.private_ip
         content = '''Tone平台[故障]测试机器故障 {}/{} 上的任务在测试准备阶段失败, 机器可能已经故障，请及时处理 ！
         影响的Job:   {} 影响的Suite有: {}'''.format(machine_obj.sn, ip, message_obj.impact_job,
-                                             ''.join(suite_name_list))
+                                                    ''.join(suite_name_list))
         bcc_to = ''
         ding_to = ''
         email_to = ''

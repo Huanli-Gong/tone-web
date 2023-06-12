@@ -45,7 +45,6 @@ from tone.settings import MEDIA_ROOT
 from tone.core.common.job_result_helper import get_test_config, perse_func_result
 from tone.core.utils.sftp_client import sftp_client
 
-
 logger = logging.getLogger()
 
 
@@ -570,7 +569,8 @@ class JobTestService(CommonService):
                     self.del_dir(job_path)
                     JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url=oss_link)
                 else:
-                    JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url='ftp upload fail.')
+                    JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success',
+                                                                                job_url='ftp upload fail.')
             else:
                 JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='fail', job_url='job not exists')
         except Exception as e:
@@ -1183,7 +1183,7 @@ class JobDataConversionService(object):
 
     def __init__(self, job_data):
         self.job_data = job_data
-        
+
     def id_conv_to_name(self):
         self.conv_field(self.CONV_ID_TO_NAME, 'project', Project)
         self.conv_field(self.CONV_ID_TO_NAME, 'baseline', Baseline)
@@ -1438,11 +1438,11 @@ class MachineFaultService(CommonService):
 def _get_machine_fault(job_id):
     server_provider = TestJob.objects.filter(id=job_id).first().server_provider
     cluster_server = TestJobCase.objects.filter(
-        job_id=job_id, state__in=['pending', 'running'], run_mode='cluster').\
+        job_id=job_id, state__in=['pending', 'running'], run_mode='cluster'). \
         values_list('server_object_id', flat=True).distinct()
     cluster_server_id = None
     if cluster_server:
-        cluster_server_id = TestClusterServer.objects.filter(cluster_id__in=list(cluster_server)).\
+        cluster_server_id = TestClusterServer.objects.filter(cluster_id__in=list(cluster_server)). \
             values(server_object_id=F('server_id'))
     if server_provider == 'aligroup':
         test_server = TestJobCase.objects.filter(

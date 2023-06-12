@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='baseline',
             name='server_provider',
-            field=models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], default='aligroup', help_text='机器类型', max_length=64, null=True),
+            field=models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], default='aligroup',
+                                   help_text='机器类型', max_length=64, null=True),
         ),
     ]

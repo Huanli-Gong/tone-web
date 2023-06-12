@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
             name='ReportDetail',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('report_id', models.IntegerField(help_text='关联报告ID')),

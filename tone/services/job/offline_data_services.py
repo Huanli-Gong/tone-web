@@ -20,7 +20,7 @@ from tone.core.utils.sftp_client import sftp_client
 from tone.models.job.upload_models import OfflineUpload
 from tone.models.job.job_models import TestJob, TestJobCase, TestJobSuite, TestStep, Product, Project
 from tone.models.sys.testcase_model import TestSuite, TestCase, TestMetric
-from tone.models.sys.server_models import TestServer, TestServerSnapshot, CloudServer, CloudServerSnapshot,\
+from tone.models.sys.server_models import TestServer, TestServerSnapshot, CloudServer, CloudServerSnapshot, \
     TestCluster, TestClusterServer
 from tone.models.job.result_models import FuncResult, PerfResult, ResultFile
 from tone.models.sys.baseline_models import PerfBaselineDetail, Baseline
@@ -304,7 +304,8 @@ class OfflineDataUploadService(object):
             for case_obj in suite_obj['cases']:
                 case_dict = dict()
                 case_name = case_obj['test_case']
-                test_suite = TestSuite.objects.filter(test_type=test_type, name=suite_name, test_framework='tone').first()
+                test_suite = TestSuite.objects.filter(test_type=test_type, name=suite_name,
+                                                      test_framework='tone').first()
                 if not test_suite:
                     continue
                 test_case = TestCase.objects.filter(name=case_name, test_suite_id=test_suite.id).first()
@@ -336,7 +337,8 @@ class OfflineDataUploadService(object):
                 tmp_list = filename.split('/')
                 suite_name = tmp_list[1]
                 case_short_name = tmp_list[2]
-                test_suite = TestSuite.objects.filter(test_type=test_type, name=suite_name, test_framework='tone').first()
+                test_suite = TestSuite.objects.filter(test_type=test_type, name=suite_name,
+                                                      test_framework='tone').first()
                 if not test_suite:
                     continue
                 test_case = TestCase.objects.filter(short_name=case_short_name, test_suite_id=test_suite.id).first()
@@ -375,7 +377,7 @@ class OfflineDataUploadService(object):
                                                        test_case_id=test_case.id).update(
                                 state='success', server_snapshot_id=server_snapshot_id, start_time=tmp_start,
                                 end_time=tmp_end)
-                            TestJobSuite.objects.filter(job_id=test_job_id, test_suite_id=test_suite.id).\
+                            TestJobSuite.objects.filter(job_id=test_job_id, test_suite_id=test_suite.id). \
                                 update(state='success', start_time=tmp_start, end_time=tmp_end)
                     if test_type == 'performance':
                         code, msg = self.import_perf_avg(test_job_id, avg_file['results'], test_suite.id,
@@ -394,7 +396,8 @@ class OfflineDataUploadService(object):
                 tmp_list = filename.split('/')
                 suite_name = tmp_list[1]
                 case_short_name = tmp_list[2]
-                test_suite = TestSuite.objects.filter(test_type=test_type, name=suite_name, test_framework='tone').first()
+                test_suite = TestSuite.objects.filter(test_type=test_type, name=suite_name,
+                                                      test_framework='tone').first()
                 if not test_suite:
                     continue
                 test_case = TestCase.objects.filter(short_name=case_short_name, test_suite_id=test_suite.id).first()
@@ -405,7 +408,8 @@ class OfflineDataUploadService(object):
                 if not os.path.exists(local_dir.rsplit('/', 1)[0]):
                     os.makedirs(local_dir.rsplit('/', 1)[0])
                 open(local_dir, 'wb').write(tar_file.extractfile(filename).read())
-                sftp_client.upload_file(local_dir, '/' + local_dir.replace(MEDIA_ROOT.strip('/'), RESULTS_DATA_DIR.strip('/')))
+                sftp_client.upload_file(local_dir,
+                                        '/' + local_dir.replace(MEDIA_ROOT.strip('/'), RESULTS_DATA_DIR.strip('/')))
         shutil.rmtree(f'{MEDIA_ROOT}{test_job_id}')
         return code, ''
 
@@ -413,7 +417,7 @@ class OfflineDataUploadService(object):
         test_step_list = list()
         test_job_case_list = TestJobCase.objects.filter(job_id=test_job_id)
         for test_job_case in test_job_case_list:
-            test_job_suite = TestJobSuite.objects.\
+            test_job_suite = TestJobSuite.objects. \
                 filter(job_id=test_job_id, test_suite_id=test_job_case.test_suite_id).first()
             if test_job_suite:
                 test_step_dict = TestStep(

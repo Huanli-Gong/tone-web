@@ -187,5 +187,6 @@ class ReportDetail(BaseModel):
     report_id = models.IntegerField(help_text='关联报告ID')
     perf_data = json.JSONField()
     func_data = json.JSONField()
+
     class Meta:
         db_table = 'report_detail'

@@ -28,6 +28,7 @@ from tone.serializers.sys.baseline_serializers import FuncBaselineDetailSerializ
 
 def back_fill_version(func):
     """加入基线详情，基线产品版本为空，进行回填"""
+
     def init(_, data, user_id):
         res = func(_, data, user_id)
         baseline_id = PerfBaselineService().get_baseline_id(data)
@@ -42,6 +43,7 @@ def back_fill_version(func):
                     baseline.version = project.product_version
                     baseline.save()
         return res
+
     return init
 
 
@@ -244,10 +246,10 @@ class BaselineService(CommonService):
                 if res:
                     oss_link = 'http://' + sftp_client.host + ':' + str(sftp_client.proxy_port) + ftp_path
                     self.del_dir(file_path)
-                    BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
+                    BaselineDownloadRecord.objects.filter(baseline_id=baseline_id). \
                         update(state='success', target_url=oss_link)
                 else:
-                    BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
+                    BaselineDownloadRecord.objects.filter(baseline_id=baseline_id). \
                         update(state='success', target_url='ftp upload fail.')
             else:
                 BaselineDownloadRecord.objects.filter(baseline_id=baseline_id). \
@@ -1050,7 +1052,7 @@ class PerfBaselineService(CommonService):
             if case_list and suite_id_list:
                 q &= (Q(test_suite_id__in=suite_id_list) | Q(test_case_id__in=case_list))
                 raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ') OR ' \
-                                    'a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
+                                                                                  'a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
             elif case_list:
                 q &= Q(test_suite_id__in=suite_id_list)
                 raw_sql = pre_sql + '(a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql

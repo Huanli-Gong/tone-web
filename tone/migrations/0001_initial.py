@@ -8,7 +8,6 @@ import django_extensions.db.fields.json
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -20,7 +19,8 @@ class Migration(migrations.Migration):
             name='AccessCaseConf',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('test_case_id', models.IntegerField(db_index=True, help_text='关联Case')),
@@ -40,7 +40,8 @@ class Migration(migrations.Migration):
             name='AccessToken',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('access_id', models.CharField(help_text='ACCESS ID', max_length=64)),
@@ -56,15 +57,22 @@ class Migration(migrations.Migration):
             name='ApproveInfo',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('object_type', models.CharField(choices=[('workspace', '工作组'), ('role', '角色'), ('permission', '权限')], db_index=True, help_text='申请类型', max_length=32)),
+                ('object_type',
+                 models.CharField(choices=[('workspace', '工作组'), ('role', '角色'), ('permission', '权限')],
+                                  db_index=True, help_text='申请类型', max_length=32)),
                 ('object_id', models.CharField(db_index=True, help_text='申请对象ID', max_length=8)),
                 ('relation_data', django_extensions.db.fields.json.JSONField(default={}, help_text='关联数据')),
-                ('reason', models.CharField(blank=True, db_index=True, help_text='申请理由', max_length=1024, null=True)),
-                ('action', models.CharField(choices=[('create', '创建'), ('delete', '注销'), ('join', '加入')], help_text='操作类型', max_length=32)),
-                ('status', models.CharField(choices=[('waiting', '待审核'), ('passed', '已通过'), ('refused', '已拒绝')], db_index=True, default='waiting', help_text='审批状态', max_length=32)),
+                ('reason',
+                 models.CharField(blank=True, db_index=True, help_text='申请理由', max_length=1024, null=True)),
+                ('action', models.CharField(choices=[('create', '创建'), ('delete', '注销'), ('join', '加入')],
+                                            help_text='操作类型', max_length=32)),
+                ('status',
+                 models.CharField(choices=[('waiting', '待审核'), ('passed', '已通过'), ('refused', '已拒绝')],
+                                  db_index=True, default='waiting', help_text='审批状态', max_length=32)),
                 ('proposer', models.IntegerField(db_index=True, help_text='申请人')),
                 ('approver', models.IntegerField(blank=True, db_index=True, help_text='审批人', null=True)),
                 ('refuse_reason', models.CharField(blank=True, max_length=512, null=True)),
@@ -77,7 +85,8 @@ class Migration(migrations.Migration):
             name='ArchiveFile',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('ws_name', models.CharField(db_index=True, help_text='Workspace Name', max_length=64)),
@@ -100,12 +109,15 @@ class Migration(migrations.Migration):
             name='AtomicConfig',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='配置项名称', max_length=64)),
                 ('description', models.CharField(blank=True, help_text='配置项描述', max_length=1024, null=True)),
-                ('config_type', models.CharField(choices=[('aligroup', '集团内测试'), ('cloud', '云上测试')], help_text='配置项类型', max_length=32)),
+                ('config_type',
+                 models.CharField(choices=[('aligroup', '集团内测试'), ('cloud', '云上测试')], help_text='配置项类型',
+                                  max_length=32)),
                 ('show_index', models.IntegerField(help_text='显示顺序')),
             ],
             options={
@@ -116,7 +128,8 @@ class Migration(migrations.Migration):
             name='AtomicMutexConfig',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('atomic_config_id', models.IntegerField(help_text='关联配置项')),
@@ -130,7 +143,8 @@ class Migration(migrations.Migration):
             name='BaseConfigHistory',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('config_key', models.CharField(db_index=True, help_text='配置KEY', max_length=64)),
@@ -150,15 +164,21 @@ class Migration(migrations.Migration):
             name='Baseline',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='基线名称', max_length=100)),
                 ('version', models.CharField(help_text='产品版本', max_length=64)),
                 ('description', models.TextField(blank=True, help_text='基线描述', null=True)),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试')], db_index=True, help_text='测试类型', max_length=64)),
-                ('server_provider', models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], db_index=True, default='aligroup', help_text='机器类型', max_length=64)),
-                ('ws_id', models.CharField(blank=True, db_index=True, help_text='所属Workspace', max_length=64, null=True)),
+                ('test_type',
+                 models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试')], db_index=True,
+                                  help_text='测试类型', max_length=64)),
+                ('server_provider',
+                 models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], db_index=True,
+                                  default='aligroup', help_text='机器类型', max_length=64)),
+                ('ws_id',
+                 models.CharField(blank=True, db_index=True, help_text='所属Workspace', max_length=64, null=True)),
                 ('creator', models.IntegerField(help_text='创建者', null=True)),
                 ('update_user', models.IntegerField(help_text='修改者', null=True)),
             ],
@@ -170,16 +190,21 @@ class Migration(migrations.Migration):
             name='BuildJob',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='the build job name', max_length=64)),
-                ('state', models.CharField(choices=[('pending', '队列中'), ('running', '运行中'), ('success', '成功'), ('fail', '失败')], default='pending', help_text='state', max_length=64)),
-                ('build_from', models.CharField(choices=[('cbp', 'CBP'), ('jenkins', 'JENKINS'), ('manual', '手动')], default='manual', help_text='build from', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('pending', '队列中'), ('running', '运行中'), ('success', '成功'), ('fail', '失败')],
+                    default='pending', help_text='state', max_length=64)),
+                ('build_from', models.CharField(choices=[('cbp', 'CBP'), ('jenkins', 'JENKINS'), ('manual', '手动')],
+                                                default='manual', help_text='build from', max_length=64)),
                 ('product_id', models.IntegerField(help_text='ProductModel.id', null=True)),
                 ('project_id', models.IntegerField(help_text='ProjectModel.id', null=True)),
                 ('arch', models.CharField(help_text='arch', max_length=64)),
-                ('build_env', models.CharField(help_text='json info about build environment', max_length=256, null=True)),
+                ('build_env',
+                 models.CharField(help_text='json info about build environment', max_length=256, null=True)),
                 ('build_config', models.CharField(help_text='build configure', max_length=256, null=True)),
                 ('build_machine', models.CharField(help_text='build machine', max_length=256, null=True)),
                 ('build_log', models.CharField(help_text='build log', max_length=512, null=True)),
@@ -208,7 +233,8 @@ class Migration(migrations.Migration):
             name='BusinessResult',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('test_job_id', models.IntegerField(db_index=True, help_text='关联JOB')),
@@ -230,7 +256,8 @@ class Migration(migrations.Migration):
             name='BusinessSuiteRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('business_id', models.IntegerField(db_index=True, help_text='关联业务ID')),
@@ -244,7 +271,8 @@ class Migration(migrations.Migration):
             name='CaseData',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='Case名称', max_length=255)),
@@ -259,11 +287,13 @@ class Migration(migrations.Migration):
             name='CloudAk',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='ak name', max_length=64)),
-                ('provider', models.CharField(choices=[('aliyun_ecs', '阿里云ECS'), ('aliyun_eci', '阿里云ECI')], max_length=64)),
+                ('provider',
+                 models.CharField(choices=[('aliyun_ecs', '阿里云ECS'), ('aliyun_eci', '阿里云ECI')], max_length=64)),
                 ('access_id', models.CharField(max_length=128)),
                 ('access_key', models.CharField(max_length=1024)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=1024, null=True)),
@@ -280,23 +310,30 @@ class Migration(migrations.Migration):
             name='CloudImage',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('ak_id', models.IntegerField(db_index=True, help_text='ak id')),
                 ('provider', models.CharField(help_text='provider name', max_length=32)),
                 ('region', models.CharField(help_text='region/location id', max_length=64)),
-                ('public_type', models.SmallIntegerField(default=1, help_text='公开类型，公共镜像0，自定义镜像1', null=True)),
-                ('usage_type', models.CharField(default='instance', help_text='instance or container', max_length=32, null=True)),
+                ('public_type',
+                 models.SmallIntegerField(default=1, help_text='公开类型，公共镜像0，自定义镜像1', null=True)),
+                ('usage_type',
+                 models.CharField(default='instance', help_text='instance or container', max_length=32, null=True)),
                 ('login_user', models.CharField(default='root', help_text='登陆用户名', max_length=32, null=True)),
                 ('image_id', models.CharField(db_index=True, help_text='image_id', max_length=128)),
                 ('image_name', models.CharField(blank=True, default='', max_length=100)),
                 ('image_version', models.CharField(help_text='image版本信息', max_length=64)),
                 ('image_size', models.CharField(blank=True, help_text='image size', max_length=32, null=True)),
-                ('os_name', models.CharField(default='CenOS 7.4 bit', help_text='操作系统名称版本', max_length=64, null=True)),
-                ('os_type', models.CharField(default='linux', help_text='OS type linux, windows', max_length=16, null=True)),
-                ('os_arch', models.CharField(blank=True, default='x86_64', help_text='os arch, x86_64, arm', max_length=16)),
-                ('platform', models.CharField(default='CentOS', help_text='发行商 CentOS, Ubuntu等', max_length=32, null=True)),
+                ('os_name',
+                 models.CharField(default='CenOS 7.4 bit', help_text='操作系统名称版本', max_length=64, null=True)),
+                ('os_type',
+                 models.CharField(default='linux', help_text='OS type linux, windows', max_length=16, null=True)),
+                ('os_arch',
+                 models.CharField(blank=True, default='x86_64', help_text='os arch, x86_64, arm', max_length=16)),
+                ('platform',
+                 models.CharField(default='CentOS', help_text='发行商 CentOS, Ubuntu等', max_length=32, null=True)),
                 ('ws_id', models.CharField(db_index=True, help_text='关联Workspace', max_length=8)),
                 ('creator', models.IntegerField(help_text='创建者', null=True)),
                 ('update_user', models.IntegerField(help_text='修改者', null=True)),
@@ -309,11 +346,13 @@ class Migration(migrations.Migration):
             name='CloudServer',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(help_text='关联Job')),
-                ('provider', models.CharField(choices=[('aliyun_ecs', '阿里云ECS'), ('aliyun_eci', '阿里云ECI')], help_text='Provider', max_length=64)),
+                ('provider', models.CharField(choices=[('aliyun_ecs', '阿里云ECS'), ('aliyun_eci', '阿里云ECI')],
+                                              help_text='Provider', max_length=64)),
                 ('region', models.CharField(help_text='Region', max_length=64)),
                 ('zone', models.CharField(help_text='Zone', max_length=64)),
                 ('manufacturer', models.CharField(help_text='云厂商', max_length=64)),
@@ -342,14 +381,21 @@ class Migration(migrations.Migration):
                 ('hostname', models.CharField(help_text='Host Name', max_length=64)),
                 ('port', models.IntegerField(help_text='端口号', null=True)),
                 ('kernel_version', models.CharField(help_text='内核版本', max_length=64)),
-                ('state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
-                ('real_state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
+                ('real_state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
                 ('check_state_time', models.DateTimeField(help_text='最近一次检测机器真实状态的时间', null=True)),
-                ('channel_type', models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], default='toneagent', help_text='通道类型', max_length=64)),
+                ('channel_type',
+                 models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], default='toneagent',
+                                  help_text='通道类型', max_length=64)),
                 ('ws_id', models.CharField(db_index=True, help_text='关联Workspace', max_length=8)),
                 ('console_type', models.CharField(help_text='console类型', max_length=64)),
                 ('console_conf', models.CharField(help_text='console配置', max_length=64)),
-                ('spec_use', models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
+                ('spec_use',
+                 models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
                 ('occupied_job_id', models.IntegerField(blank=True, help_text='被哪个任务所占用', null=True)),
                 ('in_pool', models.BooleanField(default=True, help_text='是否在单机池中')),
                 ('broken_job_id', models.IntegerField(blank=True, help_text='关联机器故障job', null=True)),
@@ -364,11 +410,14 @@ class Migration(migrations.Migration):
             name='CloudServerSnapshot',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(blank=True, db_index=True, default=0, help_text='关联Job', null=True)),
-                ('provider', models.CharField(blank=True, choices=[('aliyun_ecs', '阿里云ECS'), ('aliyun_eci', '阿里云ECI')], help_text='Provider', max_length=64, null=True)),
+                ('provider',
+                 models.CharField(blank=True, choices=[('aliyun_ecs', '阿里云ECS'), ('aliyun_eci', '阿里云ECI')],
+                                  help_text='Provider', max_length=64, null=True)),
                 ('region', models.CharField(blank=True, help_text='Region', max_length=64, null=True)),
                 ('zone', models.CharField(blank=True, help_text='Zone', max_length=64, null=True)),
                 ('manufacturer', models.CharField(blank=True, help_text='云厂商', max_length=64, null=True)),
@@ -397,14 +446,21 @@ class Migration(migrations.Migration):
                 ('hostname', models.CharField(blank=True, help_text='Host Name', max_length=64, null=True)),
                 ('port', models.IntegerField(help_text='端口号', null=True)),
                 ('kernel_version', models.CharField(blank=True, help_text='内核版本', max_length=64, null=True)),
-                ('state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
-                ('real_state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
+                ('real_state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
                 ('check_state_time', models.DateTimeField(help_text='最近一次检测机器真实状态的时间', null=True)),
-                ('channel_type', models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], default='toneagent', help_text='通道类型', max_length=64)),
+                ('channel_type',
+                 models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], default='toneagent',
+                                  help_text='通道类型', max_length=64)),
                 ('ws_id', models.CharField(db_index=True, help_text='关联Workspace', max_length=8)),
                 ('console_type', models.CharField(blank=True, help_text='console类型', max_length=64, null=True)),
                 ('console_conf', models.CharField(blank=True, help_text='console配置', max_length=64, null=True)),
-                ('spec_use', models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
+                ('spec_use',
+                 models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
                 ('occupied_job_id', models.IntegerField(blank=True, help_text='被哪个任务所占用', null=True)),
                 ('in_pool', models.BooleanField(default=True, help_text='是否在单机池中')),
                 ('source_server_id', models.IntegerField(db_index=True, help_text='来源机器id', null=True)),
@@ -414,7 +470,8 @@ class Migration(migrations.Migration):
                 ('rpm_list', models.TextField(help_text='rpm包', null=True)),
                 ('broken_job_id', models.IntegerField(blank=True, help_text='关联机器故障job', null=True)),
                 ('broken_at', models.DateTimeField(help_text='故障时间', null=True)),
-                ('product_version', models.CharField(blank=True, help_text='product_version', max_length=64, null=True)),
+                (
+                'product_version', models.CharField(blank=True, help_text='product_version', max_length=64, null=True)),
                 ('broken_reason', models.TextField(help_text='故障原因', null=True)),
             ],
             options={
@@ -425,10 +482,13 @@ class Migration(migrations.Migration):
             name='Comment',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('object_type', models.CharField(choices=[('report', 'report'), ('help_doc', 'help_doc')], default='report', help_text='关联类型', max_length=64)),
+                ('object_type',
+                 models.CharField(choices=[('report', 'report'), ('help_doc', 'help_doc')], default='report',
+                                  help_text='关联类型', max_length=64)),
                 ('object_id', models.IntegerField(db_index=True, help_text='关联id')),
                 ('content', models.TextField(blank=True, help_text='评论内容', null=True)),
                 ('creator', models.IntegerField(help_text='评论人')),
@@ -441,7 +501,8 @@ class Migration(migrations.Migration):
             name='CompareForm',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('req_form', django_extensions.db.fields.json.JSONField(default={}, help_text='请求表单')),
@@ -455,7 +516,8 @@ class Migration(migrations.Migration):
             name='Dag',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(db_index=True, unique=True)),
@@ -471,13 +533,17 @@ class Migration(migrations.Migration):
             name='DagStepInstance',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('dag_id', models.IntegerField()),
                 ('step_data', models.TextField(help_text='步骤元数据')),
                 ('stage', models.CharField(help_text='阶段', max_length=64)),
-                ('state', models.CharField(choices=[('pending', '等待中'), ('running', '运行中'), ('skip', '已跳过'), ('stop', '已停止'), ('success', '成功'), ('fail', '失败')], default='pending', help_text='状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('pending', '等待中'), ('running', '运行中'), ('skip', '已跳过'), ('stop', '已停止'),
+                             ('success', '成功'), ('fail', '失败')], default='pending', help_text='状态',
+                    max_length=64)),
                 ('remark', models.TextField(help_text='备注')),
             ],
             options={
@@ -488,10 +554,13 @@ class Migration(migrations.Migration):
             name='DomainRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('object_type', models.CharField(choices=[('suite', 'Test Suite'), ('case', 'Test Case')], help_text='关联对象类型', max_length=64)),
+                ('object_type',
+                 models.CharField(choices=[('suite', 'Test Suite'), ('case', 'Test Case')], help_text='关联对象类型',
+                                  max_length=64)),
                 ('object_id', models.IntegerField(db_index=True, help_text='关联对象ID')),
                 ('domain_id', models.IntegerField(db_index=True, help_text='关联领域ID')),
             ],
@@ -503,7 +572,8 @@ class Migration(migrations.Migration):
             name='FuncBaselineDetail',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('baseline_id', models.IntegerField(blank=True, help_text='基线Id', null=True)),
@@ -527,7 +597,8 @@ class Migration(migrations.Migration):
             name='FuncResult',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('test_job_id', models.IntegerField(db_index=True, help_text='关联JOB')),
@@ -549,7 +620,8 @@ class Migration(migrations.Migration):
             name='HelpDoc',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('title', models.CharField(help_text='标题', max_length=100, unique=True)),
@@ -569,12 +641,16 @@ class Migration(migrations.Migration):
             name='InSiteSimpleMsg',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('subject', models.CharField(help_text='主题', max_length=255)),
-                ('content', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='通知内容', null=True)),
-                ('msg_type', models.CharField(choices=[('job_complete', '任务完成'), ('plan_complete', '计划完成'), ('machine_broken', '机器故障'), ('announcement', '系统公告')], help_text='消息类型', max_length=64)),
+                ('content',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='通知内容', null=True)),
+                ('msg_type', models.CharField(choices=[('job_complete', '任务完成'), ('plan_complete', '计划完成'),
+                                                       ('machine_broken', '机器故障'), ('announcement', '系统公告')],
+                                              help_text='消息类型', max_length=64)),
                 ('msg_object_id', models.IntegerField(help_text='关联对象id')),
                 ('receiver', models.IntegerField(db_index=True, help_text='关联接收人id')),
                 ('is_read', models.BooleanField(db_index=True, default=False, help_text='已读')),
@@ -587,11 +663,13 @@ class Migration(migrations.Migration):
             name='InSiteWorkProcessMsg',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('subject', models.CharField(help_text='主题', max_length=255)),
-                ('content', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='通知内容', null=True)),
+                ('content',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='通知内容', null=True)),
                 ('process_id', models.IntegerField(help_text='关联审批id', null=True)),
                 ('is_handle', models.BooleanField(db_index=True, default=False, help_text='是否被处理')),
             ],
@@ -603,7 +681,8 @@ class Migration(migrations.Migration):
             name='InSiteWorkProcessUserMsg',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('user_id', models.IntegerField(db_index=True, help_text='关联用户id')),
@@ -618,7 +697,8 @@ class Migration(migrations.Migration):
             name='JobCollection',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(help_text='job id')),
@@ -632,7 +712,8 @@ class Migration(migrations.Migration):
             name='JobMonitorItem',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='监控项名称', max_length=64, unique=True, verbose_name='名称')),
@@ -648,11 +729,13 @@ class Migration(migrations.Migration):
             name='JobTag',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='标签名称', max_length=128)),
-                ('source_tag', models.CharField(choices=[('system_tag', '系统标签'), ('custom_tag', '自定义标签')], default='custom_tag', help_text='标签来源', max_length=32)),
+                ('source_tag', models.CharField(choices=[('system_tag', '系统标签'), ('custom_tag', '自定义标签')],
+                                                default='custom_tag', help_text='标签来源', max_length=32)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=512, null=True)),
                 ('tag_color', models.CharField(default='', help_text='颜色', max_length=128)),
                 ('creator', models.IntegerField(help_text='创建者', null=True)),
@@ -667,7 +750,8 @@ class Migration(migrations.Migration):
             name='JobTagRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('tag_id', models.IntegerField(db_index=True, help_text='关联Tag')),
@@ -681,7 +765,8 @@ class Migration(migrations.Migration):
             name='JobTypeItemRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_type_id', models.IntegerField(help_text='job类型id')),
@@ -697,7 +782,8 @@ class Migration(migrations.Migration):
             name='KernelInfo',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('version', models.CharField(db_index=True, max_length=128, unique=True)),
@@ -718,14 +804,19 @@ class Migration(migrations.Migration):
             name='MonitorInfo',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('state', models.BooleanField(default=False, help_text='监控是否成功')),
                 ('monitor_link', models.CharField(help_text='monitor link', max_length=256, null=True)),
                 ('is_open', models.BooleanField(default=True, help_text='监控是否开启')),
-                ('monitor_level', models.CharField(choices=[('job', 'JOB'), ('case', 'CASE')], default='job', help_text='level', max_length=64)),
-                ('monitor_objs', django_extensions.db.fields.json.JSONField(blank=True, default=[], help_text='monitor objs', null=True)),
+                ('monitor_level',
+                 models.CharField(choices=[('job', 'JOB'), ('case', 'CASE')], default='job', help_text='level',
+                                  max_length=64)),
+                ('monitor_objs',
+                 django_extensions.db.fields.json.JSONField(blank=True, default=[], help_text='monitor objs',
+                                                            null=True)),
                 ('object_id', models.IntegerField(help_text='Job id or JobCase id', null=True)),
                 ('server', models.CharField(help_text='sn or ip', max_length=32, null=True)),
                 ('remark', models.TextField(blank=True, default='', help_text='备注')),
@@ -738,7 +829,8 @@ class Migration(migrations.Migration):
             name='OfflineUpload',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('file_name', models.CharField(help_text='文件名称', max_length=128)),
@@ -746,10 +838,15 @@ class Migration(migrations.Migration):
                 ('project_id', models.IntegerField(help_text='project_id')),
                 ('baseline_id', models.IntegerField(help_text='baseline_id')),
                 ('test_job_id', models.IntegerField(help_text='test_job_id')),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], db_index=True, default='functional', help_text='测试类型', max_length=64)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], db_index=True, default='functional', help_text='测试类型',
+                    max_length=64)),
                 ('ws_id', models.CharField(help_text='workspace id', max_length=64)),
                 ('uploader', models.IntegerField(help_text='上传者')),
-                ('state', models.CharField(choices=[('file', '文件上传中'), ('running', '文件解析中'), ('success', '成功'), ('fail', '失败')], db_index=True, default='success', help_text='任务状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('file', '文件上传中'), ('running', '文件解析中'), ('success', '成功'), ('fail', '失败')],
+                    db_index=True, default='success', help_text='任务状态', max_length=64)),
                 ('state_desc', models.TextField(blank=True, null=True)),
             ],
             options={
@@ -760,15 +857,22 @@ class Migration(migrations.Migration):
             name='OperationLogs',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('operation_type', models.CharField(choices=[('update', '更新'), ('create', '新增'), ('delete', '删除')], default='', help_text='操作类型', max_length=64)),
+                ('operation_type',
+                 models.CharField(choices=[('update', '更新'), ('create', '新增'), ('delete', '删除')], default='',
+                                  help_text='操作类型', max_length=64)),
                 ('operation_object', models.CharField(default='', help_text='操作模块', max_length=128)),
                 ('db_table', models.CharField(default='', help_text='操作的数据表', max_length=64, null=True)),
                 ('db_pid', models.CharField(default='', help_text='操作的数据行主键id', max_length=64)),
-                ('old_values', django_extensions.db.fields.json.JSONField(blank=True, default='', help_text='变更前字段map', null=True)),
-                ('new_values', django_extensions.db.fields.json.JSONField(blank=True, default='', help_text='变更后字段map', null=True)),
+                ('old_values',
+                 django_extensions.db.fields.json.JSONField(blank=True, default='', help_text='变更前字段map',
+                                                            null=True)),
+                ('new_values',
+                 django_extensions.db.fields.json.JSONField(blank=True, default='', help_text='变更后字段map',
+                                                            null=True)),
                 ('operation_sn', models.CharField(default='', help_text='操作号uuid', max_length=64)),
                 ('creator', models.CharField(help_text='操作人', max_length=64, null=True)),
             ],
@@ -780,7 +884,8 @@ class Migration(migrations.Migration):
             name='OutSiteMsg',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('subject', models.CharField(help_text='主题', max_length=255)),
@@ -788,8 +893,10 @@ class Migration(migrations.Migration):
                 ('send_to', models.CharField(default='', help_text='接收对象信息', max_length=255)),
                 ('cc_to', models.CharField(default='', help_text='抄送人邮箱', max_length=512)),
                 ('bcc_to', models.CharField(default='', help_text='邮件group', max_length=255)),
-                ('send_by', models.CharField(choices=[('ding_talk', '钉钉'), ('mail', '邮箱')], help_text='发送方式', max_length=64)),
-                ('send_type', models.CharField(choices=[('markdown', 'markdown'), ('html', 'html'), ('link', 'link')], help_text='发送类型', max_length=64)),
+                ('send_by', models.CharField(choices=[('ding_talk', '钉钉'), ('mail', '邮箱')], help_text='发送方式',
+                                             max_length=64)),
+                ('send_type', models.CharField(choices=[('markdown', 'markdown'), ('html', 'html'), ('link', 'link')],
+                                               help_text='发送类型', max_length=64)),
                 ('msg_link', models.CharField(default='', help_text='消息链接', max_length=256)),
                 ('msg_pic', models.CharField(default='', help_text='消息图片', max_length=256)),
                 ('extend_info', django_extensions.db.fields.json.JSONField(default={}, help_text='扩展信息')),
@@ -803,7 +910,8 @@ class Migration(migrations.Migration):
             name='PerfBaselineDetail',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('baseline_id', models.IntegerField(blank=True, help_text='基线Id', null=True)),
@@ -816,7 +924,9 @@ class Migration(migrations.Migration):
                 ('server_instance_type', models.CharField(blank=True, help_text='规格', max_length=128, null=True)),
                 ('server_image', models.CharField(blank=True, default='', help_text='镜像', max_length=100)),
                 ('server_bandwidth', models.IntegerField(blank=True, help_text='带宽', null=True)),
-                ('run_mode', models.CharField(choices=[('standalone', '单机'), ('cluster', '多机')], default='standalone', help_text='测试类型', max_length=64)),
+                ('run_mode',
+                 models.CharField(choices=[('standalone', '单机'), ('cluster', '多机')], default='standalone',
+                                  help_text='测试类型', max_length=64)),
                 ('source_job_id', models.IntegerField(blank=True, help_text='来源job', null=True)),
                 ('metric', models.CharField(help_text='指标', max_length=128)),
                 ('test_value', models.CharField(help_text='测试值', max_length=64)),
@@ -837,7 +947,8 @@ class Migration(migrations.Migration):
             name='PerfResult',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('test_job_id', models.IntegerField(db_index=True, help_text='关联JOB')),
@@ -868,7 +979,8 @@ class Migration(migrations.Migration):
             name='Permission',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('title', models.CharField(db_index=True, help_text='权限名', max_length=50)),
@@ -882,10 +994,12 @@ class Migration(migrations.Migration):
             name='PermissionRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('object_type', models.CharField(choices=[('role', '角色'), ('user', '用户')], help_text='关联对象类型', max_length=64)),
+                ('object_type', models.CharField(choices=[('role', '角色'), ('user', '用户')], help_text='关联对象类型',
+                                                 max_length=64)),
                 ('object_id', models.IntegerField(db_index=True, help_text='关联对象ID')),
                 ('permission_id', models.IntegerField(db_index=True, help_text='关联权限')),
             ],
@@ -897,16 +1011,21 @@ class Migration(migrations.Migration):
             name='PlanInstance',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_id', models.IntegerField()),
-                ('run_mode', models.CharField(choices=[('auto', '自动触发'), ('manual', '手动触发')], default='auto', max_length=32)),
-                ('state', models.CharField(choices=[('pending', '队列中'), ('running', '运行中'), ('success', '已完成'), ('fail', '失败'), ('stop', '终止')], default='pending', max_length=32)),
+                ('run_mode', models.CharField(choices=[('auto', '自动触发'), ('manual', '手动触发')], default='auto',
+                                              max_length=32)),
+                ('state', models.CharField(
+                    choices=[('pending', '队列中'), ('running', '运行中'), ('success', '已完成'), ('fail', '失败'),
+                             ('stop', '终止')], default='pending', max_length=32)),
                 ('statistics', models.CharField(blank=True, help_text='统计信息', max_length=32, null=True)),
                 ('name', models.CharField(db_index=True, help_text='计划名称', max_length=128)),
                 ('baseline_info', django_extensions.db.fields.json.JSONField(default={}, help_text='基线信息')),
-                ('test_obj', models.CharField(choices=[('kernel', '内核'), ('rpm', 'RPM包')], default='kernel', help_text='被测对象', max_length=32)),
+                ('test_obj', models.CharField(choices=[('kernel', '内核'), ('rpm', 'RPM包')], default='kernel',
+                                              help_text='被测对象', max_length=32)),
                 ('kernel_version', models.CharField(blank=True, help_text='内核版本', max_length=64, null=True)),
                 ('kernel_info', django_extensions.db.fields.json.JSONField(default={}, help_text='内核信息')),
                 ('rpm_info', django_extensions.db.fields.json.JSONField(default={}, help_text='RPM信息')),
@@ -937,19 +1056,25 @@ class Migration(migrations.Migration):
             name='PlanInstancePrepareRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_instance_id', models.IntegerField()),
                 ('run_index', models.IntegerField()),
                 ('instance_stage_id', models.IntegerField()),
-                ('extend_info', django_extensions.db.fields.json.JSONField(default={}, help_text='脚本信息、监控信息等扩展配置')),
-                ('channel_type', models.CharField(blank=True, choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], default='staragent', help_text='通道类型', max_length=64, null=True)),
+                ('extend_info',
+                 django_extensions.db.fields.json.JSONField(default={}, help_text='脚本信息、监控信息等扩展配置')),
+                ('channel_type',
+                 models.CharField(blank=True, choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')],
+                                  default='staragent', help_text='通道类型', max_length=64, null=True)),
                 ('ip', models.CharField(blank=True, help_text='IP', max_length=64, null=True)),
                 ('sn', models.CharField(blank=True, help_text='SN', max_length=64, null=True)),
                 ('script_info', models.TextField(blank=True, help_text='脚本信息', null=True)),
                 ('tid', models.CharField(blank=True, help_text='TICKET ID', max_length=64, null=True)),
-                ('state', models.CharField(choices=[('pending', '队列中'), ('running', '运行中'), ('success', '已完成'), ('fail', '失败'), ('stop', '终止')], default='pending', max_length=32)),
+                ('state', models.CharField(
+                    choices=[('pending', '队列中'), ('running', '运行中'), ('success', '已完成'), ('fail', '失败'),
+                             ('stop', '终止')], default='pending', max_length=32)),
                 ('result', models.TextField(blank=True, help_text='脚本结果', null=True)),
                 ('state_desc', models.TextField(blank=True, null=True)),
             ],
@@ -961,13 +1086,15 @@ class Migration(migrations.Migration):
             name='PlanInstanceStageRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_instance_id', models.IntegerField()),
                 ('stage_name', models.CharField(help_text='阶段名称', max_length=128)),
                 ('stage_index', models.IntegerField(help_text='阶段顺序')),
-                ('stage_type', models.CharField(choices=[('test_stage', '测试阶段'), ('prepare_env', '环境阶段')], help_text='阶段类型', max_length=32)),
+                ('stage_type', models.CharField(choices=[('test_stage', '测试阶段'), ('prepare_env', '环境阶段')],
+                                                help_text='阶段类型', max_length=32)),
                 ('impact_next', models.BooleanField(default=False, help_text='是否影响后续步骤')),
             ],
             options={
@@ -978,16 +1105,23 @@ class Migration(migrations.Migration):
             name='PlanInstanceTestRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_instance_id', models.IntegerField()),
                 ('run_index', models.IntegerField(help_text='触发顺序')),
                 ('instance_stage_id', models.IntegerField()),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], db_index=True, default='functional', help_text='测试类型', max_length=64)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], db_index=True, default='functional', help_text='测试类型',
+                    max_length=64)),
                 ('tmpl_id', models.IntegerField()),
                 ('job_id', models.IntegerField(blank=True, help_text='关联的job id', null=True)),
-                ('state', models.CharField(choices=[('pending', '队列中'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'), ('stop', '终止'), ('skip', '跳过')], db_index=True, default='pending', help_text='任务状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('pending', '队列中'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'),
+                             ('stop', '终止'), ('skip', '跳过')], db_index=True, default='pending',
+                    help_text='任务状态', max_length=64)),
                 ('state_desc', models.TextField(blank=True, null=True)),
             ],
             options={
@@ -998,13 +1132,15 @@ class Migration(migrations.Migration):
             name='PlanStagePrepareRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_id', models.IntegerField()),
                 ('run_index', models.IntegerField()),
                 ('stage_id', models.IntegerField()),
-                ('prepare_info', django_extensions.db.fields.json.JSONField(default={}, help_text='脚本信息、监控信息等配置')),
+                ('prepare_info',
+                 django_extensions.db.fields.json.JSONField(default={}, help_text='脚本信息、监控信息等配置')),
             ],
             options={
                 'db_table': 'plan_stage_prepare_relation',
@@ -1014,13 +1150,15 @@ class Migration(migrations.Migration):
             name='PlanStageRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_id', models.IntegerField()),
                 ('stage_name', models.CharField(help_text='阶段名称', max_length=128)),
                 ('stage_index', models.IntegerField(help_text='阶段顺序')),
-                ('stage_type', models.CharField(choices=[('test_stage', '测试阶段'), ('prepare_env', '环境阶段')], help_text='阶段类型', max_length=32)),
+                ('stage_type', models.CharField(choices=[('test_stage', '测试阶段'), ('prepare_env', '环境阶段')],
+                                                help_text='阶段类型', max_length=32)),
                 ('impact_next', models.BooleanField(default=False, help_text='是否影响后续步骤')),
             ],
             options={
@@ -1031,7 +1169,8 @@ class Migration(migrations.Migration):
             name='PlanStageTestRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('plan_id', models.IntegerField()),
@@ -1047,7 +1186,8 @@ class Migration(migrations.Migration):
             name='Product',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='名称', max_length=128)),
@@ -1064,14 +1204,16 @@ class Migration(migrations.Migration):
             name='Project',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='名称', max_length=128)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=512, null=True)),
                 ('ws_id', models.CharField(db_index=True, help_text='关联Workspace', max_length=8)),
                 ('product_id', models.IntegerField(help_text='关联product', null=True)),
-                ('product_version', models.CharField(blank=True, db_index=True, help_text='产品版本', max_length=128, null=True)),
+                ('product_version',
+                 models.CharField(blank=True, db_index=True, help_text='产品版本', max_length=128, null=True)),
                 ('is_default', models.BooleanField(default=False, help_text='是否默认')),
             ],
             options={
@@ -1082,7 +1224,8 @@ class Migration(migrations.Migration):
             name='ProjectAtomicConfig',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('atomic_config_id', models.IntegerField(help_text='关联配置项')),
@@ -1097,7 +1240,8 @@ class Migration(migrations.Migration):
             name='ProjectBranchRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('project_id', models.IntegerField(help_text='关联project')),
@@ -1113,7 +1257,8 @@ class Migration(migrations.Migration):
             name='Repo',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='名称', max_length=128)),
@@ -1129,7 +1274,8 @@ class Migration(migrations.Migration):
             name='RepoBranch',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='名称', max_length=128)),
@@ -1144,7 +1290,8 @@ class Migration(migrations.Migration):
             name='Report',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='报告名称', max_length=128)),
@@ -1153,7 +1300,8 @@ class Migration(migrations.Migration):
                 ('test_background', models.TextField(help_text='测试背景', null=True)),
                 ('test_method', models.TextField(help_text='测试方法', null=True)),
                 ('test_conclusion', django_extensions.db.fields.json.JSONField(default={}, help_text='测试结论')),
-                ('report_source', models.CharField(choices=[('job', '任务'), ('plan', '计划')], help_text='报告来源', max_length=64)),
+                ('report_source',
+                 models.CharField(choices=[('job', '任务'), ('plan', '计划')], help_text='报告来源', max_length=64)),
                 ('is_automatic', models.BooleanField(default=False, help_text='是否自动生成')),
                 ('test_env', django_extensions.db.fields.json.JSONField(default={}, help_text='机器环境信息')),
                 ('env_description', models.CharField(blank=True, help_text='测试环境描述', max_length=512, null=True)),
@@ -1170,12 +1318,15 @@ class Migration(migrations.Migration):
             name='ReportItem',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='测试项名称', max_length=128)),
                 ('report_id', models.IntegerField(help_text='关联报告ID')),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试')], db_index=True, help_text='测试类型', max_length=64)),
+                ('test_type',
+                 models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试')], db_index=True,
+                                  help_text='测试类型', max_length=64)),
             ],
             options={
                 'db_table': 'report_item',
@@ -1185,14 +1336,16 @@ class Migration(migrations.Migration):
             name='ReportItemConf',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('report_item_suite_id', models.IntegerField(db_index=True, help_text='关联报告suiteID')),
                 ('test_conf_id', models.IntegerField(blank=True, help_text='confID', null=True)),
                 ('test_conf_name', models.CharField(blank=True, help_text='conf名字', max_length=256, null=True)),
                 ('conf_source', django_extensions.db.fields.json.JSONField(default={}, help_text='conf统计及来源')),
-                ('compare_conf_list', django_extensions.db.fields.json.JSONField(default=[], help_text='对比conf对应job，用于链接跳转job')),
+                ('compare_conf_list',
+                 django_extensions.db.fields.json.JSONField(default=[], help_text='对比conf对应job，用于链接跳转job')),
             ],
             options={
                 'db_table': 'report_item_conf',
@@ -1202,7 +1355,8 @@ class Migration(migrations.Migration):
             name='ReportItemMetric',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('report_item_conf_id', models.IntegerField(db_index=True, help_text='关联报告confID')),
@@ -1213,7 +1367,9 @@ class Migration(migrations.Migration):
                 ('max_value', models.CharField(help_text='最大值', max_length=64)),
                 ('min_value', models.CharField(help_text='最小值', max_length=64)),
                 ('value_list', django_extensions.db.fields.json.JSONField(default=[], help_text='多次测试值')),
-                ('direction', models.CharField(choices=[('increase', '上升'), ('decline', '下降')], help_text='期望方向', max_length=64, null=True)),
+                ('direction',
+                 models.CharField(choices=[('increase', '上升'), ('decline', '下降')], help_text='期望方向',
+                                  max_length=64, null=True)),
                 ('compare_data', django_extensions.db.fields.json.JSONField(default=[], help_text='metric对比数据')),
             ],
             options={
@@ -1224,7 +1380,8 @@ class Migration(migrations.Migration):
             name='ReportItemSubCase',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('report_item_conf_id', models.IntegerField(db_index=True, help_text='关联报告confID')),
@@ -1240,13 +1397,16 @@ class Migration(migrations.Migration):
             name='ReportItemSuite',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('report_item_id', models.IntegerField(help_text='关联测试项ID')),
                 ('test_suite_id', models.IntegerField(blank=True, help_text='suiteID', null=True)),
                 ('test_suite_name', models.CharField(blank=True, help_text='suite名字', max_length=256, null=True)),
-                ('show_type', models.IntegerField(choices=[(0, '列表模式'), (1, '图表模式type1'), (2, '图表模式type2'), (3, '图表模式type3')], help_text='显示类型')),
+                ('show_type', models.IntegerField(
+                    choices=[(0, '列表模式'), (1, '图表模式type1'), (2, '图表模式type2'), (3, '图表模式type3')],
+                    help_text='显示类型')),
                 ('test_suite_description', models.TextField(help_text='测试工具说明', null=True)),
                 ('test_env', models.TextField(help_text='测试环境', null=True)),
                 ('test_description', models.TextField(help_text='测试说明', null=True)),
@@ -1260,10 +1420,12 @@ class Migration(migrations.Migration):
             name='ReportObjectRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('object_type', models.CharField(choices=[('job', '任务'), ('plan', '计划')], help_text='关联对象', max_length=64)),
+                ('object_type',
+                 models.CharField(choices=[('job', '任务'), ('plan', '计划')], help_text='关联对象', max_length=64)),
                 ('object_id', models.IntegerField(help_text='关联对象ID')),
                 ('report_id', models.IntegerField(help_text='关联报告ID')),
             ],
@@ -1275,7 +1437,8 @@ class Migration(migrations.Migration):
             name='ReportTemplate',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='模板名称', max_length=128)),
@@ -1291,7 +1454,8 @@ class Migration(migrations.Migration):
                 ('description', models.CharField(blank=True, help_text='描述', max_length=512, null=True)),
                 ('creator', models.IntegerField(help_text='创建者')),
                 ('update_user', models.IntegerField(help_text='修改者', null=True)),
-                ('ws_id', models.CharField(blank=True, db_index=True, help_text='所属Workspace', max_length=8, null=True)),
+                ('ws_id',
+                 models.CharField(blank=True, db_index=True, help_text='所属Workspace', max_length=8, null=True)),
             ],
             options={
                 'db_table': 'report_tmpl',
@@ -1301,12 +1465,15 @@ class Migration(migrations.Migration):
             name='ReportTmplItem',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='测试项名称', max_length=128)),
                 ('tmpl_id', models.IntegerField(help_text='关联模板ID')),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试')], db_index=True, help_text='测试类型', max_length=64)),
+                ('test_type',
+                 models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试')], db_index=True,
+                                  help_text='测试类型', max_length=64)),
             ],
             options={
                 'db_table': 'report_tmpl_item',
@@ -1316,14 +1483,17 @@ class Migration(migrations.Migration):
             name='ReportTmplItemSuite',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('report_tmpl_item_id', models.IntegerField(help_text='关联测试项ID')),
                 ('test_suite_id', models.IntegerField(help_text='关联suiteID')),
                 ('test_suite_show_name', models.CharField(help_text='关联suite显示名', max_length=64, null=True)),
                 ('test_conf_list', django_extensions.db.fields.json.JSONField(default=[], help_text='配置的CONF集')),
-                ('show_type', models.CharField(choices=[('list', '列表模式'), ('chart', '图表模式')], help_text='显示类型', max_length=64)),
+                ('show_type',
+                 models.CharField(choices=[('list', '列表模式'), ('chart', '图表模式')], help_text='显示类型',
+                                  max_length=64)),
                 ('need_test_suite_description', models.BooleanField(default=False, help_text='是否需要测试工具说明')),
                 ('need_test_env', models.BooleanField(default=False, help_text='是否需要测试环境')),
                 ('need_test_description', models.BooleanField(default=False, help_text='是否需要测试说明')),
@@ -1337,7 +1507,8 @@ class Migration(migrations.Migration):
             name='ResultFile',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('test_job_id', models.IntegerField(db_index=True, help_text='关联JOB')),
@@ -1355,12 +1526,14 @@ class Migration(migrations.Migration):
             name='Role',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('title', models.CharField(db_index=True, help_text='角色名', max_length=50)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=200, null=True)),
-                ('role_type', models.CharField(choices=[('system', '系统角色'), ('workspace', '工作台角色')], help_text='关联角色类型', max_length=64, null=True)),
+                ('role_type', models.CharField(choices=[('system', '系统角色'), ('workspace', '工作台角色')],
+                                               help_text='关联角色类型', max_length=64, null=True)),
             ],
             options={
                 'db_table': 'role',
@@ -1370,7 +1543,8 @@ class Migration(migrations.Migration):
             name='RoleMember',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('user_id', models.IntegerField(db_index=True, help_text='关联User')),
@@ -1384,7 +1558,8 @@ class Migration(migrations.Migration):
             name='ScheduleMap',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('schedule_job_id', models.CharField(db_index=True, max_length=64)),
@@ -1399,7 +1574,8 @@ class Migration(migrations.Migration):
             name='ServerRecoverRecord',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('sn', models.CharField(blank=True, help_text='SN', max_length=64, null=True)),
@@ -1417,7 +1593,8 @@ class Migration(migrations.Migration):
             name='ServerTag',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='标签名称', max_length=255)),
@@ -1435,11 +1612,15 @@ class Migration(migrations.Migration):
             name='ServerTagRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('run_environment', models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], default='cluster', help_text='运行环境', max_length=64)),
-                ('object_type', models.CharField(choices=[('cluster', 'cluster'), ('standalone', 'standalone')], help_text='关联对象类型', max_length=64)),
+                ('run_environment',
+                 models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], default='cluster',
+                                  help_text='运行环境', max_length=64)),
+                ('object_type', models.CharField(choices=[('cluster', 'cluster'), ('standalone', 'standalone')],
+                                                 help_text='关联对象类型', max_length=64)),
                 ('object_id', models.IntegerField(db_index=True, help_text='关联对象ID')),
                 ('server_tag_id', models.IntegerField(db_index=True, help_text='关联server_tagID')),
             ],
@@ -1451,7 +1632,8 @@ class Migration(migrations.Migration):
             name='SiteConfig',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('is_major', models.BooleanField(default=True, help_text='是否主站点')),
@@ -1467,12 +1649,14 @@ class Migration(migrations.Migration):
             name='SitePushConfig',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('site_id', models.IntegerField(help_text='关联站点配置')),
                 ('ws_id', models.CharField(blank=True, help_text='workspace id', max_length=64, null=True)),
-                ('project_id', models.CharField(blank=True, help_text='关联project id字符串', max_length=64, null=True)),
+                (
+                'project_id', models.CharField(blank=True, help_text='关联project id字符串', max_length=64, null=True)),
                 ('job_name_rule', models.CharField(blank=True, help_text='Job名称规则', max_length=200, null=True)),
                 ('sync_start_time', models.CharField(blank=True, help_text='同步起始时间', max_length=64, null=True)),
             ],
@@ -1484,12 +1668,16 @@ class Migration(migrations.Migration):
             name='SuiteData',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='Suite名称', max_length=128)),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], help_text='测试类型', max_length=64)),
-                ('test_framework', models.CharField(choices=[('aktf', 'aktf'), ('tone', 'tone')], default='tone', max_length=64)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], help_text='测试类型', max_length=64)),
+                ('test_framework',
+                 models.CharField(choices=[('aktf', 'aktf'), ('tone', 'tone')], default='tone', max_length=64)),
                 ('description', models.TextField(blank=True, help_text='描述文档', null=True)),
             ],
             options={
@@ -1500,7 +1688,8 @@ class Migration(migrations.Migration):
             name='TemplateTagRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('template_id', models.IntegerField(db_index=True, help_text='关联template')),
@@ -1514,7 +1703,8 @@ class Migration(migrations.Migration):
             name='TestBusiness',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='Business名称', max_length=128)),
@@ -1530,7 +1720,8 @@ class Migration(migrations.Migration):
             name='TestCase',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='Case名称', max_length=255)),
@@ -1552,11 +1743,14 @@ class Migration(migrations.Migration):
             name='TestCluster',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='名称', max_length=64)),
-                ('cluster_type', models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型', max_length=64)),
+                ('cluster_type',
+                 models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型',
+                                  max_length=64)),
                 ('is_occpuied', models.BooleanField(default=False, help_text='是否被占用')),
                 ('ws_id', models.CharField(help_text='ws_id', max_length=64)),
                 ('owner', models.IntegerField(help_text='Owner', null=True)),
@@ -1571,13 +1765,17 @@ class Migration(migrations.Migration):
             name='TestClusterServer',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('cluster_id', models.IntegerField(help_text='集群id')),
                 ('server_id', models.IntegerField(help_text='关联单机id')),
-                ('cluster_type', models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型', max_length=64)),
-                ('role', models.CharField(choices=[('local', 'local'), ('remote', 'remote')], help_text='集群角色', max_length=64)),
+                ('cluster_type',
+                 models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型',
+                                  max_length=64)),
+                ('role', models.CharField(choices=[('local', 'local'), ('remote', 'remote')], help_text='集群角色',
+                                          max_length=64)),
                 ('baseline_server', models.BooleanField(help_text='是否是基线机器')),
                 ('kernel_install', models.BooleanField(help_text='是否安装内核')),
                 ('var_name', models.CharField(help_text='变量名', max_length=64)),
@@ -1590,13 +1788,17 @@ class Migration(migrations.Migration):
             name='TestClusterServerSnapshot',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('cluster_id', models.IntegerField(help_text='集群id')),
                 ('server_id', models.IntegerField(help_text='关联单机id')),
-                ('cluster_type', models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型', max_length=64)),
-                ('role', models.CharField(choices=[('local', 'local'), ('remote', 'remote')], help_text='集群角色', max_length=64)),
+                ('cluster_type',
+                 models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型',
+                                  max_length=64)),
+                ('role', models.CharField(choices=[('local', 'local'), ('remote', 'remote')], help_text='集群角色',
+                                          max_length=64)),
                 ('baseline_server', models.BooleanField(default=False, help_text='是否是基线机器')),
                 ('kernel_install', models.BooleanField(default=False, help_text='是否安装内核')),
                 ('var_name', models.CharField(blank=True, help_text='变量名', max_length=64, null=True)),
@@ -1611,11 +1813,14 @@ class Migration(migrations.Migration):
             name='TestClusterSnapshot',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='名称', max_length=64)),
-                ('cluster_type', models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型', max_length=64)),
+                ('cluster_type',
+                 models.CharField(choices=[('aligroup', '内网'), ('aliyun', '云上')], help_text='集群类型',
+                                  max_length=64)),
                 ('is_occpuied', models.BooleanField(default=False, help_text='是否被占用')),
                 ('ws_id', models.CharField(help_text='ws_id', max_length=64)),
                 ('owner', models.IntegerField(help_text='Owner', null=True)),
@@ -1631,7 +1836,8 @@ class Migration(migrations.Migration):
             name='TestDomain',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='name', max_length=64)),
@@ -1647,29 +1853,43 @@ class Migration(migrations.Migration):
             name='TestJob',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='任务名称', max_length=100)),
-                ('state', models.CharField(choices=[('pending', '队列中'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'), ('stop', '终止'), ('skip', '跳过')], db_index=True, default='pending', help_text='任务状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('pending', '队列中'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'),
+                             ('stop', '终止'), ('skip', '跳过')], db_index=True, default='pending',
+                    help_text='任务状态', max_length=64)),
                 ('job_type_id', models.IntegerField(help_text='job类型')),
                 ('project_id', models.IntegerField(blank=True, db_index=True, help_text='project', null=True)),
                 ('product_id', models.IntegerField(blank=True, help_text='product', null=True)),
-                ('product_version', models.CharField(blank=True, help_text='product_version', max_length=64, null=True)),
+                (
+                'product_version', models.CharField(blank=True, help_text='product_version', max_length=64, null=True)),
                 ('baseline_id', models.IntegerField(blank=True, help_text='基线', null=True)),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], db_index=True, default='functional', help_text='测试类型', max_length=64)),
-                ('iclone_info', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='重装信息', null=True)),
-                ('build_pkg_info', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='build内核信息', null=True)),
-                ('kernel_info', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='内核信息', null=True)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], db_index=True, default='functional', help_text='测试类型',
+                    max_length=64)),
+                ('iclone_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='重装信息', null=True)),
+                ('build_pkg_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='build内核信息',
+                                                            null=True)),
+                ('kernel_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='内核信息', null=True)),
                 ('need_reboot', models.BooleanField(default=False, help_text='是否需要重启')),
-                ('rpm_info', django_extensions.db.fields.json.JSONField(blank=True, default=[], help_text='RPM信息', null=True)),
+                ('rpm_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default=[], help_text='RPM信息', null=True)),
                 ('script_info', django_extensions.db.fields.json.JSONField(default=[], help_text='脚本信息')),
                 ('monitor_info', django_extensions.db.fields.json.JSONField(default=[], help_text='监控信息')),
                 ('cleanup_info', models.TextField(blank=True, help_text='清理脚本', null=True)),
                 ('notice_info', django_extensions.db.fields.json.JSONField(default={}, help_text='通知信息')),
                 ('console', models.BooleanField(default=False, help_text='console')),
                 ('kernel_version', models.CharField(blank=True, help_text='内核版本', max_length=128, null=True)),
-                ('show_kernel_version', models.CharField(blank=True, help_text='显示内核版本', max_length=128, null=True)),
+                ('show_kernel_version',
+                 models.CharField(blank=True, help_text='显示内核版本', max_length=128, null=True)),
                 ('env_info', django_extensions.db.fields.json.JSONField(default={}, help_text='变量信息')),
                 ('creator', models.IntegerField(help_text='创建者')),
                 ('tmpl_id', models.IntegerField(blank=True, help_text='关联模板', null=True)),
@@ -1679,8 +1899,12 @@ class Migration(migrations.Migration):
                 ('report_template_id', models.IntegerField(blank=True, help_text='关联报告模板', null=True)),
                 ('report_is_saved', models.BooleanField(default=False, help_text='是否已保存报告')),
                 ('source_job_id', models.IntegerField(blank=True, help_text='来源任务', null=True)),
-                ('server_provider', models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], db_index=True, default='aligroup', help_text='机器类型', max_length=64)),
-                ('created_from', models.CharField(choices=[('web', '页面创建'), ('api', 'API创建'), ('schedule', '定时创建')], db_index=True, default='web', help_text='创建类型', max_length=64)),
+                ('server_provider',
+                 models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], db_index=True,
+                                  default='aligroup', help_text='机器类型', max_length=64)),
+                ('created_from',
+                 models.CharField(choices=[('web', '页面创建'), ('api', 'API创建'), ('schedule', '定时创建')],
+                                  db_index=True, default='web', help_text='创建类型', max_length=64)),
                 ('ws_id', models.CharField(help_text='workspace id', max_length=64)),
                 ('note', models.CharField(blank=True, help_text='NOTE', max_length=255, null=True)),
                 ('test_result', models.CharField(blank=True, help_text='结果统计', max_length=64, null=True)),
@@ -1698,18 +1922,27 @@ class Migration(migrations.Migration):
             name='TestJobCase',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(help_text='关联JOB ID')),
-                ('state', models.CharField(choices=[('pending', '初始化'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'), ('skip', '跳过'), ('stop', '终止')], db_index=True, default='pending', help_text='状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('pending', '初始化'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'),
+                             ('skip', '跳过'), ('stop', '终止')], db_index=True, default='pending', help_text='状态',
+                    max_length=64)),
                 ('test_case_id', models.IntegerField(db_index=True, help_text='关联CASE ID')),
                 ('test_suite_id', models.IntegerField(db_index=True, help_text='关联SUITE ID')),
-                ('run_mode', models.CharField(choices=[('standalone', '单机'), ('cluster', '多机')], default='standalone', help_text='测试类型', max_length=64)),
-                ('server_provider', models.CharField(choices=[('aligroup', '集团内部'), ('aliyun', '阿里云')], default='aligroup', max_length=64)),
+                ('run_mode',
+                 models.CharField(choices=[('standalone', '单机'), ('cluster', '多机')], default='standalone',
+                                  help_text='测试类型', max_length=64)),
+                ('server_provider',
+                 models.CharField(choices=[('aligroup', '集团内部'), ('aliyun', '阿里云')], default='aligroup',
+                                  max_length=64)),
                 ('repeat', models.IntegerField(default=1, help_text='重复次数')),
                 ('server_object_id', models.IntegerField(blank=True, help_text='机器id', null=True)),
-                ('server_tag_id', models.CharField(blank=True, help_text='机器标签id字符串', max_length=256, null=True)),
+                (
+                'server_tag_id', models.CharField(blank=True, help_text='机器标签id字符串', max_length=256, null=True)),
                 ('env_info', django_extensions.db.fields.json.JSONField(default={}, help_text='变量信息')),
                 ('need_reboot', models.BooleanField(default=False, help_text='是否需要重启')),
                 ('setup_info', models.TextField(blank=True, help_text='初始脚本', null=True)),
@@ -1731,11 +1964,15 @@ class Migration(migrations.Migration):
             name='TestJobSuite',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(help_text='关联JOB ID')),
-                ('state', models.CharField(choices=[('pending', '初始化'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'), ('skip', '跳过'), ('stop', '终止')], db_index=True, default='pending', help_text='状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('pending', '初始化'), ('running', '运行中'), ('success', '成功'), ('fail', '失败'),
+                             ('skip', '跳过'), ('stop', '终止')], db_index=True, default='pending', help_text='状态',
+                    max_length=64)),
                 ('test_suite_id', models.IntegerField(db_index=True, help_text='关联SUITE ID')),
                 ('need_reboot', models.BooleanField(default=False, help_text='是否需要重启')),
                 ('setup_info', models.TextField(blank=True, help_text='初始脚本', null=True)),
@@ -1755,15 +1992,19 @@ class Migration(migrations.Migration):
             name='TestMetric',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='指标名', max_length=255)),
-                ('object_type', models.CharField(choices=[('suite', 'Test Suite'), ('case', 'Test Case')], help_text='关联对象类型', max_length=64)),
+                ('object_type',
+                 models.CharField(choices=[('suite', 'Test Suite'), ('case', 'Test Case')], help_text='关联对象类型',
+                                  max_length=64)),
                 ('object_id', models.IntegerField(db_index=True, help_text='关联对象ID')),
                 ('cv_threshold', models.FloatField(help_text='变异系数阈值')),
                 ('cmp_threshold', models.FloatField(help_text='指标跟基线的对比的阈值')),
-                ('direction', models.CharField(choices=[('increase', '上升'), ('decline', '下降')], help_text='方向', max_length=64)),
+                ('direction', models.CharField(choices=[('increase', '上升'), ('decline', '下降')], help_text='方向',
+                                               max_length=64)),
                 ('unit', models.CharField(default='', max_length=64)),
             ],
             options={
@@ -1774,13 +2015,15 @@ class Migration(migrations.Migration):
             name='TestPlan',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='计划名称', max_length=128)),
                 ('project_id', models.IntegerField(null=True)),
                 ('baseline_info', django_extensions.db.fields.json.JSONField(default={}, help_text='基线信息')),
-                ('test_obj', models.CharField(choices=[('kernel', '内核'), ('rpm', 'RPM包')], default='kernel', help_text='被测对象', max_length=32)),
+                ('test_obj', models.CharField(choices=[('kernel', '内核'), ('rpm', 'RPM包')], default='kernel',
+                                              help_text='被测对象', max_length=32)),
                 ('kernel_version', models.CharField(blank=True, help_text='内核版本', max_length=64, null=True)),
                 ('kernel_info', django_extensions.db.fields.json.JSONField(default={}, help_text='内核信息')),
                 ('rpm_info', django_extensions.db.fields.json.JSONField(default={}, help_text='RPM信息')),
@@ -1789,7 +2032,10 @@ class Migration(migrations.Migration):
                 ('notice_info', django_extensions.db.fields.json.JSONField(default={}, help_text='通知信息')),
                 ('cron_schedule', models.BooleanField(default=False, help_text='是否周期触发')),
                 ('cron_info', models.CharField(blank=True, help_text='定时信息', max_length=128, null=True)),
-                ('blocking_strategy', models.IntegerField(blank=True, choices=[(1, '忽略前序计划，直接同时执行'), (2, '中止前序运行中计划,再执行'), (3, '有前序运行中的计划，忽略本次执行')], help_text='阻塞策略', null=True)),
+                ('blocking_strategy', models.IntegerField(blank=True, choices=[(1, '忽略前序计划，直接同时执行'),
+                                                                               (2, '中止前序运行中计划,再执行'),
+                                                                               (3, '有前序运行中的计划，忽略本次执行')],
+                                                          help_text='阻塞策略', null=True)),
                 ('description', models.CharField(blank=True, help_text='描述信息', max_length=256, null=True)),
                 ('build_job_id', models.IntegerField(help_text='build job id', null=True)),
                 ('ws_id', models.CharField(max_length=8)),
@@ -1814,7 +2060,8 @@ class Migration(migrations.Migration):
             name='TestServer',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='机器名称', max_length=255)),
@@ -1828,7 +2075,9 @@ class Migration(migrations.Migration):
                 ('idc', models.CharField(help_text='IDC', max_length=64)),
                 ('parent_server_id', models.IntegerField(blank=True, help_text='父机器', null=True)),
                 ('manufacturer', models.CharField(help_text='供应商', max_length=64)),
-                ('device_type', models.CharField(choices=[('phy_server', '物理机'), ('vm', '虚拟机')], help_text='机器类型', max_length=64)),
+                ('device_type',
+                 models.CharField(choices=[('phy_server', '物理机'), ('vm', '虚拟机')], help_text='机器类型',
+                                  max_length=64)),
                 ('device_mode', models.CharField(help_text='型号', max_length=64)),
                 ('sm_name', models.CharField(help_text='机型', max_length=64)),
                 ('arch', models.CharField(help_text='ARCH', max_length=64)),
@@ -1842,12 +2091,19 @@ class Migration(migrations.Migration):
                 ('kernel', models.CharField(help_text='内核', max_length=64)),
                 ('platform', models.CharField(help_text='平台', max_length=64)),
                 ('uname', models.CharField(help_text='UName', max_length=64)),
-                ('state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
-                ('real_state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
+                ('real_state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
                 ('check_state_time', models.DateTimeField(help_text='最近一次检测机器真实状态的时间', null=True)),
-                ('use_type', models.CharField(choices=[('task', '系统占用'), ('user', '用户手动占用')], help_text='Reserve类型', max_length=64)),
+                ('use_type',
+                 models.CharField(choices=[('task', '系统占用'), ('user', '用户手动占用')], help_text='Reserve类型',
+                                  max_length=64)),
                 ('description', models.CharField(help_text='描述', max_length=64)),
-                ('channel_type', models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], help_text='通道类型', max_length=64)),
+                ('channel_type', models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')],
+                                                  help_text='通道类型', max_length=64)),
                 ('channel_state', models.BooleanField(default=False, help_text='控制通道状态，是否部署完成')),
                 ('private_ip', models.CharField(help_text='私有IP', max_length=64)),
                 ('owner', models.IntegerField(help_text='Owner', null=True)),
@@ -1855,7 +2111,8 @@ class Migration(migrations.Migration):
                 ('in_pool', models.BooleanField(default=True, help_text='是否在单机池中')),
                 ('console_type', models.CharField(help_text='console类型', max_length=64)),
                 ('console_conf', models.CharField(help_text='console配置', max_length=64)),
-                ('spec_use', models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
+                ('spec_use',
+                 models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
                 ('occupied_job_id', models.IntegerField(blank=True, help_text='被哪个任务所占用', null=True)),
                 ('broken_job_id', models.IntegerField(blank=True, help_text='关联机器故障job', null=True)),
                 ('broken_at', models.DateTimeField(help_text='故障时间', null=True)),
@@ -1869,7 +2126,8 @@ class Migration(migrations.Migration):
             name='TestServerSnapshot',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(help_text='机器名称', max_length=255)),
@@ -1883,7 +2141,8 @@ class Migration(migrations.Migration):
                 ('idc', models.CharField(blank=True, help_text='IDC', max_length=64, null=True)),
                 ('parent_server_id', models.IntegerField(blank=True, help_text='父机器', null=True)),
                 ('manufacturer', models.CharField(blank=True, help_text='供应商', max_length=64, null=True)),
-                ('device_type', models.CharField(blank=True, choices=[('phy_server', '物理机'), ('vm', '虚拟机')], help_text='机器类型', max_length=64, null=True)),
+                ('device_type', models.CharField(blank=True, choices=[('phy_server', '物理机'), ('vm', '虚拟机')],
+                                                 help_text='机器类型', max_length=64, null=True)),
                 ('device_mode', models.CharField(blank=True, help_text='型号', max_length=64, null=True)),
                 ('sm_name', models.CharField(blank=True, help_text='机型', max_length=64, null=True)),
                 ('arch', models.CharField(blank=True, help_text='ARCH', max_length=64, null=True)),
@@ -1897,12 +2156,18 @@ class Migration(migrations.Migration):
                 ('kernel', models.CharField(blank=True, help_text='内核', max_length=64, null=True)),
                 ('platform', models.CharField(blank=True, help_text='平台', max_length=64, null=True)),
                 ('uname', models.CharField(blank=True, help_text='UName', max_length=64, null=True)),
-                ('state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
-                ('real_state', models.CharField(choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'), ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
-                ('use_type', models.CharField(blank=True, choices=[('task', '系统占用'), ('user', '用户手动占用')], help_text='Reserve类型', max_length=64, null=True)),
+                ('state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='状态', max_length=64)),
+                ('real_state', models.CharField(
+                    choices=[('Available', 'Available'), ('Occupied', 'Occupied'), ('Broken', 'Broken'),
+                             ('Reserved', 'Reserved')], default='Available', help_text='真实状态', max_length=64)),
+                ('use_type', models.CharField(blank=True, choices=[('task', '系统占用'), ('user', '用户手动占用')],
+                                              help_text='Reserve类型', max_length=64, null=True)),
                 ('check_state_time', models.DateTimeField(help_text='最近一次检测机器真实状态的时间', null=True)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=64, null=True)),
-                ('channel_type', models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')], help_text='通道类型', max_length=64)),
+                ('channel_type', models.CharField(choices=[('staragent', 'staragent'), ('toneagent', 'toneagent')],
+                                                  help_text='通道类型', max_length=64)),
                 ('channel_state', models.BooleanField(default=False, help_text='控制通道状态，是否部署完成')),
                 ('private_ip', models.CharField(blank=True, help_text='私有IP', max_length=64, null=True)),
                 ('owner', models.IntegerField(help_text='Owner', null=True)),
@@ -1910,7 +2175,8 @@ class Migration(migrations.Migration):
                 ('in_pool', models.BooleanField(default=True, help_text='是否在单机池中')),
                 ('console_type', models.CharField(blank=True, help_text='console类型', max_length=64, null=True)),
                 ('console_conf', models.CharField(blank=True, help_text='console配置', max_length=64, null=True)),
-                ('spec_use', models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
+                ('spec_use',
+                 models.SmallIntegerField(default=0, help_text='是否被job或集群指定使用, 1被集群使用，2被job使用')),
                 ('occupied_job_id', models.IntegerField(blank=True, help_text='被哪个任务所占用', null=True)),
                 ('source_server_id', models.IntegerField(db_index=True, help_text='来源机器id', null=True)),
                 ('job_id', models.IntegerField(blank=True, db_index=True, default=0, null=True)),
@@ -1920,7 +2186,8 @@ class Migration(migrations.Migration):
                 ('broken_job_id', models.IntegerField(blank=True, help_text='关联机器故障job', null=True)),
                 ('broken_at', models.DateTimeField(help_text='故障时间', null=True)),
                 ('kernel_version', models.CharField(blank=True, help_text='内核版本', max_length=64, null=True)),
-                ('product_version', models.CharField(blank=True, help_text='product_version', max_length=64, null=True)),
+                (
+                'product_version', models.CharField(blank=True, help_text='product_version', max_length=64, null=True)),
                 ('broken_reason', models.TextField(help_text='故障原因', null=True)),
             ],
             options={
@@ -1931,13 +2198,17 @@ class Migration(migrations.Migration):
             name='TestStep',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('job_id', models.IntegerField(db_index=True, help_text='所属JOB')),
                 ('tid', models.CharField(help_text='TICKET ID', max_length=1000)),
-                ('state', models.CharField(choices=[('running', '运行中'), ('skip', '已跳过'), ('stop', '已停止'), ('success', '成功'), ('fail', '失败')], db_index=True, help_text='状态', max_length=64)),
-                ('stage', models.CharField(choices=[('initcloud', '机器初始化'), ('待补充..', '...')], db_index=True, help_text='步骤', max_length=64)),
+                ('state', models.CharField(
+                    choices=[('running', '运行中'), ('skip', '已跳过'), ('stop', '已停止'), ('success', '成功'),
+                             ('fail', '失败')], db_index=True, help_text='状态', max_length=64)),
+                ('stage', models.CharField(choices=[('initcloud', '机器初始化'), ('待补充..', '...')], db_index=True,
+                                           help_text='步骤', max_length=64)),
                 ('job_case_id', models.IntegerField(db_index=True, help_text='关联CASE')),
                 ('job_suite_id', models.IntegerField(db_index=True, default=0, help_text='关联SUITE')),
                 ('dag_step_id', models.IntegerField(db_index=True, help_text='关联dag步骤id')),
@@ -1954,18 +2225,27 @@ class Migration(migrations.Migration):
             name='TestSuite',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='Suite名称', max_length=128)),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], help_text='测试类型', max_length=64)),
-                ('run_mode', models.CharField(choices=[('standalone', 'standalone'), ('cluster', 'cluster')], help_text='运行模式', max_length=64)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], help_text='测试类型', max_length=64)),
+                ('run_mode',
+                 models.CharField(choices=[('standalone', 'standalone'), ('cluster', 'cluster')], help_text='运行模式',
+                                  max_length=64)),
                 ('doc', models.TextField(blank=True, help_text='说明文档', null=True)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=1024, null=True)),
                 ('owner', models.IntegerField(help_text='Owner', null=True)),
                 ('is_default', models.BooleanField(default=False, help_text='是否默认')),
-                ('test_framework', models.CharField(choices=[('aktf', 'aktf'), ('tone', 'tone')], default='tone', max_length=64)),
-                ('view_type', models.CharField(choices=[('Type1', '所有指标拆分展示(Type1)'), ('Type2', '多Conf同指标合并(Type2)'), ('Type3', '单Conf多指标合并(Type3)')], default='Type1', help_text='视图类型', max_length=64)),
+                ('test_framework',
+                 models.CharField(choices=[('aktf', 'aktf'), ('tone', 'tone')], default='tone', max_length=64)),
+                ('view_type', models.CharField(
+                    choices=[('Type1', '所有指标拆分展示(Type1)'), ('Type2', '多Conf同指标合并(Type2)'),
+                             ('Type3', '单Conf多指标合并(Type3)')], default='Type1', help_text='视图类型',
+                    max_length=64)),
                 ('certificated', models.BooleanField(default=False, help_text='是否认证')),
             ],
             options={
@@ -1976,22 +2256,29 @@ class Migration(migrations.Migration):
             name='TestTemplate',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='模板名称', max_length=128)),
                 ('schedule_info', django_extensions.db.fields.json.JSONField(default={}, help_text='定时配置')),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=512, null=True)),
-                ('job_name', models.CharField(blank=True, db_index=True, help_text='Job名称', max_length=256, null=True)),
+                ('job_name',
+                 models.CharField(blank=True, db_index=True, help_text='Job名称', max_length=256, null=True)),
                 ('job_type_id', models.IntegerField(blank=True, help_text='job类型', null=True)),
                 ('project_id', models.IntegerField(blank=True, help_text='project', null=True)),
                 ('product_id', models.IntegerField(blank=True, help_text='product', null=True)),
                 ('baseline_id', models.IntegerField(blank=True, help_text='基线', null=True)),
-                ('iclone_info', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='重装信息', null=True)),
-                ('kernel_info', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='内核信息', null=True)),
-                ('build_pkg_info', django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='build内核信息', null=True)),
+                ('iclone_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='重装信息', null=True)),
+                ('kernel_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='内核信息', null=True)),
+                ('build_pkg_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default={}, help_text='build内核信息',
+                                                            null=True)),
                 ('need_reboot', models.BooleanField(default=False, help_text='是否需要重启')),
-                ('rpm_info', django_extensions.db.fields.json.JSONField(blank=True, default=[], help_text='RPM信息', null=True)),
+                ('rpm_info',
+                 django_extensions.db.fields.json.JSONField(blank=True, default=[], help_text='RPM信息', null=True)),
                 ('script_info', django_extensions.db.fields.json.JSONField(default=[], help_text='脚本信息')),
                 ('monitor_info', django_extensions.db.fields.json.JSONField(default=[], help_text='监控信息')),
                 ('cleanup_info', models.TextField(blank=True, help_text='清理脚本', null=True)),
@@ -2003,10 +2290,13 @@ class Migration(migrations.Migration):
                 ('report_template_id', models.IntegerField(blank=True, help_text='关联报告模板', null=True)),
                 ('env_info', django_extensions.db.fields.json.JSONField(default={}, help_text='变量信息')),
                 ('enable', models.BooleanField(default=True, help_text='使用状态')),
-                ('server_provider', models.CharField(choices=[('aligroup', '集团内部'), ('aliyun', '阿里云')], default='aligroup', max_length=64)),
+                ('server_provider',
+                 models.CharField(choices=[('aligroup', '集团内部'), ('aliyun', '阿里云')], default='aligroup',
+                                  max_length=64)),
                 ('creator', models.IntegerField(help_text='创建者')),
                 ('update_user', models.IntegerField(help_text='修改者', null=True)),
-                ('ws_id', models.CharField(blank=True, db_index=True, help_text='所属Workspace', max_length=8, null=True)),
+                ('ws_id',
+                 models.CharField(blank=True, db_index=True, help_text='所属Workspace', max_length=8, null=True)),
             ],
             options={
                 'db_table': 'test_tmpl',
@@ -2016,20 +2306,27 @@ class Migration(migrations.Migration):
             name='TestTmplCase',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('tmpl_id', models.IntegerField(help_text='关联模板ID')),
                 ('test_case_id', models.IntegerField(db_index=True, help_text='关联CASE ID')),
                 ('test_suite_id', models.IntegerField(db_index=True, help_text='关联SUITE ID')),
-                ('run_mode', models.CharField(choices=[('standalone', '单机'), ('cluster', '多机')], default='standalone', help_text='测试类型', max_length=64)),
-                ('server_provider', models.CharField(choices=[('aligroup', '集团内部'), ('aliyun', '阿里云')], default='aligroup', max_length=64)),
+                ('run_mode',
+                 models.CharField(choices=[('standalone', '单机'), ('cluster', '多机')], default='standalone',
+                                  help_text='测试类型', max_length=64)),
+                ('server_provider',
+                 models.CharField(choices=[('aligroup', '集团内部'), ('aliyun', '阿里云')], default='aligroup',
+                                  max_length=64)),
                 ('repeat', models.IntegerField(default=1, help_text='重复次数')),
                 ('custom_ip', models.CharField(blank=True, help_text='自定义机器IP', max_length=64, null=True)),
                 ('custom_sn', models.CharField(blank=True, help_text='自定义机器SN', max_length=64, null=True)),
-                ('custom_channel', models.CharField(blank=True, default='tone-agent', help_text='agent类型', max_length=64, null=True)),
+                ('custom_channel',
+                 models.CharField(blank=True, default='tone-agent', help_text='agent类型', max_length=64, null=True)),
                 ('server_object_id', models.IntegerField(blank=True, help_text='机器id', null=True)),
-                ('server_tag_id', models.CharField(blank=True, help_text='机器标签id字符串', max_length=256, null=True)),
+                (
+                'server_tag_id', models.CharField(blank=True, help_text='机器标签id字符串', max_length=256, null=True)),
                 ('env_info', django_extensions.db.fields.json.JSONField(default={}, help_text='变量信息')),
                 ('need_reboot', models.BooleanField(default=False, help_text='是否需要重启')),
                 ('setup_info', models.TextField(blank=True, help_text='初始脚本', null=True)),
@@ -2047,7 +2344,8 @@ class Migration(migrations.Migration):
             name='TestTmplSuite',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('tmpl_id', models.IntegerField(help_text='关联JOB ID')),
@@ -2066,7 +2364,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Workspace',
             fields=[
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('id', models.CharField(help_text='WS唯一id', max_length=8, primary_key=True, serialize=False)),
@@ -2089,7 +2388,8 @@ class Migration(migrations.Migration):
             name='WorkspaceAccessHistory',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('user_id', models.IntegerField(db_index=True, help_text='关联用户')),
@@ -2103,10 +2403,13 @@ class Migration(migrations.Migration):
             name='WorkspaceCaseRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], help_text='测试类型', max_length=64)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], help_text='测试类型', max_length=64)),
                 ('test_suite_id', models.IntegerField(db_index=True, help_text='关联Suite')),
                 ('test_case_id', models.IntegerField(db_index=True, help_text='关联Case')),
                 ('ws_id', models.CharField(db_index=True, help_text='关联Workspace', max_length=8)),
@@ -2119,7 +2422,8 @@ class Migration(migrations.Migration):
             name='WorkspaceMember',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('user_id', models.IntegerField(db_index=True, help_text='关联用户')),
@@ -2134,7 +2438,8 @@ class Migration(migrations.Migration):
             name='JobTypeItem',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='名称', max_length=64)),
@@ -2151,15 +2456,21 @@ class Migration(migrations.Migration):
             name='JobType',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('name', models.CharField(db_index=True, help_text='JobType名称', max_length=64)),
                 ('enable', models.BooleanField(default=True, help_text='JobType使用状态')),
                 ('is_default', models.BooleanField(default=False, help_text='是否是系统默认')),
-                ('test_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'), ('stability', '稳定性测试')], db_index=True, help_text='测试类型', max_length=64)),
-                ('business_type', models.CharField(choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '接入测试')], help_text='业务测试类型', max_length=64, null=True)),
-                ('server_type', models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], db_index=True, help_text='机器类型', max_length=64)),
+                ('test_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '业务测试'),
+                             ('stability', '稳定性测试')], db_index=True, help_text='测试类型', max_length=64)),
+                ('business_type', models.CharField(
+                    choices=[('functional', '功能测试'), ('performance', '性能测试'), ('business', '接入测试')],
+                    help_text='业务测试类型', max_length=64, null=True)),
+                ('server_type', models.CharField(choices=[('aligroup', '集团内'), ('aliyun', '阿里云')], db_index=True,
+                                                 help_text='机器类型', max_length=64)),
                 ('description', models.CharField(blank=True, help_text='描述', max_length=512, null=True)),
                 ('creator', models.IntegerField(help_text='创建者')),
                 ('ws_id', models.CharField(db_index=True, help_text='Workspace ID', max_length=64)),
@@ -2175,7 +2486,8 @@ class Migration(migrations.Migration):
             name='BaseConfig',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                (
+                'gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
                 ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
                 ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
                 ('config_type', models.CharField(help_text='配置类型', max_length=64)),
@@ -2200,20 +2512,35 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('password', models.CharField(max_length=128, verbose_name='password')),
                 ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=150, unique=True, validators=[django.contrib.auth.validators.UnicodeUsernameValidator()], verbose_name='username')),
+                ('is_superuser', models.BooleanField(default=False,
+                                                     help_text='Designates that this user has all permissions without explicitly assigning them.',
+                                                     verbose_name='superuser status')),
+                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'},
+                                              help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+                                              max_length=150, unique=True,
+                                              validators=[django.contrib.auth.validators.UnicodeUsernameValidator()],
+                                              verbose_name='username')),
                 ('first_name', models.CharField(blank=True, max_length=30, verbose_name='first name')),
                 ('last_name', models.CharField(blank=True, max_length=150, verbose_name='last name')),
                 ('email', models.EmailField(blank=True, max_length=254, verbose_name='email address')),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
-                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
+                ('is_staff', models.BooleanField(default=False,
+                                                 help_text='Designates whether the user can log into this admin site.',
+                                                 verbose_name='staff status')),
+                ('is_active', models.BooleanField(default=True,
+                                                  help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
+                                                  verbose_name='active')),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
                 ('emp_id', models.CharField(max_length=64, null=True)),
                 ('job_desc', models.CharField(max_length=128)),
                 ('dep_desc', models.CharField(max_length=255)),
                 ('token', models.CharField(help_text='随机token', max_length=500, null=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.Group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.Permission', verbose_name='user permissions')),
+                ('groups', models.ManyToManyField(blank=True,
+                                                  help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
+                                                  related_name='user_set', related_query_name='user', to='auth.Group',
+                                                  verbose_name='groups')),
+                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.',
+                                                            related_name='user_set', related_query_name='user',
+                                                            to='auth.Permission', verbose_name='user permissions')),
             ],
             options={
                 'db_table': 'user',

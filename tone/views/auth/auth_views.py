@@ -156,6 +156,7 @@ class LogoutView(View):
     """
     用户登出
     """
+
     @staticmethod
     def get(request):
         auth_logout(request)
@@ -244,6 +245,7 @@ class FilterWsAdminView(CommonAPIView):
 class MsgStateView(CommonAPIView):
     service_class = MsgNotifyService
     """查询消息通知状态：任务通知 + 审批通知"""
+
     def get(self, request):
         data = self.service.get_msg_state(operator=request.user.id)
         response_data = self.get_response_code()

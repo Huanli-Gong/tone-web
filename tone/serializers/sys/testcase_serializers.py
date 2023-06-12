@@ -201,7 +201,6 @@ class TestSuiteCaseSerializer(CommonSerializer):
 
 
 class BriefCaseSerializer(CommonSerializer):
-
     class Meta:
         model = TestCase
         fields = ['id', 'name', 'doc', 'var', 'test_suite_id']
@@ -415,7 +414,6 @@ class TestRetrieveSuiteSerializer(CommonSerializer):
 
 
 class TestRetrieveCaseSerializer(CommonSerializer):
-
     class Meta:
         model = TestCase
         fields = ['id', 'name', 'certificated']
@@ -515,7 +513,7 @@ class RetrieveCaseSerializer(CommonSerializer):
     def get_recently_job(obj):
         recently_job = None
         suc_job_list = TestJob.objects.filter(state='success').exclude(created_from='offline')
-        test_job_case = TestJobCase.objects.filter(test_case_id=obj.id, job_id__in=suc_job_list).\
+        test_job_case = TestJobCase.objects.filter(test_case_id=obj.id, job_id__in=suc_job_list). \
             order_by('-gmt_created').first()
         if test_job_case is not None:
             job_id = test_job_case.job_id

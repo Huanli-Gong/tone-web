@@ -118,7 +118,7 @@ def kernel_info_format(kernel_info):
         new_kernel_info['kernel_packages'].append(kernel_info.get('devel'))
     if kernel_info.get('headers'):
         new_kernel_info['kernel_packages'].append(kernel_info.get('headers'))
-    for name,value in kernel_info.items():
+    for name, value in kernel_info.items():
         if name not in ['kernel', 'devel', 'headers']:
             new_kernel_info[name] = value
     return new_kernel_info

@@ -100,7 +100,7 @@ class AliYunNetwork(object):
                     eip['Status'] == 'Available' and
                     eip['RegionId'] == self.region and
                     eip['Name'] == constant.DEFAULT_EIP_NAME and not
-                    redis_cache.sismember('used_eip_ids', eip_id) and
+            redis_cache.sismember('used_eip_ids', eip_id) and
                     redis_cache.sadd('used_eip_ids', eip_id)
             ):
                 return eip_id

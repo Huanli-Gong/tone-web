@@ -162,7 +162,7 @@ def auto_job_report():
 @lock_run_task(60 * 10, 'auto_plan_report')
 def auto_plan_report():
     close_old_connections()
-    plan_instances = PlanInstance.objects.\
+    plan_instances = PlanInstance.objects. \
         filter(state__in=['fail', 'success', 'stop'], auto_report=1, report_is_saved=0).order_by('-id')
     logger.info(f'auto_plan_report begin now . total is {plan_instances.count()}')
     for plan_instance in plan_instances:

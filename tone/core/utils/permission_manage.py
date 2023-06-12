@@ -12,7 +12,6 @@ from tone.core.common.permission_config_info import SYS_PERMISSION_CONFIG, WS_PE
 from tone.core.utils.config_parser import get_config_from_db
 from tone.models import RoleMember, WorkspaceMember, Role, Workspace, User
 
-
 logger = logging.getLogger('permission_manage')
 
 
@@ -69,6 +68,7 @@ def check_job_operator_permission(user_name, check_obj):
 
 class ValidPermission(MiddlewareMixin):
     """权限校验"""
+
     @staticmethod
     def check_white_list(current_path):
         """校验白名单"""

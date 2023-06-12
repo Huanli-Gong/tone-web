@@ -4,9 +4,7 @@ import os
 
 from tone.settings import BASE_DIR
 
-
 from tone.core.utils.config_parser import cp
-
 
 DATABASES = {
     'default': {

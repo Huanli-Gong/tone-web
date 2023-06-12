@@ -7,6 +7,7 @@ class HelpDocDataInitialize(object):
     from initial.docs.initialize import HelpDocDataInitialize
     HelpDocDataInitialize().initialize_help_data()
     """
+
     def initialize_help_data(self):
         self._clear_help_data()
         self._add_help_data()

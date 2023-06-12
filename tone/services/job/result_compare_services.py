@@ -49,7 +49,7 @@ class CompareSuiteInfoService(CommonService):
             detail_table = 'func_baseline_detail' if is_func else 'perf_baseline_detail'
             raw_sql = 'SELECT a.test_suite_id,a.baseline_id, b.name AS test_suite_name ' \
                       'FROM ' + detail_table + ' a LEFT JOIN test_suite b ON a.test_suite_id = b.id ' \
-                      'WHERE a.baseline_id IN (' + \
+                                               'WHERE a.baseline_id IN (' + \
                       base_id_list + ')'
         else:
             raw_sql = 'SELECT a.test_suite_id,a.job_id, b.name AS test_suite_name ' \
@@ -107,8 +107,8 @@ class CompareConfInfoService(CommonService):
             raw_sql = 'SELECT distinct a.test_case_id,b.name AS conf_name FROM func_baseline_detail a ' \
                       'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE a.test_suite_id=%s AND ' \
                       'a.baseline_id IN (' + job_id_list + ') UNION ' \
-                      'SELECT distinct a.test_case_id,b.name AS conf_name FROM perf_baseline_detail a ' \
-                      'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE a.test_suite_id=%s AND ' \
+                                                           'SELECT distinct a.test_case_id,b.name AS conf_name FROM perf_baseline_detail a ' \
+                                                           'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE a.test_suite_id=%s AND ' \
                                                            'a.baseline_id IN (' + job_id_list + ')'
             all_test_cases = query_all_dict(raw_sql.replace('\'', ''), [suite_id, suite_id])
         else:
@@ -557,7 +557,7 @@ class CompareDuplicateService(CommonService):
             job_case_list = list()
             duplicate_case_id_list = list()
         else:
-            job_case_list = model_result.objects.filter(q, query_scope='all').\
+            job_case_list = model_result.objects.filter(q, query_scope='all'). \
                 values_list('test_job_id', 'test_suite_id', 'test_case_id').distinct()
             duplicate_case_id_list = model_result.objects.filter(q, query_scope='all'). \
                 extra(select={'test_suite_name': 'test_suite.name',
@@ -568,7 +568,7 @@ class CompareDuplicateService(CommonService):
                 values_list('test_suite_id', 'test_case_id', 'test_suite_name', 'test_case_name'). \
                 annotate(dcount=Count('test_case_id')).filter(dcount__gt=1)
             if len(base_id_list) > 0:
-                base_case_list = base_result.objects.filter(base_q, query_scope='all').\
+                base_case_list = base_result.objects.filter(base_q, query_scope='all'). \
                     values_list('baseline_id', 'test_suite_id', 'test_case_id').distinct()
                 job_case_list = chain(job_case_list, base_case_list)
                 duplicate_base_case_id_list = base_result.objects.filter(base_q, query_scope='all'). \

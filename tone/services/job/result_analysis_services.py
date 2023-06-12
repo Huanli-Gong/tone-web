@@ -275,7 +275,7 @@ class FuncAnalysisService(CommonService):
         if show_type != 'pass_rate':
             func_results_q &= Q(sub_case_name=sub_case_name)
         func_job_ids = FuncResult.objects.filter(func_results_q).values_list('test_job_id', flat=True).distinct()
-        job_queryset = TestJob.objects.filter(id__in=func_job_ids, project_id=project, state__in=['success', 'fail']).\
+        job_queryset = TestJob.objects.filter(id__in=func_job_ids, project_id=project, state__in=['success', 'fail']). \
             order_by('-gmt_created')
         job_li = list()
         ws_id = Project.objects.get(id=project).ws_id
@@ -313,7 +313,7 @@ class FuncAnalysisService(CommonService):
         if show_type == 'pass_rate':
             raw_sql = 'SELECT COUNT(*) AS all_case,SUM(case when sub_case_result=1 then 1 ELSE 0 END ) AS ' \
                       'pass_case,test_job_id FROM func_result WHERE test_job_id IN (' + job_li + ') AND ' \
-                      'test_suite_id=%s AND test_case_id=%s GROUP BY test_job_id '
+                                                                                                 'test_suite_id=%s AND test_case_id=%s GROUP BY test_job_id '
             func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case])
         else:
             assert sub_case_name, AnalysisException(ErrorCode.SUB_CASE_NEED)
@@ -321,7 +321,7 @@ class FuncAnalysisService(CommonService):
                       'IN (' + job_li + ') AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
             func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case, sub_case_name])
         job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN (' + job_li + ')' \
-                       ' AND test_suite_id=%s AND test_case_id=%s'
+                                                                                                        ' AND test_suite_id=%s AND test_case_id=%s'
         job_cases = query_all_dict(job_case_sql.replace('\'', ''), [test_suite, test_case])
         for key, value in sub_case_map.items():
             if value:

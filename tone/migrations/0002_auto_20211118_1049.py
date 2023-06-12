@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('tone', '0001_initial'),
     ]
@@ -23,12 +22,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='testjob',
             name='created_from',
-            field=models.CharField(choices=[('web', '页面创建'), ('api', 'API创建'), ('schedule', '定时创建'), ('offline', '离线上传')], db_index=True, default='web', help_text='创建类型', max_length=64),
+            field=models.CharField(
+                choices=[('web', '页面创建'), ('api', 'API创建'), ('schedule', '定时创建'), ('offline', '离线上传')],
+                db_index=True, default='web', help_text='创建类型', max_length=64),
         ),
         migrations.AlterField(
             model_name='testmetric',
             name='direction',
-            field=models.CharField(choices=[('increase', '上升'), ('decline', '下降')], db_index=True, help_text='方向', max_length=64),
+            field=models.CharField(choices=[('increase', '上升'), ('decline', '下降')], db_index=True, help_text='方向',
+                                   max_length=64),
         ),
         migrations.AlterField(
             model_name='testmetric',
@@ -38,6 +40,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='testmetric',
             name='object_type',
-            field=models.CharField(choices=[('suite', 'Test Suite'), ('case', 'Test Case')], db_index=True, help_text='关联对象类型', max_length=64),
+            field=models.CharField(choices=[('suite', 'Test Suite'), ('case', 'Test Case')], db_index=True,
+                                   help_text='关联对象类型', max_length=64),
         ),
     ]

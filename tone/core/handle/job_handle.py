@@ -70,7 +70,7 @@ class JobDataHandle(BaseHandle):
                                                                      ding=self.data.get('ding_token', None),
                                                                      subject=self.data.get('notice_subject', None))
             self.data_dic['kernel_version'] = self.data_dic['show_kernel_version'] = self.data.get('kernel_version')
-            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter)\
+            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter) \
                 if self.data.get('env_info') else dict()
             self.data_dic['server_provider'] = self.provider = job_type.server_type
             self.data_dic['test_type'] = job_type.test_type
@@ -250,7 +250,7 @@ class JobDataHandle(BaseHandle):
                                                                  ding=self.data.get('ding_msg', None),
                                                                  subject=self.data.get('notice_name', None))
             self.data_dic['kernel_version'] = self.data_dic['show_kernel_version'] = self.data.get('kernel_version')
-            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter)\
+            self.data_dic['env_info'] = self.pack_env_info(self.data.get('env_info'), delimiter=env_info_delimiter) \
                 if self.data.get('env_info') else dict()
             self.data_dic['server_provider'] = self.provider = job_type.server_type
             self.data_dic['test_type'] = job_type.test_type

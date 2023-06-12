@@ -168,7 +168,7 @@ class TestTemplateDetailSerializer(CommonSerializer):
                 server_obj = get_rerun_case_server(case, template=True)
                 server_tag_id = list() if not case.server_tag_id else \
                     [tag for tag in ServerTag.objects.filter(id__in=str(case.server_tag_id).split(',')).
-                        values_list('id', flat=True)]
+                    values_list('id', flat=True)]
                 cases.append({
                     'test_case_id': case.test_case_id,
                     'setup_info': case.setup_info,

@@ -17,7 +17,6 @@ from tone.core.common.toneagent import SendTaskRequest
 from tone.core.utils.config_parser import get_config_from_db
 from tone.models import BaseConfig, SuiteData, datetime, CaseData
 
-
 logger = logging.getLogger('schedule')
 
 

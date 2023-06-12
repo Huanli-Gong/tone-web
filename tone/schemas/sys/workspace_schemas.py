@@ -48,7 +48,8 @@ class WorkspaceMemberSchema(BaseSchema):
     def get_param_data(self):
         return {
             'ws_id': {'type': str, 'required': False, 'example': 't3ezpvwd', 'desc': 'workspace id'},
-            'role': {'type': bool, 'required': False, 'example': 'admin', 'desc': '1.owner 2.admin（管理员）3.member(普通成员)'},
+            'role': {'type': bool, 'required': False, 'example': 'admin',
+                     'desc': '1.owner 2.admin（管理员）3.member(普通成员)'},
         }
 
     def get_body_data(self):
@@ -74,8 +75,10 @@ class WorkspaceMemberSchema(BaseSchema):
     def get_delete_data(self):
         return {
             'ws_id': {'type': str, 'required': True, 'example': 't3ezpvwd', 'desc': '当前workspace id'},
-            'user_id': {'type': int, 'required': False, 'example': 2, 'desc': '用户id(移除单个用户时)跟user_id_list二选一'},
-            'user_id_list': {'type': list, 'required': False, 'example': [2, 3], 'desc': '用户id列表(批量删除用户时)，跟user_id二选一'},
+            'user_id': {'type': int, 'required': False, 'example': 2,
+                        'desc': '用户id(移除单个用户时)跟user_id_list二选一'},
+            'user_id_list': {'type': list, 'required': False, 'example': [2, 3],
+                             'desc': '用户id列表(批量删除用户时)，跟user_id二选一'},
         }
 
 
@@ -99,7 +102,8 @@ class ApproveSchema(BaseSchema):
             'id': {'type': int, 'required': True, 'example': 2, 'desc': '当前审批数据id'},
             'action': {'type': str, 'required': True, 'example': 'pass', 'desc': 'pass为通过  refuse为拒绝'},
             'reason': {'type': str, 'required': False, 'example': '再考虑一下', 'desc': '拒绝的时候需要注明理由'},
-            'relation_data': {'type': dict, 'required': False, 'example': {'user_id': 1}, 'desc': '用户加入审批时需传该参数'},
+            'relation_data': {'type': dict, 'required': False, 'example': {'user_id': 1},
+                              'desc': '用户加入审批时需传该参数'},
         }
 
 
@@ -115,8 +119,10 @@ class WorkspaceApproveSchema(BaseSchema):
 class ApproveQuantitySchema(BaseSchema):
     def get_param_data(self):
         return {
-            'ws_id': {'type': int, 'required': False, 'example': 2, 'desc': '当前workspace id  人员申请页数量统计的时候需要传该参数'},
-            'action': {'type': str, 'required': False, 'example': 'join', 'desc': '默认不传，人员申请页数量统计的时候需要传该参数action=join'},
+            'ws_id': {'type': int, 'required': False, 'example': 2,
+                      'desc': '当前workspace id  人员申请页数量统计的时候需要传该参数'},
+            'action': {'type': str, 'required': False, 'example': 'join',
+                       'desc': '默认不传，人员申请页数量统计的时候需要传该参数action=join'},
         }
 
 

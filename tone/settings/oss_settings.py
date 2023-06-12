@@ -1,6 +1,5 @@
 from tone.settings import cp
 
-
 TONE_STORAGE_DOMAIN = cp.get('tone_storage_domain')
 TONE_STORAGE_HOST = cp.get('tone_storage_host')
 TONE_STORAGE_PROXY_PORT = cp.get('tone_storage_proxy_port')

@@ -134,7 +134,7 @@ def _package_case(case_config, data, job_case, server_deleted_list, server_no_al
                     server_no_allocated_list['ips'].extend(server_obj.server_no_allocated)
     server_tag_id = list() if not job_case.server_tag_id or data.get('inheriting_machine') else \
         [tag for tag in ServerTag.objects.filter(id__in=str(job_case.server_tag_id).split(',')).
-            values_list('id', flat=True)]
+        values_list('id', flat=True)]
     server_obj_id = server_obj.server_object_id
     if server_tag_id or server_obj.ip == '随机' or not server_obj.ip:
         server_obj_id = None

@@ -7,6 +7,7 @@ class BaseConfigDataInitialize(object):
     from initial.base_config.initialize import BaseConfigDataInitialize
     BaseConfigDataInitialize().initialize_base_config()
     """
+
     def initialize_base_config(self):
         self._clear_base_config_data()
         self._add_base_config_data()

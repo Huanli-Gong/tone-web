@@ -15,6 +15,7 @@ def catch_error(func):
     """
     异常捕获
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:

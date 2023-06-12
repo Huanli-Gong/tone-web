@@ -1,6 +1,5 @@
 from tone.core.utils.config_parser import cp
 
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = cp.get('email_host')
 EMAIL_HOST_PASSWORD = cp.get('email_password')

@@ -6,7 +6,7 @@ from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail, Baseli
 from rest_framework.response import Response
 
 from tone.schemas.sys.baseline_schemas import BaselineSchema, FuncBaselineDetailSchema, PerfBaselineDetailSchema, \
-    SearchSuiteSchema, PerfBaselineBatchAddSchema, PerfBaselineAddOneSchema, ContrastBaselineSchema,\
+    SearchSuiteSchema, PerfBaselineBatchAddSchema, PerfBaselineAddOneSchema, ContrastBaselineSchema, \
     BaselineUploadSchema, BaselineDownloadSchema, BaselineByNameSchema
 from tone.serializers.sys.baseline_serializers import BaselineSerializer, \
     FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
@@ -304,4 +304,3 @@ class BaselineByNameView(CommonAPIView):
         baseline_list = self.service.filter_by_name(self.get_queryset(), request.GET)
         response_data = self.get_response_data(baseline_list, page=False)
         return Response(response_data)
-

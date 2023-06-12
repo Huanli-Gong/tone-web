@@ -7,7 +7,6 @@ from tone import settings
 from tone.core.common.job_result_helper import calc_job, splice_job_link
 from tone.models import TestJob, TestSuite
 
-
 logger = logging.getLogger('callback')
 
 
@@ -72,7 +71,7 @@ class JobCallBack(object):
         else:
             res = requests.get(self.api, params=self.data, verify=False)
         return True, res.text
-    
+
     def __construct_data_when_job_start_running(self):
         return {
             'callback_type': self.callback_type,

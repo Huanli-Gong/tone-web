@@ -215,7 +215,8 @@ class TestClusterCloudServerSchema(BaseSchema):
             'image': {'type': str, 'required': True, 'example': 'centos', 'desc': '立即购买：镜像'},
             'bandwidth': {'type': str, 'required': True, 'example': '100', 'desc': '立即购买：带宽'},
             'release_rule': {'type': bool, 'required': True, 'example': True, 'desc': '立即购买：用完释放'},
-            'instance_type': {'type': str, 'required': True, 'example': '2C4G', 'desc': '立即购买：规格，只有ecs有规格，eci输入即可'},
+            'instance_type': {'type': str, 'required': True, 'example': '2C4G',
+                              'desc': '立即购买：规格，只有ecs有规格，eci输入即可'},
             'storage_type': {'type': str, 'required': True, 'example': 'ssd', 'desc': '立即购买：数据盘类型'},
             'storage_size': {'type': str, 'required': True, 'example': '200', 'desc': '立即购买：数据盘大小'},
             'storage_number': {'type': str, 'required': True, 'example': '3', 'desc': '立即购买：数据盘个数'},
@@ -288,7 +289,8 @@ class CloudServerSchema(BaseSchema):
             'image': {'type': str, 'required': True, 'example': 'centos', 'desc': '立即购买：镜像'},
             'bandwidth': {'type': str, 'required': True, 'example': '100', 'desc': '立即购买：带宽'},
             'release_rule': {'type': bool, 'required': True, 'example': True, 'desc': '立即购买：用完释放'},
-            'instance_type': {'type': str, 'required': True, 'example': '2C4G', 'desc': '立即购买：规格，只有ecs有规格，eci输入即可'},
+            'instance_type': {'type': str, 'required': True, 'example': '2C4G',
+                              'desc': '立即购买：规格，只有ecs有规格，eci输入即可'},
             'storage_type': {'type': str, 'required': True, 'example': 'ssd', 'desc': '立即购买：数据盘类型'},
             'storage_size': {'type': str, 'required': True, 'example': '200', 'desc': '立即购买：数据盘大小'},
             'storage_number': {'type': str, 'required': True, 'example': '3', 'desc': '立即购买：数据盘个数'},
@@ -333,7 +335,8 @@ class CloudAkSchema(BaseSchema):
             "creator": {'type': list, 'required': False, 'example': '[1]', 'desc': '创建者id列表'},
             "update_user": {'type': list, 'required': False, 'example': '[1]', 'desc': '修改者id列表'},
             "gmt_created": {'type': str, 'required': False, 'example': '-gmt_created', 'desc': '创建时间升序+,（-降序）'},
-            "gmt_modified": {'type': str, 'required': False, 'example': '-gmt_modified', 'desc': '修改时间升序+,（-降序）'},
+            "gmt_modified": {'type': str, 'required': False, 'example': '-gmt_modified',
+                             'desc': '修改时间升序+,（-降序）'},
         }
 
     def get_body_data(self):
@@ -384,7 +387,8 @@ class CloudImageSchema(BaseSchema):
             "creator": {'type': list, 'required': False, 'example': '[1]', 'desc': '创建者id列表'},
             "update_user": {'type': list, 'required': False, 'example': '[1]', 'desc': '修改者id列表'},
             "gmt_created": {'type': str, 'required': False, 'example': '-gmt_created', 'desc': '创建时间升序+,（-降序）'},
-            "gmt_modified": {'type': str, 'required': False, 'example': '-gmt_modified', 'desc': '修改时间升序+,（-降序）'},
+            "gmt_modified": {'type': str, 'required': False, 'example': '-gmt_modified',
+                             'desc': '修改时间升序+,（-降序）'},
         }
 
     def get_body_data(self):

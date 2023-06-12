@@ -375,7 +375,7 @@ class WorkspaceMemberService(CommonService):
         keyword = data.get('keyword')
         if keyword:
             user_q = Q(first_name__contains=keyword) | Q(last_name__contains=keyword)
-            user_id_list = User.objects.filter(user_q).exclude(username='system', is_superuser=True)\
+            user_id_list = User.objects.filter(user_q).exclude(username='system', is_superuser=True) \
                 .values_list('id', flat=True)
             q &= Q(user_id__in=user_id_list)
         # 根据角色名称过滤ws成员信息
@@ -653,7 +653,7 @@ class MemberQuantityService(CommonService):
                 'all_count': WorkspaceMember.objects.filter(ws_id=ws_id).count()}
             for user_title in WS_SHOW_MEMBER_CONFIG:
                 result.setdefault(user_title, WorkspaceMember.objects.filter(
-                    ws_id = ws_id,
+                    ws_id=ws_id,
                     role_id=Role.objects.get(title=user_title).id
                 ).count())
             return result

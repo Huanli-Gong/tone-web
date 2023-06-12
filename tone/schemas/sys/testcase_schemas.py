@@ -122,12 +122,14 @@ class TestMetricSchema(BaseSchema):
 
     def get_body_data(self):
         return {
-            'name': {'type': list, 'required': True, 'example': '["score","score1","score2"]', 'desc': '指标名，支持批量添加'},
+            'name': {'type': list, 'required': True, 'example': '["score","score1","score2"]',
+                     'desc': '指标名，支持批量添加'},
             'object_type': {'type': str, 'required': True, 'example': 'suite', 'desc': 'suite/case'},
             'object_id': {'type': int, 'required': True, 'example': '4', 'desc': 'suite_id/case_id'},
             'cv_threshold': {'type': float, 'required': True, 'example': '25145', 'desc': '变异系数阈值'},
             'cmp_threshold': {'type': float, 'required': True, 'example': '102214', 'desc': '指标跟基线的对比的阈值'},
-            'direction': {'type': str, 'required': True, 'example': 'decline', 'desc': '方向:decline,下降；increase，上升'},
+            'direction': {'type': str, 'required': True, 'example': 'decline',
+                          'desc': '方向:decline,下降；increase，上升'},
             'is_sync': {'type': bool, 'required': True, 'example': '0', 'desc': '是否同步到conf'}
         }
 
@@ -161,7 +163,8 @@ class WorkspaceCaseSchema(BaseSchema):
             'ws_id': {'type': int, 'required': True, 'example': '1', 'desc': '查询ws下suite列表'},
             'suite_id': {'type': int, 'required': False, 'example': '1', 'desc': '根据suite查询case列表'},
             'object_type': {'type': str, 'required': False, 'example': 'suite', 'desc': '查询ws下suite/case中的metric'},
-            'object_id': {'type': str, 'required': False, 'example': '1', 'desc': 'suite_id/case_id,与上一参数配合使用'},
+            'object_id': {'type': str, 'required': False, 'example': '1',
+                          'desc': 'suite_id/case_id,与上一参数配合使用'},
             'test_type': {'type': str, 'required': False, 'example': 'functional',
                           'desc': '测试类型: (functional, 功能测试;performance, 性能测试;business, 业务测试;stability, 稳定性测试)'},
             'run_mode': {'type': str, 'required': False, 'example': 'standalone',
@@ -212,7 +215,8 @@ class DomainSchema(BaseSchema):
             "creator": {'type': list, 'required': False, 'example': '[1]', 'desc': '创建者id列表'},
             "update_user": {'type': list, 'required': False, 'example': '[1]', 'desc': '修改者id列表'},
             "gmt_created": {'type': str, 'required': False, 'example': '-gmt_created', 'desc': '创建时间升序+,（-降序）'},
-            "gmt_modified": {'type': str, 'required': False, 'example': '-gmt_modified', 'desc': '修改时间升序+,（-降序）'},
+            "gmt_modified": {'type': str, 'required': False, 'example': '-gmt_modified',
+                             'desc': '修改时间升序+,（-降序）'},
         }
 
     def get_body_data(self):
@@ -237,8 +241,10 @@ class DomainSchema(BaseSchema):
 class SuiteRetrieveSchema(BaseSchema):
     def get_param_data(self):
         return {
-            'total_num': {'type': bool, 'required': False, 'example': 'true', 'desc': '1. 获取性能测试、功能测试数量,标识'},
-            'ws_id': {'type': str, 'required': False, 'example': 'ah9m9or5', 'desc': '2. 获取性能/功能下suite列表,工作台id'},
+            'total_num': {'type': bool, 'required': False, 'example': 'true',
+                          'desc': '1. 获取性能测试、功能测试数量,标识'},
+            'ws_id': {'type': str, 'required': False, 'example': 'ah9m9or5',
+                      'desc': '2. 获取性能/功能下suite列表,工作台id'},
             "test_type": {'type': str, 'required': False, 'example': 'functional',
                           'desc': '测试类型：functional/performance'},
             "suite_id": {'type': int, 'required': False, 'example': '45', 'desc': '3. 获取 suite下conf 列表'},

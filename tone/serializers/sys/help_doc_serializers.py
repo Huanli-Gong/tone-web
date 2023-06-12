@@ -43,7 +43,6 @@ class HelpDocSerializer(CommonSerializer):
 
 
 class HelpDocDetailSerializer(HelpDocSerializer):
-
     class Meta:
         model = HelpDoc
         exclude = ['is_deleted']
@@ -132,14 +131,12 @@ class SitePushConfigSerializer(CommonSerializer):
 
 
 class WorkspaceListSerializer(CommonSerializer):
-
     class Meta:
         model = Workspace
         fields = ['id', 'name', 'show_name']
 
 
 class ProjectListSerializer(CommonSerializer):
-
     class Meta:
         model = Project
         fields = ['id', 'name']

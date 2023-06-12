@@ -299,7 +299,6 @@ class WorkspaceCheckView(BaseView):
 
 
 class WorkspaceListView(CommonAPIView):
-
     queryset = Workspace.objects.filter(is_approved=True)
     service_class = WorkspaceListService
     serializer_class = WorkspaceIndexListSerializer
