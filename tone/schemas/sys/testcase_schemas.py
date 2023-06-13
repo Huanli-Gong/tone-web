@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+
 from tone.core.common.schemas import BaseSchema
 
 
