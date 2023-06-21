@@ -349,9 +349,6 @@ def _get_server_no_inheriting_machine(is_config, job_case, obj, server_provider)
             and CloudServerSnapshot.objects.filter(id=job_case.server_snapshot_id).exists():
         cloud_server = CloudServerSnapshot.objects.filter(id=job_case.server_snapshot_id).first()
         obj.server = _get_server_for_aliyun_not_config(cloud_server)
-    elif job_case.server_snapshot_id and run_mode == 'cluster' and \
-            TestClusterSnapshot.objects.filter(id=job_case.server_snapshot_id).exists():
-        _get_server_for_cluster_by_id(job_case.server_snapshot_id, obj)
     else:
         obj.is_instance = None
         obj.server = '随机'
