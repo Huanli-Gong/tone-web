@@ -90,7 +90,7 @@ function upload_file(){{
 
     lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "set ftp:ssl-allow no" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
     cd ${{TONE_STORAGE_BUCKET}}
-    mkdir -p $file_path
+    mkdir -pf $file_path
     cd $file_path
     mput $file
     by
@@ -107,7 +107,7 @@ function upload_dir(){{
 
     lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "set ftp:ssl-allow no" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
     cd ${{TONE_STORAGE_BUCKET}}
-    mkdir -p ${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER 
+    mkdir -pf ${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER 
     mirror -R $dir ${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER
     by
 EOF
