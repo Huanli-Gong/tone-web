@@ -24,7 +24,7 @@ from tone.core.utils.short_uuid import short_uuid
 from tone.core.utils.tone_thread import ToneThread
 from tone.models import WorkspaceMember, Workspace, ApproveInfo, WorkspaceAccessHistory, User, TestCase, \
     WorkspaceCaseRelation, TestSuite, Product, Project, TestJob, Role, RoleMember, JobTag, TestServer, CloudServer, \
-    InSiteWorkProcessMsg, InSiteWorkProcessUserMsg, InSiteSimpleMsg, BaseConfig, FuncResult, TestJobCase
+    InSiteWorkProcessMsg, InSiteWorkProcessUserMsg, InSiteSimpleMsg, BaseConfig, TestTemplate
 from tone.services.report.report_services import ReportTemplateService
 from tone.settings import MEDIA_ROOT
 
@@ -238,6 +238,8 @@ class WorkspaceService(CommonService):
         CloudServer.objects.filter(ws_id=ws_id).delete()
         # delete approve
         ApproveInfo.objects.filter(object_type='workspace', object_id=ws_id).delete()
+        # delete job template
+        TestTemplate.objects.filter(ws_id=ws_id).delete()
         # delete process msg
         # self.delete_in_site_msg(ws_id)
         # delete simple msg
