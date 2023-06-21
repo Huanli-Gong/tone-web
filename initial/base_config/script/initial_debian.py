@@ -1,7 +1,13 @@
 # flake8: noqa
 
-INITIAL_DEBIAN = """
-#!/bin/bash
+INITIAL_DEBIAN = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来初始化机器环境（针对Debian系统）
+# 使用场景：当用户在创建JOB选择安装内核时
+# 系统会在安装内核之前先初始化机器环境
+# 主要是删除无用的RPM包
+#--------------------------------------------
 
 # we do a complete cleanup in tone machine pool.
 if [ "$1" = "inpool" ]; then

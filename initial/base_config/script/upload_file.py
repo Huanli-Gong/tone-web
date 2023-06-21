@@ -1,7 +1,10 @@
 # flake8: noqa
 
-UPLOAD_FILE = """
-#!/bin/bash
+UPLOAD_FILE = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来上传准备阶段的执行日志。如 install log、prepare log 等
+#--------------------------------------------
 
 SOURCE_FILE=$1
 SOURCE_FILE_NAME=$2

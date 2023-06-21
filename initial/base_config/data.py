@@ -14,17 +14,10 @@ from initial.base_config.script.install_hotfix import INSTALL_HOTFIX
 from initial.base_config.script.prepare import PREPARE
 from initial.base_config.script.run_test import RUN_TEST
 from initial.base_config.script.upload import UPLOAD
-from initial.base_config.script.sync_case import TONE_SYNC_CASE
 from initial.base_config.script.upload_file import UPLOAD_FILE
 from tone.core.utils.config_parser import cp
 
 BASE_CONFIG_DATA = [
-    {
-        'config_type': 'sys',
-        'config_key': 'SUITE_SYNC_SERVER',
-        'config_value': '{"ip": "0.0.0.0", "sn": "..."}',
-        'description': '同步case时所需要的机器信息',
-    },
     {
         'config_type': 'sys',
         'config_key': 'TEST_FRAMEWORK',
@@ -53,49 +46,49 @@ BASE_CONFIG_DATA = [
         'config_key': 'REBOOT',
         'config_value': REBOOT,
         'bind_stage': 'reboot',
-        'description': '重启脚本',
+        'description': '重启脚本。作用：重启测试机。使用场景：选择重启步骤的时候会调用该脚本。',
     },
     {
         'config_type': 'script',
         'config_key': 'SSH_PUB_KEY',
         'config_value': SSH_PUB_KEY,
         'bind_stage': 'ssh_pub_key',
-        'description': '集群测试时免密登录脚本',
+        'description': '集群测试时免密登录脚本。作用：给集群机器做免密。使用场景：集群测试 prepare 步骤之前。',
     },
     {
         'config_type': 'script',
         'config_key': 'INITIAL',
         'config_value': INITIAL,
         'bind_stage': 'initial',
-        'description': '初始化机器脚本',
+        'description': '初始化机器脚本。作用：初始化环境，清理安装包。使用场景：安装内核之前。',
     },
     {
         'config_type': 'script',
         'config_key': 'INSTALL_KERNEL',
         'config_value': INSTALL_KERNEL,
         'bind_stage': 'install_kernel',
-        'description': '安装内核脚本',
+        'description': '安装内核脚本。作用：安装内核。使用场景：选择安装内核包时。',
     },
     {
         'config_type': 'script',
         'config_key': 'INSTALL_RPM',
         'config_value': INSTALL_RPM,
         'bind_stage': 'install_rpm',
-        'description': '安装RPM脚本',
+        'description': '安装RPM脚本。作用：安装RPM包。使用场景：选择安装RPM时。',
     },
     {
         'config_type': 'script',
         'config_key': 'INSTALL_HOTFIX',
         'config_value': INSTALL_HOTFIX,
         'bind_stage': 'install_hotfix',
-        'description': '安装HOTFIX脚本',
+        'description': '安装HOTFIX脚本。作用：安装hotfix脚本。使用场景：选择安装hotfix时。',
     },
     {
         'config_type': 'script',
         'config_key': 'PREPARE',
         'config_value': PREPARE,
         'bind_stage': 'prepare',
-        'description': '准备阶段脚本',
+        'description': '准备阶段脚本。作用：clone tone仓库脚本，安装tone及其依赖包。使用场景：执行测试用例之前。',
     },
     {
         'config_type': 'script',
@@ -108,7 +101,7 @@ BASE_CONFIG_DATA = [
             tone_storage_password=cp.get('tone_storage_password')
         ),
         'bind_stage': 'run_test',
-        'description': '跑用例阶段脚本',
+        'description': '执行用例阶段脚本。作用：安装用例，执行用例，上传测试结果及测试日志。使用场景：执行用例时。',
     },
     {
         'config_type': 'script',
@@ -121,56 +114,49 @@ BASE_CONFIG_DATA = [
             tone_storage_password=cp.get('tone_storage_password')
         ),
         'bind_stage': 'upload',
-        'description': '上传脚本',
-    },
-    {
-        'config_type': 'script',
-        'config_key': 'TONE_SYNC_CASE',
-        'config_value': TONE_SYNC_CASE,
-        'bind_stage': '',
-        'description': '同步case脚本',
+        'description': '上传脚本。作用：上传日志。使用场景，执行用例失败时。',
     },
     {
         'config_type': 'script',
         'config_key': 'DEPLOY_AGENT',
         'config_value': DEPLOY_AGENT,
         'bind_stage': '',
-        'description': '同步toneagent脚本',
+        'description': '部署toneagent的脚本。作用：部署toneagent。使用场景：使用弹性机器配置创建机器实例时。',
     },
     {
         'config_type': 'script',
         'config_key': 'DEPLOY_AGENT_DEBIAN',
         'config_value': DEPLOY_AGENT_DEBIAN,
         'bind_stage': '',
-        'description': 'Debian系统同步toneagent脚本',
+        'description': 'Debian系统部署toneagent的脚本。作用：部署toneagent。使用场景：使用弹性机器配置创建机器实例时。',
     },
     {
         'config_type': 'script',
         'config_key': 'INITIAL_DEBIAN',
         'config_value': INITIAL_DEBIAN,
         'bind_stage': '',
-        'description': 'Debian系统initial脚本',
+        'description': 'Debian系统initial脚本。初始化机器脚本。作用：初始化环境，清理安装包。使用场景：安装内核之前。',
     },
     {
         'config_type': 'script',
         'config_key': 'INSTALL_KERNEL_DEBIAN',
         'config_value': INSTALL_KERNEL_DEBIAN,
         'bind_stage': '',
-        'description': 'Debian系统安装内核脚本',
+        'description': 'Debian系统安装内核脚本。作用：安装内核。使用场景：选择安装内核包时。',
     },
     {
         'config_type': 'script',
         'config_key': 'INSTALL_RPM_DEBIAN',
         'config_value': INSTALL_RPM_DEBIAN,
         'bind_stage': '',
-        'description': 'Debian系统安装rpm脚本',
+        'description': 'Debian系统安装RPM脚本。作用：安装RPM包。使用场景：选择安装RPM时。',
     },
     {
         'config_type': 'script',
         'config_key': 'PREPARE_DEBIAN',
         'config_value': PREPARE_DEBIAN,
         'bind_stage': '',
-        'description': 'Debian系统prepare脚本',
+        'description': 'Debian系统准备阶段脚本。作用：clone tone仓库脚本，安装tone及其依赖包。使用场景：执行测试用例之前。',
     },
     {
         'config_type': 'script',
@@ -183,7 +169,7 @@ BASE_CONFIG_DATA = [
             tone_storage_password=cp.get('tone_storage_password')
         ),
         'bind_stage': '',
-        'description': 'Debian系统run case脚本',
+        'description': 'Debian系统执行用例阶段脚本。作用：安装用例，执行用例，上传测试结果及测试日志。使用场景：执行用例时。',
     },
     {
         'config_type': 'script',
@@ -196,6 +182,6 @@ BASE_CONFIG_DATA = [
             tone_storage_password=cp.get('tone_storage_password')
         ),
         'bind_stage': 'upload',
-        'description': '上传日志文件脚本',
+        'description': '上传日志文件脚本。作用：上传准备阶段的执行日志。使用场景：准备步骤执行后。',
     },
 ]

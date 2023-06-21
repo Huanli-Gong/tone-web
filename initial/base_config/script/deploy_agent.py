@@ -1,17 +1,21 @@
 # flake8: noqa
 
-DEPLOY_AGENT = """
-#!/bin/bash
+DEPLOY_AGENT = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来部署 toneagent 服务
+# 使用场景：当用户在创建JOB、选择使用弹性机器池里的机器配置当做测试机时
+# 系统会自动根据配置创建 ecs 实例，然后自动给机器部署 toneagent 服务
+# 此时会调用该脚本来完成部署操作
+# 主要流程是：
+    1.下载安装包 
+    2.安装 
+    3.修改配置文件
+#--------------------------------------------
 
 toneagent_dir=/usr/local/toneagent/rpm
 config_file=/usr/local/toneagent/conf/toneagent.config.yaml
 rpm_url={rpm_url}
-
-echo "[log]uninstall the old version toneagent..."
-rpm -e toneagent
-if [ $? -ne 0 ]; then
-    echo "[log]toneagent wasn't installed before..."
-fi
 
 rm -Rf $toneagent_dir
 mkdir -p $toneagent_dir
