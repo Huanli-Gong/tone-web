@@ -59,7 +59,10 @@ def check_job_operator_permission(user_name, check_obj):
     sys_role_id = RoleMember.objects.get(user_id=user.id).role_id
     sys_role = Role.objects.get(id=sys_role_id).title
     if sys_role not in ['super_admin', 'sys_admin']:
-        operator_role_id = WorkspaceMember.objects.get(ws_id=check_obj.ws_id, user_id=user.id).role_id
+        ws_member = WorkspaceMember.objects.filter(ws_id=check_obj.ws_id, user_id=user.id).first()
+        if not ws_member:
+            return False
+        operator_role_id = ws_member.role_id
         operator_role = Role.objects.get(id=operator_role_id).title
         allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin']
         if operator_role not in allow_list and user.id != check_obj.creator:
