@@ -64,7 +64,7 @@ def check_job_operator_permission(user_name, check_obj):
             return False
         operator_role_id = ws_member.role_id
         operator_role = Role.objects.get(id=operator_role_id).title
-        allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin']
+        allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin', 'ws_member']
         if operator_role not in allow_list and user.id != check_obj.creator:
             return False
     return True
