@@ -863,6 +863,7 @@ class CloudServerService(CommonService):
                                         run_mode='standalone',
                                         server_object_id=pk).update(server_object_id=None)
             CloudServer.objects.filter(id=pk).delete()
+            ServerTagRelation.objects.filter(run_environment='aliyun', object_type='standalone', object_id=pk).delete()
             operation_li = list()
             log_data = {
                 'creator': user_id,
