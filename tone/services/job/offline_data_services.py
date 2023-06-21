@@ -66,7 +66,8 @@ class OfflineDataUploadService(object):
         code, msg, offline_upload_id = self._valid_params(data, file_bytes, original_file_name, operator)
         if code == 201:
             return code, msg
-        upload_thread = Thread(target=self._post_background, args=(data, file_bytes, operator, offline_upload_id))
+        upload_thread = Thread(target=self._post_background, args=(data, file_bytes, operator, offline_upload_id,
+                                                                   original_file_name))
         upload_thread.start()
         return 200, ''
 
@@ -163,7 +164,7 @@ class OfflineDataUploadService(object):
                     return code, msg, 0
         return code, msg, 0
 
-    def _post_background(self, req_data, file_bytes, operator, offline_upload_id):
+    def _post_background(self, req_data, file_bytes, operator, offline_upload_id, original_file_name):
         file_name, oss_link = self.upload_tar(file_bytes)
         if not file_name:
             msg = 'sftp上传文件失败。'
@@ -178,7 +179,8 @@ class OfflineDataUploadService(object):
             return
         test_job_id = None
         try:
-            code, msg, test_job_id = self._upload_tar(local_file, req_data, offline_upload_id, operator)
+            code, msg, test_job_id = self._upload_tar(local_file, req_data, offline_upload_id, operator,
+                                                      original_file_name)
             os.remove(local_file)
         except Exception as ex:
             code = 201
@@ -189,7 +191,7 @@ class OfflineDataUploadService(object):
             if test_job_id:
                 TestJob.objects.filter(id=test_job_id).delete()
 
-    def _upload_tar(self, filename, req_data, offline_id, operator):
+    def _upload_tar(self, filename, req_data, offline_id, operator, original_file_name):
         ws_id = req_data.get('ws_id')
         baseline_id = req_data.get('baseline_id', 0)
         server_type = req_data.get('server_type')
@@ -201,7 +203,7 @@ class OfflineDataUploadService(object):
         if code == 201:
             tar_file.close()
             return code, msg, None
-        job_data = self.build_job_data(args, req_data, test_config)
+        job_data = self.build_job_data(args, req_data, test_config, original_file_name)
         _timestamp = int(round(time.time() * 1000000))
         test_job = JobTestService().create(job_data, operator)
         if not test_job:
@@ -268,10 +270,12 @@ class OfflineDataUploadService(object):
             TestClusterServer.objects.create(**test_cluster_server_obj)
         return test_cluster.id, server_snapshot_id
 
-    def build_job_data(self, job_info, data, test_config):
+    def build_job_data(self, job_info, data, test_config, original_file_name):
         job_data = dict()
         job_data['job_type_id'] = data.get('job_type_id')
-        if 'name' in job_info and job_info['name']:
+        if original_file_name:
+            job_data['name'] = original_file_name.replace('.tar', '').replace('.gz', '')
+        elif 'name' in job_info and job_info['name']:
             job_data['name'] = job_info['name']
         job_data['state'] = 'success'
         job_data['cleanup_info'] = job_info.get('cleanup_info', '')
