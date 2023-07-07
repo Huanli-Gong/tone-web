@@ -19,7 +19,6 @@ ADD . ${APP_HOME}
 
 # 更新apt-get、 pip、安装pip包
 RUN ${PIP_INSTALL} supervisor && \
-    ${PIP_INSTALL} django-apscheduler==0.5.2 && \
     ${PIP_INSTALL} -r ${APP_HOME}/docker/requirements.txt
 
 #设置时区

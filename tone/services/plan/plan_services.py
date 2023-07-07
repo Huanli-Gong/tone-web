@@ -7,11 +7,10 @@ Author:
 import logging
 import re
 import random
-
 import croniter
-from apscheduler.triggers.cron import CronTrigger
 from django.db.models import Q
 from django.db import transaction
+from django_q.models import Schedule
 
 from tone.core.common.job_result_helper import get_server_ip_sn
 from tone.core.handle.report_handle import ReportHandle
@@ -24,6 +23,7 @@ from tone.models import TestPlan, PlanStageRelation, PlanStagePrepareRelation, P
     Project, TestTemplate, JobType
 from tone.core.common.services import CommonService
 from tone.services.plan.complete_plan_report import plan_create_report
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 logger = logging.getLogger('test_plan')
 
@@ -47,7 +47,7 @@ class PlanService(CommonService):
         q &= Q(ws_id=data.get('ws_id')) if data.get('ws_id') else q
         q &= Q(name__icontains=data.get('name')) if data.get('name') else q
         q &= Q(enable=data.get('enable')) if data.get('enable') else q
-        q &= Q(creator=data.get('creator')) if data.get('creator') else q
+        q &= Q(creator=data.get('creator_name')) if data.get('creator_name') else q
         return queryset.filter(q)
 
     @staticmethod
@@ -198,22 +198,27 @@ class PlanService(CommonService):
     def check_plan_name(data):
         name = data.get('name', '')
         if not name.strip():
-            return False, '计划名称不能为空'
+            return False, ErrorCode.PLAN_NAME_NEED.to_api
         # 计划名称不能重复
         if TestPlan.objects.filter(name=name, ws_id=data.get('ws_id')).exists():
-            return False, '计划名称已存在'
+            return False, ErrorCode.PLAN_NAME_EXIST.to_api
         return True, ''
 
     @staticmethod
     def check_stage_relation(data):
         msg = ''
+        # if data.get('env_prep'):
+        #     env_prep_info = data.get('env_prep')
+        #     if not env_prep_info.get('machine_info', dict()):
+        #         return False, '添加环境准备阶段, 机器配置信息不能为空'
         if data.get('test_config'):
             test_stage_info = data.get('test_config', list())
             if not test_stage_info:
-                return False, '测试准备阶段不能为空'
+                return False, ErrorCode.PLAN_PREPARE_EXIST.to_api
             for tmp_stage_info in test_stage_info:
                 if not tmp_stage_info.get('template'):
-                    return False, '阶段：{}, 测试配置模板不能为空'.format(tmp_stage_info.get('name'))
+                    return False, ErrorCode.PARAMS_ERROR.\
+                        to_params_api('阶段：{}, 测试配置模板不能为空'.format(tmp_stage_info.get('name')))
         return True, msg
 
     @staticmethod
@@ -230,7 +235,7 @@ class PlanService(CommonService):
             if env_prep_info.get('machine_info'):
                 for run_index, tmp_machine_info in enumerate(env_prep_info.get('machine_info', dict()), start=1):
                     machine_ip_sn = tmp_machine_info.get('machine')
-                    channel_type = tmp_machine_info.get('channel_type', 'otheragent')
+                    channel_type = tmp_machine_info.get('channel_type', 'staragent')
                     try:
                         tmp_ip, tmp_sn = get_server_ip_sn(machine_ip_sn, channel_type)
                     except (TypeError, Exception):
@@ -272,7 +277,7 @@ class PlanService(CommonService):
             for run_index, tmp_machine_info in enumerate(env_prep_info.get('machine_info', dict()), start=1):
                 machine_ip_sn = tmp_machine_info.get('machine', '').strip()
                 try:
-                    tmp_ip, tmp_sn = get_server_ip_sn(machine_ip_sn, tmp_machine_info.get('channel_type', 'otheragent'))
+                    tmp_ip, tmp_sn = get_server_ip_sn(machine_ip_sn, tmp_machine_info.get('channel_type', 'staragent'))
                 except (TypeError, Exception):
                     tmp_ip = tmp_sn = None
                 if re.match(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', machine_ip_sn) is None:
@@ -283,7 +288,7 @@ class PlanService(CommonService):
                                                            run_index=run_index,
                                                            instance_stage_id=prepare_env_stage.id,
                                                            extend_info=tmp_machine_info,
-                                                           channel_type=data.get('channel_type', 'otheragent'),
+                                                           channel_type=data.get('channel_type', 'staragent'),
                                                            ip=tmp_ip if tmp_ip is not None else machine_ip_sn,
                                                            sn=tmp_sn if tmp_sn is not None else machine_ip_sn,
                                                            script_info=tmp_machine_info.get('script'),
@@ -318,12 +323,12 @@ class PlanService(CommonService):
         plan_id = data.get('plan_id')
         success, test_plan_queryset = self.check_test_plan(plan_id)
         if not success:
-            return False, 'plan 不存在'
+            return False, ErrorCode.PLAN_NOT_EXIST.to_api
         test_plan = test_plan_queryset.first()
         if not check_operator_permission(operator, test_plan):
-            return False, ''
+            return False, ErrorCode.PERMISSION_ERROR.to_api
         if test_plan.name != data.get('name') and TestPlan.objects.filter(name=data.get('name')).exists():
-            return False, '计划名称不能重复'
+            return False, ErrorCode.PLAN_NAME_EXIST.to_api
         success, env_info = self.get_env_info(data.get('env_info', ''))
         if not success:
             return False, env_info
@@ -370,7 +375,7 @@ class PlanService(CommonService):
         try:
             self.modify_plan_schedule(plan_id, origin_cron_info)
         except Exception:
-            return False, '修改定时任务失败，请检查表达式格式'
+            return False, ErrorCode.CRON_UPDATE_ERROR.to_api
         return True, None
 
     @staticmethod
@@ -403,6 +408,18 @@ class PlanService(CommonService):
             # 启动定时任务
             if test_plan.enable and test_plan.cron_schedule:
                 PlanScheduleService().resume_schedule(plan_id)
+
+        # if test_plan.enable and test_plan.cron_schedule:
+        #     if ScheduleMap.objects.filter(object_type='plan', object_id=plan_id).exists():
+        #         PlanScheduleService().remove_schedule(plan_id)
+        #     PlanScheduleService().add_plan_to_schedule(plan_id)
+        # # 启用状态关闭, 并且定时任务, 删除触发任务
+        # if not test_plan.enable and test_plan.cron_schedule and \
+        #         ScheduleMap.objects.filter(object_type='plan', object_id=plan_id).exists():
+        #     PlanScheduleService().remove_schedule(plan_id)
+        # if test_plan.enable and not test_plan.cron_schedule and \
+        #         ScheduleMap.objects.filter(object_type='plan', object_id=plan_id).exists():
+        #     PlanScheduleService().remove_schedule(plan_id)
 
     def delete_plan(self, data, operator):
         plan_id = data.get('plan_id')
@@ -454,7 +471,7 @@ class PlanService(CommonService):
         plan_id = data.get('plan_id')
         success, test_plan_queryset = self.check_test_plan(plan_id)
         if not success:
-            return False, '计划id不存在'
+            return False, ErrorCode.PLAN_NOT_EXIST.to_api
         test_plan = test_plan_queryset.first()
         test_plan.id = None
         if '-copy-' in test_plan.name:
@@ -494,7 +511,7 @@ class PlanService(CommonService):
         plan_id = data.get('plan_id')
         check_flag, test_plan_queryset = self.check_test_plan(plan_id)
         if not check_flag:
-            return False, 'plan id 不存在'
+            return False, ErrorCode.PLAN_NOT_EXIST.to_api
         name = data.get('name', '手动运行计划')
         test_obj = data.get('test_obj', 'kernel')
         ws_id = data.get('ws_id')
@@ -508,7 +525,7 @@ class PlanService(CommonService):
         if data.get('rpm_info', ''):
             rpm_info = data.get('rpm_info').replace('\n', ',').split(',')
         if not data.get('enable'):
-            return False, '计划未启用, 不可运行'
+            return False, ErrorCode.PLAN_RUN_ERROR.to_api
         # 仅运行
         auto_count = PlanInstance.objects.filter(plan_id=plan_id, query_scope='all').count() + 1
         success, env_info = self.get_env_info(data.get('env_info', ''))
@@ -562,16 +579,12 @@ class PlanService(CommonService):
     def check_cron_express(data, query_times=3, time_fmt='%Y-%m-%d %H:%M:%S'):
         cron_express = data.get('cron_express')
         if not cron_express:
-            return False, 'Crontab表达式不能为空'
-        try:
-            CronTrigger.from_crontab(cron_express)
-        except ValueError:
-            return False, 'Crontab 表达式格式错误'
+            return False, ErrorCode.PLAN_CRON_EMPTY.to_api
         try:
             cron = croniter.croniter(cron_express, datetime.now())
             data_list = [cron.get_next(datetime).strftime(time_fmt) for _ in range(query_times)]
         except Exception:
-            return False, 'Crontab 日期设置错误'
+            return False, ErrorCode.PLAN_CRON_DATE_ERROR.to_api
         return True, data_list
 
     @staticmethod
@@ -583,13 +596,15 @@ class PlanService(CommonService):
         return schedule_job_id
 
     def get_plan_next_time(self, plan_id):
-        from tone.core.schedule.single_scheduler import scheduler
         next_time = None
         schedule_job_id = self.get_schedule_job_id(plan_id)
         if schedule_job_id is not None:
-            schedule_job = scheduler.get_job(job_id=schedule_job_id)
+            if not isinstance(schedule_job_id, int):
+                return
+            schedule_job = Schedule.objects.filter(id=schedule_job_id).first()
             if schedule_job:
-                next_time = schedule_job.next_run_time
+                # next_time = schedule_job.next_run_time
+                next_time = schedule_job.next_run
         return next_time
 
     def get_plan_last_time(self, plan_id):
@@ -631,6 +646,9 @@ class PlanResultService(CommonService):
 
         with transaction.atomic():
             plan_instance_queryset.delete()
+            # PlanInstanceStageRelation.objects.filter(plan_instance_id=plan_instance_id).delete()
+            # PlanInstancePrepareRelation.objects.filter(plan_instance_id=plan_instance_id).delete()
+            # PlanInstanceTestRelation.objects.filter(plan_instance_id=plan_instance_id).delete()
         return True
 
     @staticmethod
@@ -657,7 +675,13 @@ class PlanScheduleService(object):
         if not plan.exists():
             logger.info('no plan, so can not add to schedule. plan_id:{}'.format(plan_id))
             return
-        ScheduleHandle.add_crontab_job(TestPlanScheduleJob.run, plan.first().cron_info, args=[plan_id])
+        # ScheduleHandle.add_crontab_job(TestPlanScheduleJob.run, plan.first().cron_info, args=[plan_id])
+        ScheduleHandle.add_crontab_job(
+            ScheduleHandle.PLAN_SCHEDULE_FUNC,
+            plan.first().cron_info,
+            args=str(plan_id),
+            name=plan.first().name
+        )
 
     @staticmethod
     def stop_schedule(plan_id):
