@@ -648,28 +648,6 @@ class TestSuiteService(CommonService):
                 )
             )
         DomainRelation.objects.bulk_create(domain_relation_list)
-        # suite_domain_list = DomainRelation.objects.filter(object_type='suite', object_id=suite.id)
-        # suite_domain_id_list = []
-        # for suite_domain in suite_domain_list:
-        #     suite_domain_id_list.append(suite_domain.domain_id)
-        # test_case_id_list = list(TestCase.objects.filter(test_suite_id=suite.id).values_list('id', flat=True))
-        # case_domain_id = list(DomainRelation.objects.filter(
-        #     object_type='case',
-        #     object_id__in=test_case_id_list
-        # ).values_list('object_id', flat=True))
-        # case_domain_none_id_list = []
-        # for test_case_id in test_case_id_list:
-        #     if test_case_id not in case_domain_id:
-        #         case_domain_none_id_list.append(test_case_id)
-        # for index in range(len(suite_domain_id_list)):
-        #     for case_domain_noneid in case_domain_none_id_list:
-        #         update_dict = {
-        #             'object_type': 'case',
-        #             'object_id': case_domain_noneid,
-        #             'domain_id': suite_domain_list[index].domain_id
-        #         }
-        #         DomainRelation.objects.create(**update_dict)
-
         # 保存性能case 默认指标
         if suite.test_type == TestType.PERFORMANCE and configs:
             metric_list = []
