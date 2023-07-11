@@ -24,6 +24,7 @@ from tone.models import TestPlan, PlanStageRelation, PlanStagePrepareRelation, P
     Project, TestTemplate, JobType
 from tone.core.common.services import CommonService
 from tone.services.plan.complete_plan_report import plan_create_report
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 logger = logging.getLogger('test_plan')
 
@@ -198,10 +199,10 @@ class PlanService(CommonService):
     def check_plan_name(data):
         name = data.get('name', '')
         if not name.strip():
-            return False, '计划名称不能为空'
+            return False, ErrorCode.PLAN_NAME_NEED.to_api
         # 计划名称不能重复
         if TestPlan.objects.filter(name=name, ws_id=data.get('ws_id')).exists():
-            return False, '计划名称已存在'
+            return False, ErrorCode.PLAN_NAME_EXISTS.to_api
         return True, ''
 
     @staticmethod
@@ -210,10 +211,11 @@ class PlanService(CommonService):
         if data.get('test_config'):
             test_stage_info = data.get('test_config', list())
             if not test_stage_info:
-                return False, '测试准备阶段不能为空'
+                return False, ErrorCode.PLAN_PREPARE_EXIST.to_api
             for tmp_stage_info in test_stage_info:
                 if not tmp_stage_info.get('template'):
-                    return False, '阶段：{}, 测试配置模板不能为空'.format(tmp_stage_info.get('name'))
+                    return False, ErrorCode.PARAMS_ERROR.\
+                        to_params_api('阶段：{}, 测试配置模板不能为空'.format(tmp_stage_info.get('name')))
         return True, msg
 
     @staticmethod
@@ -318,12 +320,12 @@ class PlanService(CommonService):
         plan_id = data.get('plan_id')
         success, test_plan_queryset = self.check_test_plan(plan_id)
         if not success:
-            return False, 'plan 不存在'
+            return False, ErrorCode.PLAN_NOT_EXIST.to_api
         test_plan = test_plan_queryset.first()
         if not check_operator_permission(operator, test_plan):
-            return False, ''
+            return False, ErrorCode.PERMISSION_ERROR.to_api
         if test_plan.name != data.get('name') and TestPlan.objects.filter(name=data.get('name')).exists():
-            return False, '计划名称不能重复'
+            return False, ErrorCode.PLAN_NAME_EXIST.to_api
         success, env_info = self.get_env_info(data.get('env_info', ''))
         if not success:
             return False, env_info
@@ -370,7 +372,7 @@ class PlanService(CommonService):
         try:
             self.modify_plan_schedule(plan_id, origin_cron_info)
         except Exception:
-            return False, '修改定时任务失败，请检查表达式格式'
+            return False, ErrorCode.CRON_UPDATE_ERROR.to_api
         return True, None
 
     @staticmethod
@@ -454,7 +456,7 @@ class PlanService(CommonService):
         plan_id = data.get('plan_id')
         success, test_plan_queryset = self.check_test_plan(plan_id)
         if not success:
-            return False, '计划id不存在'
+            return False, ErrorCode.PLAN_NOT_EXIST.to_api
         test_plan = test_plan_queryset.first()
         test_plan.id = None
         if '-copy-' in test_plan.name:
@@ -494,7 +496,7 @@ class PlanService(CommonService):
         plan_id = data.get('plan_id')
         check_flag, test_plan_queryset = self.check_test_plan(plan_id)
         if not check_flag:
-            return False, 'plan id 不存在'
+            return False, ErrorCode.PLAN_NOT_EXIST.to_api
         name = data.get('name', '手动运行计划')
         test_obj = data.get('test_obj', 'kernel')
         ws_id = data.get('ws_id')
@@ -508,7 +510,7 @@ class PlanService(CommonService):
         if data.get('rpm_info', ''):
             rpm_info = data.get('rpm_info').replace('\n', ',').split(',')
         if not data.get('enable'):
-            return False, '计划未启用, 不可运行'
+            return False, ErrorCode.PLAN_RUN_ERROR.to_api
         # 仅运行
         auto_count = PlanInstance.objects.filter(plan_id=plan_id, query_scope='all').count() + 1
         success, env_info = self.get_env_info(data.get('env_info', ''))
@@ -562,16 +564,16 @@ class PlanService(CommonService):
     def check_cron_express(data, query_times=3, time_fmt='%Y-%m-%d %H:%M:%S'):
         cron_express = data.get('cron_express')
         if not cron_express:
-            return False, 'Crontab表达式不能为空'
+            return False, ErrorCode.PLAN_CRON_EMPTY.to_api
         try:
             CronTrigger.from_crontab(cron_express)
         except ValueError:
-            return False, 'Crontab 表达式格式错误'
+            return False, ErrorCode.PLAN_CRON_FORMAT_ERROR.to_api
         try:
             cron = croniter.croniter(cron_express, datetime.now())
             data_list = [cron.get_next(datetime).strftime(time_fmt) for _ in range(query_times)]
         except Exception:
-            return False, 'Crontab 日期设置错误'
+            return False, ErrorCode.PLAN_CRON_DATE_ERROR.to_api
         return True, data_list
 
     @staticmethod
