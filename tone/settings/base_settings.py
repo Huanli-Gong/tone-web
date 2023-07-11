@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'tone',
     'rest_framework',
-    'django_apscheduler',
+    'django_q',
 ]
 
 MIDDLEWARE = [

@@ -13,6 +13,8 @@ import shutil
 import stat
 import uuid
 from django.db import transaction
+from django_q.tasks import async_task
+
 from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.core.utils.sftp_client import sftp_client
@@ -109,7 +111,7 @@ class BaselineService(CommonService):
         baseline = Baseline.objects.filter(id=baseline_id)
         if baseline.first() is None:
             return False, '基线不存在.'
-        sync_baseline.delay(baseline_id)
+        async_task(sync_baseline, baseline_id)
         update_data = dict()
         data.update({'update_user': update_user})
         for field in allow_modify_fields:
@@ -121,7 +123,7 @@ class BaselineService(CommonService):
     @staticmethod
     def delete(data):
         baseline_id = data.get("baseline_id")
-        sync_baseline_del.delay(baseline_id)
+        async_task(sync_baseline_del, baseline_id)
         # 删除基线分类
         Baseline.objects.filter(id=baseline_id).delete()
         # 删除基线相关的其他信息
@@ -622,7 +624,7 @@ class FuncBaselineService(CommonService):
                 update_data.update({field: data.get(field)})
         update_data['update_user'] = user_id
         baseline_detail.update(**update_data)
-        sync_baseline.delay(baseline_detail.first().baseline_id)
+        async_task(sync_baseline, baseline_detail.first().baseline_id)
         return True, baseline_detail.first()
 
     @staticmethod
@@ -640,7 +642,7 @@ class FuncBaselineService(CommonService):
 
         baseline_id = func_detail.baseline_id
         func_detail.delete()
-        sync_baseline.delay(baseline_id)
+        async_task(sync_baseline, baseline_id)
 
 
 def get_job_baseline_server(job_id, case_id):
@@ -783,7 +785,7 @@ class PerfBaselineService(CommonService):
         if PerfBaselineDetail.objects.filter(id=detail_id).exists():
             baseline_id = PerfBaselineDetail.objects.filter(id=detail_id).first().baseline_id
             PerfBaselineDetail.objects.filter(id=detail_id).delete()
-            sync_baseline.delay(baseline_id)
+            async_task(sync_baseline, baseline_id)
 
     @staticmethod
     def get_test_suite_name(queryset, name):

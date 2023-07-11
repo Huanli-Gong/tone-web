@@ -1,6 +1,7 @@
 import django
 from django.db import connection
 from django.db.models import Q, F
+from django_q.tasks import async_task
 
 from tone.core.common.constant import PROD_SITE_URL
 from tone.core.common.services import CommonService
@@ -289,7 +290,7 @@ class TestFarmService(CommonService):
                           f'\n sync job status: {sync_status_code} {sync_status_msg}' \
                           f'\n sync_result: {sync_res_code} {sync_res_msg}'
         else:
-            sync_job_data.delay(job_id)
+            async_task(sync_job_data, job_id)
             res_msg = '手动推送任务开始执行成功'
         return 200, res_msg
 

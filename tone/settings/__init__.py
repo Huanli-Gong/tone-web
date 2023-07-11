@@ -9,4 +9,4 @@ from tone.settings.log_settings import *
 from tone.settings.redis_settings import *
 from tone.settings.operationlog_setting import *
 from tone.settings.email_settings import *
-from tone.settings.celery_settings import *
+from tone.settings.schedule_settings import *

@@ -7,6 +7,8 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from urllib.parse import quote
 
+from django_q.tasks import async_task
+
 from tone import settings
 from tone.core.common.callback import JobCallBack, CallBackType
 from tone.models import RoleMember, WorkspaceMember, Role, ApproveInfo, InSiteWorkProcessMsg, \
@@ -359,7 +361,7 @@ class SimpleMsgHandle(object):
         plan_inst_id = message_obj.plan_inst_id
         # 计划完成生成报告
         from tone.services.plan.complete_plan_report import plan_create_report
-        plan_create_report.delay(plan_inst_id)
+        async_task(plan_create_report, plan_inst_id)
         if message_key == 'plan_state_change':
             pass
         plan_obj = TestPlan.objects.filter(id=plan_id).first()
@@ -477,7 +479,7 @@ class SimpleMsgHandle(object):
         if not job_obj or not job_obj.report_template_id or job_obj.state != 'success' or job_obj.report_is_saved:
             return False
         logger.info(f'start saving report job_id: {job_id}')
-        save_report.delay(job_id)
+        async_task(save_report, job_id)
         return True
 
 
