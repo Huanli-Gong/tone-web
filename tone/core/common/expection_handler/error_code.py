@@ -1,278 +1,246 @@
 # _*_ coding:utf-8 _*_
-"""
-Module Description:
-Date:
-Author: Yfh
-"""
+
+from enum import Enum
 
 
-class ErrorCode(object):
-    """
-    common: 800~1000
-    auth: 1001~1200
-    sys: 1201~1300
-    job: 1301~1400
-    """
-    SUCCESS = 'success'
-    CODE = 200
-
+class ErrorCode(Enum):
     # common
-    PROGRAM_ERROR = (500, "程序出错")
-
-    NAME_NEED = (800, "缺少参数name")
-
-    WS_NEED = (801, "缺少参数ws_id")
-
-    JOB_NEED = (802, "缺少参数job_id")
-
-    ID_NEED = (803, "缺少参数记录id")
-
-    USERNAME_NOT_REGISTER = (804, "该用户名未注册或未配置token")
-
-    TOKEN_FORMAT_ERROR = (997, "token格式错误")
-
-    TOKEN_OVERDUE = (998, "token已过期")
-
-    TOKEN_INVALID = (999, "token无效")
-
-    TOKEN_NEED = (1000, "缺少参数token")
-
-    # auth: 1001~1200
-    TOKEN_ERROR = (1001, "token错误")
-
-    PERMISSION_ERROR = (1002, "没有权限")
-
-    LOGIN_ERROR = (1003, "请先登录")
-
-    # sys: 1201~1300
-    WS_NONEXISTENT = (1201, "workspace不存在")
-
-    KERNEL_NONEXISTENT = (1202, "kernel_info不存在")
-
-    KERNEL_NAME_LACK = (1203, "缺少参数kernel name")
-
-    KERNEL_VERSION_LACK = (1204, "缺少参数kernel version")
-
-    KERNEL_PACKAGE_LACK = (1205, "缺少参数kernel_link, devel_link, headers_link")
-
-    KERNEL_ID_LACK = (1206, "缺少参数kernel_id")
-
-    KERNEL_VERSION_DUPLICATION = (1207, "已存在同名version")
-
-    TAG_NONEXISTENT = (1301, "该workspace下tag不存在")
-
-    TAG_DUPLICATION = (1302, "已存在同名tag")
-
-    TYPE_NONEXISTENT = (1303, "job_type不存在")
-
-    TYPE_DUPLICATION = (1304, "已存在同名Job类型")
-
-    TYPE_ID_LACK = (1305, "缺少参数job_type id")
-
-    ITEM_NONEXISTENT = (1306, "job_type的原子项不存在")
-
-    SYS_TYPE_ATOMIC = (1307, "系统类型无法删除")
-
-    ITEM_MUST_DIC = (1308, "参数item_dic类型应该是dict")
-
-    SERVER_TYPE_LACK = (1309, "缺少参数server_type")
-
-    TEST_TYPE_LACK = (1310, "缺少参数test_type")
-
-    TAG_ID_NEED = (1311, "缺少参数tag_id")
-
-    TEST_JOB_NONEXISTENT = (1351, "Job不存在")
-
-    TEST_CONF_NEED = (1352, "缺少参数test_config")
-
-    TEST_CONF_LIST = (1353, "参数test_config类型应该是list")
-
-    TEST_SUITE_NEED = (1354, "缺少参数test_suite_id")
-
-    TEST_SUITE_NAME_NEED = (1354, "缺少参数test_suite_name")
-
-    CASES_LIST = (1354, "参数cases_list类型应该是list")
-
-    SERVER_NONEXISTENT = (1355, "workspace下机器不存在")
-
-    SERVER_STATUS = (1356, "指定机器Broken，请检查指定机器是否可用")
-
-    CLUSTER_NO_SERVER = (1357, "集群无关联机器")
-
-    SERVER_TYPE_MUTEX = (1358, "case server_object_id customer_server server_tag_id mutex!")
-
-    DATA_FORM_ERROR = (1359, "data_from 参数有误 !")
-
-    CONFIG_ID_NEED = (1360, "缺少参数config!")
-
-    CONFIG_NONEXISTENT = (1361, "config不存在")
-
-    CONFIG_DUPLICATION = (1362, "已存在同名config")
-
-    CONFIG_KEY_NEED = (1363, "config_key 必须传")
-
-    CONFIG_TYPE_NEED = (1364, "缺少参数config_type")
-
-    TEST_TEMPLATE_NONEXISTENT = (1365, "TestTemplate不存在")
-
-    TEMPLATE_NEED = (1366, "缺少参数template_id")
-
-    DEFAULT_DUPLICATION = (1367, "同一workspace下默认job_type唯一")
-
-    PRODUCT_DUPLICATION = (1368, "workspace下已存在同名product")
-
-    PRODUCT_ID_NEED = (1369, "缺少参数prd_id!")
-
-    PRODUCT_NEED = (1370, "缺少参数product_id")
-
-    PROJECT_DUPLICATION = (1371, "已存在同名项目名称")
-
-    PRODUCT_VERSION_DUPLICATION = (1390, "已存在同名产品版本")
-
-    PRODUCT_VERSION_NEED = (1391, "产品版本必传")
-
-    PROJECT_ID_NEED = (1372, "缺少参数project_id!")
-
-    GIT_URL_NEED = (1373, "缺少参数git_url")
-
-    REPOSITORY_DUPLICATION = (1374, "project下已存在同名仓库")
-
-    REPOSITORY_ID_NEED = (1375, "缺少参数repository_id!")
-    BRANCH_DUPLICATION = (1376, "仓库下已存在同名branch")
-
-    BRANCH_ID_NEED = (1377, "缺少参数branch_id!")
-
-    SUITE_NEED = (1378, "缺少参数suite_id")
-
-    CASE_NEED = (1379, "缺少参数case_id")
-
-    TEMPLATE_NAME_EXIST = (1380, "该ws下模板名字已存在")
-
-    TEMPLATE_JOB_NEED_CASE = (1381, "模板创建任务之少有一个case")
-
-    REPO_CHECK_FAIL = (1382, "仓库校验失败：")
-
-    CHECK_NAME_FAIL = (1383, "check_name 错误")
-
-    BRANCH_CHECK_FAIL = (1384, "branch不在仓库内")
-
-    PRIORITY_FAIL = (1385, "优先级数字必须为1到100的整数")
-
-    EDITOR_OBJ_ERROR = (1386, "编辑对象不在范围内")
-
-    RELATION_ID_NEED = (1387, "缺少参数relation_id!")
-
-    STOP_JOB_ERROR = (1388, "只允许停止running状态job")
-
-    STOP_SUITE_ERROR = (1389, "只允许停止running状态SUITE")
-
-    STOP_CASE_ERROR = (1340, "只允许停止running状态CASE")
-
-    SKIP_CASE_ERROR = (1341, "只允许跳过pending状态CASE")
-
-    DEFAULT_PROJECT_CAN_NOT_DELETE = (1342, "无法删除默认project")
-
-    DEFAULT_PRODUCT_CAN_NOT_DELETE = (1343, "无法删除默认product")
-
-    CREATOR_NEED = (500, "缺少参数creator!")
-
-    SUPPORT_POST = (500, "job create only support POST request !")
-
-    TEMPLATE_DUPLICATION = (500, "template duplication")
-
-    NO_PROJECT = (500, "project 不存在")
-
-    NO_PRODUCT = (500, "product 不存在")
-
-    TOKEN_ID_NEED = (1342, "缺少参数token_id!")
-
-    PROJECT_NOT_EXISTS = (1343, "project name不存在!")
-
-    BASELINE_NOT_EXISTS = (1344, "该workspace下baseline name不存在!")
-
-    SUITE_NOT_EXISTS = (1345, "该workspace下suite name不存在!")
-
-    CASE_NOT_EXISTS = (1346, "该workspace下case name不存在!")
-
-    SERVER_NOT_EXISTS = (1347, "该workspace下server ip不存在!")
-
-    SERVER_TAG_NOT_EXISTS = (1348, "该workspace下server tag不存在!")
-
-    CLUSTER_NOT_EXISTS = (1349, "该workspace下cluster name不存在!")
-
-    WS_NAME_NEED = (1350, "缺少参数workspace!")
-
-    WS_NOT_EXISTS = (1351, " workspace  not exists !")
-
-    TEST_CASE_NEED = (1352, "缺少参数test_case_id!")
-
-    START_TIME_NEED = (1353, "缺少参数start_time!")
-
-    END_TIME_NEED = (1354, "缺少参数end_time!")
-
-    METRIC_NEED = (1355, "缺少参数metric!")
-
-    SUB_CASE_NEED = (1356, "缺少参数sub_case!")
-
-    BASE_JOB_NEED = (1357, "缺少参数base_group!")
-
-    COMPARE_LIST_NEED = (1358, "缺少参数compare_groups!")
-
-    BASE_SUITE_OBJ_NEED = (1359, "缺少参数base_suite_obj!")
-
-    REPORT_SOURCE_NEED = (1360, "缺少参数report_source!")
-
-    TEST_ENV_NEED = (1361, "缺少参数test_env!")
-
-    TEST_ITEM_NEED = (1362, "缺少参数test_item!")
-
-    ITEM_NAME_NEED = (1363, "缺少参数测试项名字!")
-
-    SUITE_LIST_NEED = (1364, "缺少参数测试项 suite_list!")
-
-    SHOW_TYPE_NEED = (1365, "缺少参数show_type!")
-
-    CONF_LIST = (1366, "缺少参数conf_list!")
-
-    REPORT_ID_NEED = (1367, "缺少参数report_id!")
-
-    BUSINESS_TYPE_ERROR = (1368, "业务测试 business_type in (functional, performance, business) !")
-
-    CASE_MACHINE_NUM_ERROR = (1369, "case_machine  数量错误 !")
-
-    MONITOR_IP_OR_SN_ERROR = (1369, "监控配置 IP/SN错误 !")
-
-    AK_NOT_CORRECT = (1370, "AK错误")
-
-    SERVER_NOT_IN_THIS_WS = (1371, "该机器不在当前workspace机器池中")
-
-    SERVER_USED_BY_OTHER_WS = (1372, "该机器已在其他workspace中使用")
-
-    CONF_NAME_NOT_EXISTS = (1374, "test_suite下没有该test_conf!")
-
-    SUITE_NAME_NOT_EXISTS = (1375, "该test_suite不存在!")
-
-    JOB_ID_NOT_EXISTS = (1376, "该job_id不存在!")
-
-    JOB_SUITE_NAME_NOT_EXISTS = (1377, "job_id对应的任务中没有该test_suite!")
-
-    JOB_CONF_NAME_NOT_EXISTS = (1378, "job_id对应的任务中没有该test_conf!")
-
-    ADD_SERVER_TO_TONEAGENT_FAILED = (1379, "添加机器至ToneAgent系统失败")
-    SERVER_TSN_ALREADY_EXIST = (1380, "该机器在系统中已存在")
-
-    SUITE_DATA_NOT_EXISTS = (1379, '该suite不存在')
-
-    GLOBAL_VARIABLES_ERROR = (1380, "全局变量填写不符合规范，请参考全局变量的使用规则")
-
-    SYNC_SERVER_STATE_ERROR = (1381, "同步机器状态失败")
-
-    KERNELID_NOT_EXISTS = (1382, "kernel_id不存在！")
-
-    TONE_AGENT_ERROR = (1383, "IP/SN 在toneagent中不存在！")
-    STAR_AGENT_ERROR = (1384, "IP/SN 在staragent中不存在！")
-    USERNAME_NEED = (805, "username is required !")
-    PRODUCT_PERMISSION_ERROR = (1005, "Product不存在或没有访问权限")
-    PRODUCT_NAME_NEED = (1392, "product 必须传")
-
-    TEST_TYPE_INCONSISTENT = (1345, "The type of the test case is inconsistent with the type of the job")
+    ILLEGAL_REQUEST = ("400", "非法请求", "", "无", "")
+    PROGRAM_ERROR = ("500", "程序出错", "", "无", "")
+    TIME_FORMAT_ERROR = ("1-02-001", "时间格式不符合要求", "", "无", "")
+    TIME_BETWEEN_ERROR = ("1-02-002", "开始时间不能大于结束时间", "", "无", "")
+    KERNEL_NONEXISTENT = ("1-17-001", "kernel_info不存在", "", "无", "")
+    KERNEL_VERSION_LACK = ("1-17-002", "内核版本为必填参数", "", "", "")
+    KERNEL_ID_LACK = ("1-17-003", "kernel_id为必填参数", "", "", "")
+    KERNEL_VERSION_DUPLICATION = ("1-17-004", "已存在同名内核版本", "", "", "")
+    CONFIG_ID_NEED = ("1-03-001", "config_id为必填参数", "", "", "")
+    CONFIG_NONEXISTENT = ("1-03-002", "配置不存在", "", "", "")
+    CONFIG_DUPLICATION = ("1-03-003", "已存在同名配置", "", "", "")
+    CONFIG_KEY_NEED = ("1-03-004", "配置的key为必填参数", "", "", "")
+    CONFIG_TYPE_NEED = ("1-03-005", "配置类型为必填参数", "", "", "")
+    DOC_TITLE_NEED = ("1-03-006", "标题不能为空", "", "", "")
+    DOC_EXISTS = ("1-03-007", "文档已存在", "", "", "")
+    DOC_NOT_EXISTS = ("1-03-008", "文档不存在", "", "", "")
+    TO_TESTFARM_SITE_NEED = ("1-03-009", "TestFarm推送站点不存在", "", "", "")
+    TO_TESTFARM_CONFIG_ERROR = ("1-03-010", "TestFarm推送配置错误", "", "", "")
+    TO_TESTFARM_PARAM_ERROR = ("1-03-011", "Workspace 和 Project 不能为空", "", "", "")
+    TO_TESTFARM_REG_ERROR = ("1-03-012", "job名称规则不符合regex规范(不能为空 .* 匹配全部)", "", "", "")
+    TO_TESTFARM_JOBS_EMPTY = ("1-03-013", "Workspace下project无job 或 名称规则未过滤到job", "", "", "")
+    TO_TESTFARM_ID_ERROR = ("1-03-014", "推送配置 id 不正确, 请刷新后重试", "", "", "")
+    COMMENT_PARAMS_MISSING = ("1-03-015", "参数缺失", "", "", "")
+    COMMENT_UPDATE_ERROR = ("1-03-016", "记录不存在或没有操作权限", "", "", "")
+    BASE_CONFIG_PARAMS_ERROR = ("1-03-017", "auto_recover_server参数值格式不符合: 0 / 1", "", "", "")
+    BASE_CONFIG_PARAMS_ERROR_1 = ("1-03-018", "recover_server_protect_duration参数值格式不符合数字格式", "", "", "")
+    BASE_CONFIG_PARAMS_ERROR_2 = ("1-03-019", "func_result_view_type参数值格式不符合: 1 / 2", "", "", "")
+    BASE_CONFIG_PARAMS_ERROR_3 = ("1-03-020", "report_export参数值格式不符合: 0 / 1", "", "", "")
+    WORKSPACE_NOT_EXISTS = ("1-03-021", "Workspace不存在", "", "", "")
+    WORKSPACE_EXISTS = ("1-03-022", "Workspace已存在", "", "", "")
+    WORKSPACE_SHOW_NAME_EXISTS = ("1-03-023", "Workspace显示名称已存在", "", "", "")
+    USER_IN_WORKSPACE = ("1-03-024", "你已经是Workspace成员", "", "", "")
+    NO_PERMISSION_FOR_ROLE = ("1-03-025", "没有权限修改或删除当前角色", "", "", "")
+    TAG_ID_NEED = ("1-05-001", "tag_id为必填参数", "", "", "")
+    TEST_JOB_NONEXISTENT = ("1-05-002", "Job不存在", "", "", "")
+    TEST_CONF_NEED = ("1-05-003", "test_config为必填参数", "", "", "")
+    TEST_CONF_LIST = ("1-05-004", "test_config参数类型应该是list", "", "", "")
+    TEST_SUITE_NEED = ("1-05-005", "test_suite_id为必填参数", "", "", "")
+    TEST_SUITE_NAME_NEED = ("1-05-006", "test_suite_name为必填参数", "", "", "")
+    CASES_LIST = ("1-05-007", "cases_list参数类型应该是list", "", "", "")
+    SERVER_NONEXISTENT = ("1-05-008", "workspace下机器不存在", "", "", "")
+    SERVER_STATUS = ("1-05-009", "指定机器Broken，请检查指定机器是否可用", "", "", "")
+    CLUSTER_NO_SERVER = ("1-05-010", "集群无关联机器", "", "", "")
+    DATA_FORM_ERROR = ("1-05-011", "data_from参数有误 !", "", "", "")
+    TEST_TEMPLATE_NONEXISTENT = ("1-05-012", "TestTemplate不存在", "", "", "")
+    TEMPLATE_NEED = ("1-05-013", "template_id为必填参数", "", "", "")
+    PRIORITY_FAIL = ("1-05-014", "优先级数字必须为1到100的整数", "", "", "")
+    EDITOR_OBJ_ERROR = ("1-05-015", "编辑对象不在范围内", "", "", "")
+    STOP_JOB_ERROR = ("1-05-016", "只允许停止running状态job", "", "", "")
+    STOP_SUITE_ERROR = ("1-05-017", "只允许停止running状态SUITE", "", "", "")
+    STOP_CASE_ERROR = ("1-05-018", "只允许停止running状态CASE", "", "", "")
+    SKIP_CASE_ERROR = ("1-05-019", "只允许跳过pending状态case", "", "", "")
+    SUPPORT_POST = ("1-05-020", "job create only support POST request !", "", "", "")
+    TEMPLATE_DUPLICATION = ("1-05-021", "template duplication", "", "", "")
+    NO_PRODUCT = ("1-05-022", "product 不存在", "", "", "")
+    PROJECT_NOT_EXISTS = ("1-05-023", "项目不存在", "", "", "")
+    SERVER_NOT_EXISTS = ("1-05-027", "ws server ip不存在", "", "", "")
+    SERVER_TAG_NOT_EXISTS = ("1-05-028", "ws server标签不存在", "", "", "")
+    WS_NAME_NEED = ("1-05-030", " workspace为必填参数", "", "", "")
+    WS_NOT_EXISTS = ("1-05-031", " workspace不存在", "", "", "")
+    CASE_MACHINE_NUM_ERROR = ("1-05-032", "case_machine数量错误 !", "", "", "")
+    MONITOR_IP_OR_SN_ERROR = ("1-05-033", "监控配置 IP/SN错误 !", "", "", "")
+    AK_NOT_CORRECT = ("1-05-034", "AK错误", "", "", "")
+    SERVER_NOT_IN_THIS_WS = ("1-05-035", "该机器不在当前workspace机器池中", "", "", "")
+    SERVER_USED_BY_OTHER_WS = ("1-05-036", "该机器已在其他workspace中使用", "", "", "")
+    GLOBAL_VARIABLES_ERROR = ("1-05-037", "全局变量填写不符合规范，请参考全局变量的使用规则", "", "", "")
+    KERNELID_NOT_EXISTS = ("1-05-038", "kernel_id不存在！", "", "", "")
+    TONE_AGENT_ERROR = ("1-05-039", "IP/SN 在toneagent中不存在！", "", "", "")
+    STAR_AGENT_ERROR = ("1-05-040", "IP/SN 在staragent中不存在！", "", "", "")
+    TEST_TYPE_INCONSISTENT = ("1-05-041", "test case类型与job类型不匹配", "", "", "")
+    PERMISSION_ERROR = ("1-05-042", "没有操作权限", "", "无", "")
+    NAME_NEED = ("1-05-043", "名称为必填参数", "", "无", "")
+    WS_NEED = ("1-05-044", "ws_id为必填参数", "", "无", "")
+    JOB_NEED = ("1-05-045", "job_id为必填参数", "", "无", "")
+    ID_NEED = ("1-05-046", "缺失记录id", "", "无", "")
+    PRODUCT_PERMISSION_ERROR = ("1-05-047", "产品不存在或没有访问权限", "", "无", "")
+    PARAMS_ERROR = ("1-05-048", "参数错误", "", "无", "")
+    TEST_CASE_NEED = ("1-07-001", " test_case_id为必填参数", "", "", "")
+    START_TIME_NEED = ("1-07-002", " start_time为必填参数", "", "", "")
+    END_TIME_NEED = ("1-07-003", " end_time为必填参数", "", "", "")
+    METRIC_NEED = ("1-07-004", " metric为必填参数", "", "", "")
+    SUB_CASE_NEED = ("1-07-005", " sub_case为必填参数", "", "", "")
+    BASE_JOB_NEED = ("1-07-006", " base_group为必填参数", "", "", "")
+    BASE_SUITE_OBJ_NEED = ("1-07-007", " base_suite_obj为必填参数", "", "", "")
+    PLAN_NAME_NEED = ("1-08-001", "计划名称不能为空", "", "", "")
+    PLAN_NAME_EXISTS = ("1-08-002", "计划名称已存在", "", "", "")
+    PLAN_PREPARE_EXISTS = ("1-08-003", "测试准备阶段不能为空", "", "", "")
+    PLAN_NOT_EXISTS = ("1-08-004", "计划不存在", "", "", "")
+    CRON_UPDATE_ERROR = ("1-08-005", "修改定时任务失败，请检查表达式格式", "", "", "")
+    PLAN_RUN_ERROR = ("1-08-006", "计划未启用, 不可运行", "", "", "")
+    PLAN_CRON_EMPTY = ("1-08-007", "Crontab表达式不能为空", "", "", "")
+    PLAN_CRON_FORMAT_ERROR = ("1-08-008", "Crontab表达式格式错误", "", "", "")
+    PLAN_CRON_DATE_ERROR = ("1-08-009", "Crontab日期设置错误", "", "", "")
+    REPORT_NAME_EXISTS = ("1-09-001", "报告模板名称已存在", "", "", "")
+    REPORT_TEMPLATE_NOT_EXISTS = ("1-09-002", "报告模板不存在", "", "", "")
+    DEFAULT_TEMPLATE_UPDATE_ERROR = ("1-09-003", "默认模板不允许修改/删除", "", "", "")
+    REPORT_TEMPLATE_NAME_EXISTS = ("1-09-004", "报告模板名称不能重复", "", "", "")
+    REPORT_SOURCE_NEED = ("1-09-005", " report_source为必填参数", "", "", "")
+    TEST_ENV_NEED = ("1-09-006", " test_env为必填参数", "", "", "")
+    TEST_ITEM_NEED = ("1-09-007", " test_item为必填参数", "", "", "")
+    ITEM_NAME_NEED = ("1-09-008", " 测试项名字为必填参数", "", "", "")
+    REPORT_ID_NEED = ("1-09-009", "report_id为必填参数", "", "", "")
+    JOB_NOT_EXIST_IN_WS = ("1-11-001", "当前 workspace下没有该 Job", "", "", "")
+    TAG_NONEXISTENT = ("1-12-001", "该ws下tag不存在", "", "", "")
+    TAG_DUPLICATION = ("1-12-002", "已存在同名tag", "", "", "")
+    TYPE_NONEXISTENT = ("1-12-003", "job_type不存在", "", "", "")
+    TYPE_DUPLICATION = ("1-12-004", "已存在同名Job类型", "", "", "")
+    TYPE_ID_LACK = ("1-12-005", "job_type id为必填参数", "", "", "")
+    ITEM_NONEXISTENT = ("1-12-006", "job_type的原子项不存在", "", "", "")
+    SYS_TYPE_ATOMIC = ("1-12-007", "系统类型无法删除", "", "", "")
+    ITEM_MUST_DIC = ("1-12-008", "item_dic必须为dict类型!", "", "", "")
+    SERVER_TYPE_LACK = ("1-12-009", "server_type为必填参数", "", "", "")
+    TEST_TYPE_LACK = ("1-12-010", "test_type为必填参数", "", "", "")
+    SUITE_NEED = ("1-12-011", "suite_id为必填参数", "", "", "")
+    CASE_NEED = ("1-12-012", "case_id为必填参数", "", "", "")
+    TEMPLATE_NAME_EXISTS = ("1-12-013", "该ws下模板名字已存在", "", "", "")
+    TEMPLATE_JOB_NEED_CASE = ("1-12-014", "模板创建任务之少有一个case", "", "", "")
+    BUSINESS_TYPE_ERROR = ("1-12-015", "业务测试 business_type in (functional, performance, business) !", "", "", "")
+    BASELINE_EXISTS = ("1-13-001", "基线已存在", "", "", "")
+    BASELINE_NOT_EXISTS = ("1-13-002", "基线不存在", "", "", "")
+    TEST_TYPE_NOT_MATCH = ("1-13-003", "测试类型不匹配", "", "", "")
+    UPLOAD_FILE_EMPTY = ("1-13-004", "所选文件为空文件，请重新选择文件导入", "", "", "")
+    UPLOAD_FILE_FORMAT = ("1-13-005", "所选文件格式错误，请选择以 .tar 为后缀的文件导入", "", "", "")
+    ADD_BASELINE_ERROR = ("1-13-006", "suite 或 case 已经被删除", "", "", "")
+    ADD_BASELINE_NEED_PARAMS = ("1-13-007", "加入基线必填参数: 1.baseline_id, 2.job_id, 3.suite_id, 4.case_id", "", "", "")
+    ADD_BASELINE_JOB_MISSING = ("1-13-008", "关联job不存在", "", "", "")
+    BATCH_ADD_BASELINE_ERROR = ("1-13-009", "请求参数错误", "", "", "")
+    SERVER_IP_NEED = ("1-14-001", 'ip为必填参数', "", "", "")
+    SERVER_STATE_NEED = ("1-14-002", 'state为必填参数', "", "", "")
+    SERVER_OWNER_NEED = ("1-14-003", 'owner为必填参数', "", "", "")
+    SERVER_WS_NEED = ("1-14-004", 'ws_id为必填参数', "", "", "")
+    SERVER_MISSING = ("1-14-005", '机器不存在', "", "", "")
+    SERVER_OCCUPIED = ("1-14-006", '机器被占用，不可修改或删除', "", "", "")
+    AGENT_DEPLOY_ERROR = ("1-14-007", '参数错误', "", "", "")
+    AGENT_DEPLOY_EXISTS = ("1-14-008", 'agent 已部署', "", "", "")
+    AGENT_DEPLOY_FAIL = ("1-14-009", '部署失败，机器不存在', "", "", "")
+    SERVER_OCCUPIED_BY_CLUSTER = ("1-14-010", '机器被集群使用', "", "", "")
+    SERVER_OCCUPIED_BY_JOB = ("1-14-011", '机器被job使用', "", "", "")
+    SERVER_DELETE_FAIL = ("1-14-012", '物理机下面有虚拟机, 不允许删除', "", "", "")
+    SERVER_CHECK_ERRORS = ("1-14-013", '机器为生产环境机器，不可使用', "", "", "")
+    SERVER_CHECK_AGENT_ERRORS = ("1-14-014", '检测机器staragent通道异常，请检测', "", "", "")
+    CLOUD_SERVER_RELEASED = ("1-14-015", '机器已被释放', "", "", "")
+    SERVER_PARAMS_ERROR = ("1-14-016", '请求参数错误', "", "", "")
+    SERVER_INSTANCE_EXISTS = ("1-14-017", '该机器实例已存在', "", "", "")
+    CLUSTER_NOT_EXISTS = ("1-14-018", '集群不存在', "", "", "")
+    SERVER_CONFIG_EXISTS = ("1-14-019", '配置名称已被使用，请修改后重试', "", "", "")
+    SERVER_INSTANCE_NOT_EXISTS = ("1-14-020", '该机器实例不存在', "", "", "")
+    CLOUD_SERVER_NOT_EXISTS = ("1-14-021", '云上机器不存在', "", "", "")
+    SERVER_PROVIDER_NOT_EXISTS = ("1-14-022", 'provider不存在', "", "", "")
+    CLOUD_SERVER_RELEASE_ERROR = ("1-14-023", '机器释放失败', "", "", "")
+    AK_NEED = ("1-14-024", '未选择AK，请先选择', "", "", "")
+    AK_NOT_EXISTS = ("1-14-025", 'AK不存在', "", "", "")
+    AK_CONFIG_ERROR = ("1-14-026", 'AK配置密钥不正确', "", "", "")
+    AK_EXISTS = ("1-14-027", 'AK已存在', "", "", "")
+    CLUSTER_EXISTS = ("1-14-028", '集群已存在', "", "", "")
+    CLUSTER_VAR_EXISTS = ("1-14-029", '变量名已存在', "", "", "")
+    CLUSTER_SERVER_EXISTS = ("1-14-030", '集群中已添加该机器', "", "", "")
+    CLUSTER_SAME_WITH_PARAM = ("1-14-031", '同一集群下，region和zone必须保持一致', "", "", "")
+    TONE_AGENT_REQUEST_ERROR = ("1-14-032", 'TONE AGENT接口请求异常', "", "", "")
+    TONE_AGENT_VERSION_ERROR = ("1-14-033", 'TONE AGENT版本列表接口请求异常', "", "", "")
+    SUITE_NOT_EXISTS = ("1-15-001", '该suite不存在', "", "", "")
+    SUITE_EXISTS = ("1-15-002", '该suite已存在', "", "", "")
+    SUITE_DELETE_ERROR = ("1-15-003", '测试管理员仅能删除自己创建', "", "", "")
+    CASE_NOT_EXISTS = ("1-15-004", "case不存在", "", "", "")
+    METRIC_NOT_EXISTS = ("1-15-005", "metric不存在", "", "", "")
+    DOMAIN_DELETE_ERROR = ("1-15-006", '请先将该domain下的 suite/case 全部解绑，再尝试删除', "", "", "")
+    CASE_EXISTS = ("1-15-007", "case已存在", "", "", "")
+    PRODUCT_DUPLICATION = ("1-16-001", "workspace下已存在同名产品", "", "", "")
+    PRODUCT_ID_NEED = ("1-16-002", "产品id为必填参数", "", "", "")
+    PRODUCT_NAME_NEED = ("1-16-003", "产品名称为必填参数", "", "", "")
+    PROJECT_DUPLICATION = ("1-16-004", "已存在同名项目名称", "", "", "")
+    PRODUCT_VERSION_DUPLICATION = ("1-16-005", "已存在同名产品版本", "", "", "")
+    PROJECT_ID_NEED = ("1-16-006", "项目id为必填参数", "", "", "")
+    REPOSITORY_ID_NEED = ("1-16-007", "仓库id为必填参数", "", "", "")
+    BRANCH_DUPLICATION = ("1-16-008", "仓库下已存在同名branch", "", "", "")
+    BRANCH_ID_NEED = ("1-16-009", "分支id为必填参数", "", "", "")
+    REPO_CHECK_FAIL = ("1-16-010", "仓库校验失败", "", "", "")
+    CHECK_GITLAB_NAME_FAIL = ("1-16-011", "gitlab名称错误", "", "", "")
+    BRANCH_CHECK_FAIL = ("1-16-012", "分支不在仓库内", "", "", "")
+    RELATION_ID_NEED = ("1-16-013", "relation_id为必填参数", "", "", "")
+    DEFAULT_PROJECT_CAN_NOT_DELETE = ("1-16-014", "无法删除默认project", "", "", "")
+    DEFAULT_PRODUCT_CAN_NOT_DELETE = ("1-16-015", "无法删除默认product", "", "", "")
+    CONF_NAME_NOT_EXISTS = ("1-18-001", "test_suite下没有该test_conf!", "", "", "")
+    SUITE_NAME_NOT_EXISTS = ("1-18-002", "该test_suite不存在!", "", "", "")
+    JOB_ID_NOT_EXISTS = ("1-18-003", "该job_id不存在!", "", "", "")
+    JOB_SUITE_NAME_NOT_EXISTS = ("1-18-004", "job_id对应的任务中没有该test_suite!", "", "", "")
+    JOB_CONF_NAME_NOT_EXISTS = ("1-18-005", "job_id对应的任务中没有该test_conf!", "", "无", "")
+    USERNAME_NOT_REGISTER = ("1-19-001", "该用户名未注册或未配置token", "", "无", "")
+    TOKEN_FORMAT_ERROR = ("1-19-002", "签名格式错误", "", "无", "")
+    TOKEN_OVERDUE = ("1-19-003", "签名已过期", "", "无", "")
+    TOKEN_INVALID = ("1-19-004", "签名无效", "", "无", "")
+    TOKEN_NEED = ("1-19-005", "签名为必填参数", "", "无", "")
+    USERNAME_NEED = ("1-19-006", "username为必填参数", "", "无", "")
+    LOGIN_ERROR = ("1-19-007", "请先登录", "", "无", "")
+    UPDATE_ERROR = ("1-19-008", "自己不能修改自己", "", "无", "")
+    USER_OR_PASS_ERROR = ("1-19-009", "用户名或密码错误", "", "无", "")
+    USER_EXISTS_ERROR = ("1-19-010", "用户名已存在", "", "无", "")
+    PASSWORD_COMMIT_ERROR = ("1-19-011", "两次输入的密码不一致", "", "无", "")
+    OLD_PASSWORD_ERROR = ("1-19-012", "旧密码输入错误", "", "无", "")
+    PASSWORD_SAME_TO_OLD_ERROR = ("1-19-013", "新密码不能与旧密码一致", "", "无", "")
+
+    @property
+    def code(self):
+        """获取状态码"""
+        return self.value[0]
+
+    @property
+    def error(self):
+        """获取错误信息"""
+        return self.value[1]
+
+    @property
+    def error_en(self):
+        """获取英文错误信息"""
+        return self.value[2]
+
+    @property
+    def msg(self):
+        """获取信息"""
+        return self.value[3]
+
+    @property
+    def msg_en(self):
+        """获取英文信息"""
+        return self.value[4]
+
+    @property
+    def to_log(self):
+        """获取输出日志信息"""
+        return "%s,%s,%s,%s,%s" % (self.value[0], self.value[1], self.value[2], self.value[3], self.value[4])
+
+    @property
+    def to_api(self):
+        """获取api输出日志信息"""
+        return "错误码:%s,错误信息: %s" % (self.value[0], self.value[1])
+
+    def to_params_api(self, param):
+        """获取api输出日志信息"""
+        return "错误码:%s,错误信息: %s=>%s" % (self.value[0], self.value[1], param)
