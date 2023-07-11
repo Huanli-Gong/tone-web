@@ -1216,14 +1216,16 @@ class JobDataConversionService(object):
             if q:
                 obj = obj.filter(q)
             if not obj.exists():
-                raise ValueError(f'指定的{field_name}ID({self.job_data[field_name]})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.
+                                 to_params_api('指定的{field_name}ID({self.job_data[field_name]})不存在'))
             self.job_data[field_name] = obj.first().name
         else:
             obj = model.objects.filter(name=self.job_data[field_name])
             if q:
                 obj = obj.filter(q)
             if not obj.exists():
-                raise ValueError(f'指定的{field_name}名称{self.job_data[field_name]}不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.
+                                 to_params_api('指定的{field_name}ID({self.job_data[field_name]})不存在'))
             self.job_data[field_name] = obj.first().id
 
     def conv_test_config(self, conv_type):
@@ -1247,12 +1249,12 @@ class JobDataConversionService(object):
             if conv_type == self.CONV_ID_TO_NAME:
                 tag = JobTag.objects.filter(id=tag_item)
                 if not tag.exists():
-                    raise ValueError(f'Job标签ID{tag_item}不存在')
+                    raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('Job标签ID{tag_item}不存在'))
                 tags.append(tag.first().name)
             else:
                 tag = JobTag.objects.filter(name=tag_item)
                 if not tag.exists():
-                    raise ValueError(f'Job标签名称{tag_item}不存在')
+                    raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('Job标签名称{tag_item}不存在'))
                 tags.append(tag.first().id)
         self.job_data['tags'] = tags
 
@@ -1270,28 +1272,28 @@ class JobDataConversionService(object):
     def _conv_test_config_id_to_name(self, item, conv_type):
         suite = TestSuite.objects.filter(id=item.get('test_suite'), test_framework='tone')
         if not suite.exists():
-            raise ValueError(f'Suite ID({item.get("test_suite")})不存在')
+            raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('Suite ID({item.get("test_suite")})不存在'))
         item['test_suite'] = suite.first().name
         for case_item in item['cases']:
             if not case_item.get('test_case'):
-                raise ValueError(f'test_config中缺少test_case')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('test_config中缺少test_case'))
             case = TestCase.objects.filter(id=case_item.get('test_case'))
             if not case.exists():
-                raise ValueError(f'Case ID({case_item.get("test_case")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('Case ID({case_item.get("test_case")})不存在'))
             case_item['test_case'] = case.first().name
             self.conv_server(case_item, conv_type)
 
     def _conv_test_config_name_to_id(self, item, conv_type):
         suite = TestSuite.objects.filter(name=item.get('test_suite'), test_framework='tone')
         if not suite.exists():
-            raise ValueError(f'Suite名称({item.get("test_suite")})不存在')
+            raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('Suite名称({item.get("test_suite")})不存在'))
         item['test_suite'] = suite.first().id
         for case_item in item['cases']:
             if not case_item.get('test_case'):
-                raise ValueError(f'test_config中缺少test_case')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('test_config中缺少test_case'))
             case = TestCase.objects.filter(name=case_item.get('test_case'), test_suite_id=suite.first().id)
             if not case.exists():
-                raise ValueError(f'Case名称({case_item.get("test_case")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('Case名称({case.get("test_case")})不存在'))
             case_item['test_case'] = case.first().id
             self.conv_server(case_item, conv_type)
 
@@ -1300,29 +1302,29 @@ class JobDataConversionService(object):
         if server_config.get('id'):
             server = TestServer.objects.filter(id=server_config.get('id'))
             if not server.exists():
-                raise ValueError(f'机器ID({server_config.get("id")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('机器ID({server_config.get("id")})不存在'))
             case_item['server'] = {'ip': server.first().ip}
         elif server_config.get('tag'):
             server_tag = ServerTag.objects.filter(id__in=server_config.get('tag'))
             if not server_tag.exists():
-                raise ValueError(f'机器标签({server_config.get("tag")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('机器标签({server_config.get("tag")})不存在'))
             case_item['server'] = {'tag': list(server_tag.values_list('name', flat=True))}
         # elif server_config.get('ip'):
         #     pass
         elif server_config.get('cluster'):
             cluster = TestCluster.objects.filter(id=server_config.get('cluster'))
             if not cluster.exists():
-                raise ValueError(f'集群ID({server_config.get("cluster")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('集群ID({server_config.get("cluster")})不存在'))
             case_item['server'] = {'cluster': cluster.first().name}
         elif server_config.get('config'):
             config = CloudServer.objects.filter(id=server_config.get('config'))
             if not config.exists():
-                raise ValueError(f'云上机器配置({server_config.get("config")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('云上机器配置({server_config.get("config")})不存在'))
             case_item['server'] = {'config': config.first().template_name}
         elif server_config.get('instance'):
             instance = CloudServer.objects.filter(id=server_config.get('instance'))
             if not instance.exists():
-                raise ValueError(f'云上机器实例({server_config.get("instance")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('云上机器实例({server_config.get("instance")})不存在'))
             case_item['server'] = {'instance': instance.first().instance_name}
 
     @staticmethod
@@ -1332,7 +1334,7 @@ class JobDataConversionService(object):
                 # yaml文本如果没有channel_type的传参，则认定为是机器池机器
                 server = TestServer.objects.filter(ip=server_config.get('ip'))
                 if not server.exists():
-                    raise ValueError(f'机器IP({server_config.get("ip")})不存在')
+                    raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('机器IP({server_config.get("ip")})不存在'))
                 case_item['server'] = {
                     'id': server.first().id,
                     'ip': server.first().ip,
@@ -1347,7 +1349,7 @@ class JobDataConversionService(object):
             for tag in server_config.get('tag'):
                 server_tag = ServerTag.objects.filter(name=tag)
                 if not server_tag.exists():
-                    raise ValueError(f'机器标签({server_config.get("tag")})不存在')
+                    raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('机器标签({server_config.get("tag")})不存在'))
                 tag_id_list.append(server_tag.first().id)
                 tag_name_list.append(server_tag.first().name)
             case_item['server'] = {
@@ -1358,7 +1360,7 @@ class JobDataConversionService(object):
         elif server_config.get('cluster'):
             cluster = TestCluster.objects.filter(name=server_config.get('cluster'))
             if not cluster.exists():
-                raise ValueError(f'集群名称({server_config.get("cluster")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('集群名称({server_config.get("cluster")})不存在'))
             case_item['server'] = {
                 'cluster': cluster.first().id,
                 'id': cluster.first().id,
@@ -1367,7 +1369,7 @@ class JobDataConversionService(object):
         elif server_config.get('config'):
             config = CloudServer.objects.filter(template_name=server_config.get('config'))
             if not config.exists():
-                raise ValueError(f'云上机器配置名称({server_config.get("config")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('云上机器配置名称({server_config.get("config")})不存在'))
             case_item['server'] = {
                 'config': config.first().id,
                 'id': config.first().id,
@@ -1376,7 +1378,7 @@ class JobDataConversionService(object):
         elif server_config.get('instance'):
             instance = CloudServer.objects.filter(instance_name=server_config.get('instance'))
             if not instance.exists():
-                raise ValueError(f'云上机器实例({server_config.get("instance")})不存在')
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api('云上机器实例({server_config.get("instance")})不存在'))
             case_item['server'] = {
                 'instance': instance.first().id,
                 'id': instance.first().id,
@@ -1417,7 +1419,7 @@ class DataConversionService(CommonService):
         if is_job_data:
             suc, msg = convertor.verify_field_value()
             if not suc:
-                raise ValueError(msg)
+                raise ValueError(ErrorCode.PARAMS_ERROR.to_params_api(msg))
             json_data = convertor.name_conv_to_id()
         return json_data
 
