@@ -201,7 +201,7 @@ class PlanService(CommonService):
             return False, ErrorCode.PLAN_NAME_NEED.to_api
         # 计划名称不能重复
         if TestPlan.objects.filter(name=name, ws_id=data.get('ws_id')).exists():
-            return False, ErrorCode.PLAN_NAME_EXIST.to_api
+            return False, ErrorCode.PLAN_NAME_EXISTS.to_api
         return True, ''
 
     @staticmethod
