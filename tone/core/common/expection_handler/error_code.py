@@ -199,6 +199,11 @@ class ErrorCode(Enum):
     USERNAME_NEED = ("1-19-006", "username为必填参数", "", "无", "")
     LOGIN_ERROR = ("1-19-007", "请先登录", "", "无", "")
     UPDATE_ERROR = ("1-19-008", "自己不能修改自己", "", "无", "")
+    USER_OR_PASS_ERROR = ("1-19-009", "用户名或密码错误", "", "无", "")
+    USER_EXISTS_ERROR = ("1-19-010", "用户名已存在", "", "无", "")
+    PASSWORD_COMMIT_ERROR = ("1-19-011", "两次输入的密码不一致", "", "无", "")
+    OLD_PASSWORD_ERROR = ("1-19-012", "旧密码输入错误", "", "无", "")
+    PASSWORD_SAME_TO_OLD_ERROR = ("1-19-013", "新密码不能与旧密码一致", "", "无", "")
 
     @property
     def code(self):
