@@ -7,6 +7,7 @@ from tone.core.common.services import CommonService
 from tone.models import HelpDoc, datetime, SiteConfig, SitePushConfig, TestJob, Comment, BaseConfig
 from tone.services.portal.sync_portal_services import SyncPortalService
 from tone.services.portal.sync_portal_task_servers import sync_job_data
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 
 class HelpDocService(CommonService):
@@ -28,10 +29,10 @@ class HelpDocService(CommonService):
         title = data.get('title')
         doc_type = data.get('doc_type', 'help_doc')
         if not title.strip():
-            return False, '标题不能为空'
+            return False, ErrorCode.DOC_TITLE_NEED.to_api
         doc_obj = HelpDoc.objects.filter(title=title).first()
         if doc_obj:
-            return False, '文档已存在'
+            return False, ErrorCode.DOC_EXISTS.to_api
         form_fields = ['title', 'content', 'doc_type', 'active', 'tags']
         create_data = {'creator': creator}
         for field in form_fields:
@@ -67,14 +68,14 @@ class HelpDocService(CommonService):
         doc_id = data.get('id')
         title = data.get('title')
         if title is not None and not title.strip():
-            return False, '标题不能为空'
+            return False, ErrorCode.DOC_TITLE_NEED.to_api
         doc_obj = HelpDoc.objects.filter(title=title).first()
         if doc_obj is not None and str(doc_obj.id) != str(doc_id):
-            return False, '文档已存在'
+            return False, ErrorCode.DOC_EXISTS.to_api
         allow_modify_fields = ['title', 'content', 'order_id', 'update_user', 'active', 'tags']
         doc_obj = HelpDoc.objects.filter(id=doc_id)
         if doc_obj.first() is None:
-            return False, 'doc id not existed.'
+            return False, ErrorCode.DOC_NOT_EXISTS.to_api
         origin_order_id = doc_obj.first().order_id
         doc_type = doc_obj.first().doc_type
         update_data = dict()
@@ -127,7 +128,7 @@ class TestFarmService(CommonService):
         tmp_site = SiteConfig.objects.filter(id=site_id)
 
         if tmp_site.first() is None:
-            return False, 'site not exist'
+            return False, ErrorCode.TO_TESTFARM_SITE_NEED.to_api
         allow_modify_fields = ['is_major', 'site_url', 'site_token', 'business_system_name']
         update_data = dict()
         for field in allow_modify_fields:
@@ -172,7 +173,7 @@ class TestFarmService(CommonService):
         push_config_id = data.get('push_config_id')
         tmp_push_config = SitePushConfig.objects.filter(id=push_config_id)
         if tmp_push_config.first() is None:
-            return False, 'push config not exist'
+            return False, ErrorCode.TO_TESTFARM_CONFIG_ERROR.to_api
         create_data = dict()
         allow_fields = ['ws_id', 'project_id', 'job_name_rule', 'sync_start_time']
         for field in allow_fields:
@@ -186,7 +187,7 @@ class TestFarmService(CommonService):
         push_config_id = data.get('push_config_id')
         tmp_push_config = SitePushConfig.objects.filter(id=push_config_id)
         if tmp_push_config.first() is None:
-            return 201, 'push config not exist'
+            return 201, ErrorCode.TO_TESTFARM_CONFIG_ERROR.to_api
         tmp_push_config.delete()
         return 200, 'success'
 
@@ -201,22 +202,22 @@ class TestFarmService(CommonService):
                 tmp_ws_id = site_push_obj.ws_id
                 tmp_project_id = site_push_obj.project_id
                 if not tmp_ws_id or not tmp_project_id:
-                    return False, 'Workspace 和 Project 不能为空'
+                    return False, ErrorCode.TO_TESTFARM_PARAM_ERROR.to_api
                 tmp_job_name_rule = site_push_obj.job_name_rule
                 job_id_list.extend(list(TestJob.objects.filter(ws_id=tmp_ws_id, project_id=tmp_project_id,
                                                                name__iregex=tmp_job_name_rule, start_time__isnull=False,
                                                                ).values_list('id', flat=True))[-1:])
 
         except (django.db.utils.InternalError, Exception):
-            return False, 'job名称规则不符合regex规范(不能为空 .* 匹配全部)'
+            return False, ErrorCode.TO_TESTFARM_REG_ERROR.to_api
         if not job_id_list:
-            return False, 'Workspace下project无job 或 名称规则未过滤到job'
+            return False, ErrorCode.TO_TESTFARM_JOBS_EMPTY.to_api
         msg = ''
         for job_id in sorted(set(job_id_list), reverse=True)[:3]:
             code, msg = SyncPortalService().sync_job(job_id)
             if code != 201:
                 return True, msg
-        return False, '请检查站点配置是否正确：{}'.format(msg)
+        return False, ErrorCode.TO_TESTFARM_CONFIG_ERROR.to_params_api(msg)
 
     @staticmethod
     def filter_job_list(data):
@@ -226,7 +227,7 @@ class TestFarmService(CommonService):
         if push_config_id:
             config_obj = SitePushConfig.objects.filter(id=push_config_id).first()
             if config_obj is None:
-                return False, '推送配置 id 不正确, 请刷新后重试'
+                return False, ErrorCode.TO_TESTFARM_ID_ERROR.to_api
             ws_id = config_obj.ws_id
             project_id = config_obj.project_id
             job_name_rule = config_obj.job_name_rule
@@ -248,7 +249,7 @@ class TestFarmService(CommonService):
                            name__iregex=job_name_rule)
                     job_queryset = TestJob.objects.filter(q)
                     if not job_queryset:
-                        return False, 'Workspace下project无job 或 名称规则未过滤到job'
+                        return False, ErrorCode.TO_TESTFARM_JOBS_EMPTY.to_api
                     job_queryset = job_queryset.filter(name__icontains=filter_job)
                 return True, job_queryset.order_by('sync_time', 'id'), 0
             else:
@@ -264,7 +265,7 @@ class TestFarmService(CommonService):
                                'name': tmp_data[1],
                                'sync_time': tmp_data[2]} for tmp_data in job_data], page_num
         except (django.db.utils.InternalError, Exception):
-            return False, 'job名称规则不符合regex规范(不能为空 .* 匹配全部)', 0
+            return False, ErrorCode.TO_TESTFARM_REG_ERROR.to_api, 0
 
     @staticmethod
     def push_spe_job(data):
@@ -272,7 +273,7 @@ class TestFarmService(CommonService):
         is_sync = data.get('is_sync', False)
         test_job = TestJob.objects.filter(id=job_id).first()
         if not test_job:
-            return 201, 'test job not existed.'
+            return 201, ErrorCode.TEST_JOB_NONEXISTENT.to_api
         if is_sync:
             sync_job_code, sync_job_msg = SyncPortalService().sync_job(job_id)
             state_map = {'pending': 0, 'running': 1, 'success': 2, 'fail': 3, 'stop': 4, 'skip': 5}
@@ -308,7 +309,7 @@ class CommentService(CommonService):
         object_type = data.get('object_type')
         object_id = data.get('object_id')
         if not object_type or not object_id:
-            return False, '参数缺失'
+            return False, ErrorCode.COMMENT_PARAMS_MISSING.to_api
         create_data = {'creator': operator,
                        'object_type': object_type,
                        'object_id': object_id,
@@ -323,7 +324,7 @@ class CommentService(CommonService):
             comment.update(content=data.get('content'))
             return True, comment
         else:
-            return False, '不允许修改'
+            return False, ErrorCode.COMMENT_UPDATE_ERROR.to_api
 
     @staticmethod
     def delete_comment(data, operator):
@@ -332,7 +333,7 @@ class CommentService(CommonService):
             comment.delete()
             return True, '删除成功'
         else:
-            return False, '不允许删除'
+            return False, ErrorCode.COMMENT_UPDATE_ERROR.to_api
 
 
 class WorkspaceConfigService(CommonService):
@@ -381,18 +382,18 @@ class WorkspaceConfigService(CommonService):
             config_type='ws', ws_id=ws_id, config_key='AUTO_RECOVER_SERVER').first()
         if auto_recover is not None and auto_recover.config_value != auto_recover_server:
             if auto_recover_server not in ['0', '1']:
-                return 201, 'auto_recover_server参数值格式不符合: 0 / 1'
+                return 201, ErrorCode.BASE_CONFIG_PARAMS_ERROR.to_api
             auto_recover.config_value = auto_recover_server
             auto_recover.save()
         if recover_server_protect_duration:
             if not recover_server_protect_duration.isdigit():
-                return 201, 'recover_server_protect_duration参数值格式不符合数字格式'
+                return 201, ErrorCode.BASE_CONFIG_PARAMS_ERROR_1.to_api
             BaseConfig.objects.filter(
                 config_type='ws', ws_id=ws_id, config_key='RECOVER_SERVER_PROTECT_DURATION').update(
                 config_value=recover_server_protect_duration)
         if func_result_view_type:
             if func_result_view_type not in ['1', '2']:
-                return 201, 'func_result_view_type参数值格式不符合: 1 / 2'
+                return 201, ErrorCode.BASE_CONFIG_PARAMS_ERROR_2.to_api
             func_view_config = BaseConfig.objects.filter(config_type='ws', ws_id=ws_id,
                                                          config_key='FUNC_RESULT_VIEW_TYPE').first()
             if func_view_config:
@@ -401,7 +402,7 @@ class WorkspaceConfigService(CommonService):
                     config_value=func_result_view_type)
         if report_export:
             if report_export not in ['0', '1']:
-                return 201, 'report_export参数值格式不符合: 0 / 1'
+                return 201, ErrorCode.BASE_CONFIG_PARAMS_ERROR_3.to_api
             report_export_config = BaseConfig.objects.filter(config_type='ws', ws_id=ws_id,
                                                              config_key='REPORT_EXPORT').first()
             if report_export_config and report_export_config.config_value != report_export:
