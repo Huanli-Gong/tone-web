@@ -365,7 +365,7 @@ class BaseHandle(metaclass=ABCMeta):
         获取product_id
         """
         if not Project.objects.filter(id=project_id).exists():
-            raise JobTestException(ErrorCode.NO_PROJECT)
+            raise JobTestException(ErrorCode.PROJECT_NOT_EXISTS)
         if not Product.objects.filter(id=Project.objects.get(id=project_id).product_id).exists():
             raise JobTestException(ErrorCode.NO_PRODUCT)
         project = Project.objects.get(id=project_id)

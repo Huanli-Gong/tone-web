@@ -6,12 +6,11 @@ from rest_framework.views import APIView
 
 from tone.core.common.exceptions.exception_class import NoMorePageException
 from tone.core.common.schemas import BaseSchema
-from tone.core.common.expection_handler.error_code import ErrorCode
 
 
 class BaseView(APIView):
-    code = ErrorCode.CODE
-    msg = ErrorCode.SUCCESS
+    code = 200
+    msg = 'success'
     service_class = None
     schema_class = BaseSchema
 

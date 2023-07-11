@@ -1,6 +1,5 @@
 import logging
 
-from tone.celery import app
 from tone.models import OutSiteMsg
 from tone.services.notice.conf.constant import DingTalkMessageChoices, SendByChoices
 from tone.services.notice.core.msg_handles import DingTalkMessageHandle, EmailMessageHandle

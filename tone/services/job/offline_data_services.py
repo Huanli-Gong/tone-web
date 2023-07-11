@@ -13,7 +13,7 @@ import string
 import yaml
 from threading import Thread
 from django.db.models import Q
-from django.db import transaction
+import re
 
 from tone import settings
 from tone.core.utils.sftp_client import sftp_client
@@ -75,6 +75,10 @@ class OfflineDataUploadService(object):
         if not operator or not operator.id:
             code = 201
             msg = '登录信息失效，请重新登录。'
+            return code, msg, 0
+        if not re.match(r'^[A-Za-z0-9\{}\._-]+$', original_file_name) or len(original_file_name) > 128:
+            code = 201
+            msg = '文件名不符合规范，允许字母、数字、下划线、中划线、{date}占位符，"."，不允许中文,请修改后重新上传。'
             return code, msg, 0
         file_path = MEDIA_ROOT + OFFLINE_DATA_DIR
         if not os.path.exists(file_path):
@@ -177,15 +181,9 @@ class OfflineDataUploadService(object):
             msg = '上传文件 %s 不存在。' % local_file
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
             return
-        test_job_id = None
-        try:
-            code, msg, test_job_id = self._upload_tar(local_file, req_data, offline_upload_id, operator,
-                                                      original_file_name)
-            os.remove(local_file)
-        except Exception as ex:
-            code = 201
-            traceback.print_exc()
-            msg = '上传失败:%s.' % str(ex)
+        code, msg, test_job_id = self._upload_tar(local_file, req_data, offline_upload_id, operator,
+                                                  original_file_name)
+        os.remove(local_file)
         if code == 201:
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
             if test_job_id:

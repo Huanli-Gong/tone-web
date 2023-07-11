@@ -23,23 +23,22 @@ def views_catch_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except ValueError as err:
+            return Response({'code': err.args[0].code, 'msg': err.args[0].to_api})
+        except AssertionError as err:
+            return Response({'code': err.args[0].args[0].code, 'msg': err.args[0].args[0].to_api})
         except Exception as err:
             logger = get_logger()
             try:
-                if len(err.args) > 0 and len(err.args) == 2:
-                    err_code = err.args
-                    code = err_code[0]
-                    msg = err_code[1]
+                if len(err.args) > 0:
+                    code = err.args[0].code
+                    msg = err.args[0].to_api
                 else:
                     msg = str(err)
                     code = 500
             except SyntaxError:
-                error_detail = traceback.format_exc()
+                msg = traceback.format_exc()
                 code = 500
-                if settings.DEBUG:
-                    msg = error_detail
-                else:
-                    msg = '系统有误，请联系开发人员'
             logger.info("error: {}".format(msg))
             return Response({'code': code, 'msg': msg})
 
@@ -57,8 +56,13 @@ def api_catch_error(func):
             return func(*args, **kwargs)
         except AssertionError as err:
             resp = CommResp()
-            resp.code = err.args[0].args[0][0]
-            resp.msg = err.args[0].args[0][1]
+            resp.code = err.args[0].args[0].code
+            resp.msg = err.args[0].args[0].to_api
+            return resp.json_resp()
+        except ValueError as err:
+            resp = CommResp()
+            resp.code = err.args[0].code
+            resp.msg = err.args[0].to_api
             return resp.json_resp()
         except Exception as err:
             resp = CommResp()

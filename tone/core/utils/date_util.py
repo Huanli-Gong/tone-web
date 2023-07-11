@@ -2,6 +2,10 @@ import calendar
 import time
 from datetime import datetime, timedelta
 
+from django.utils import timezone
+
+from tone import settings
+
 DATE_TIME_FMT = '%Y-%m-%d %H:%M:%S'
 DATE_TIME_FMT_HWC = '%Y-%m-%dT%H:%M:%S'
 DATE_TO_DAY = '%Y/%m/%d'
@@ -118,3 +122,10 @@ class DateUtil(object):
         create_time_obj = datetime.strptime(dt, DATE_TIME_FMT_HWC)
         add_time_obj = cls.datetime_add(create_time_obj, hours=hours)
         return cls.datetime_to_str(add_time_obj)
+
+
+def localtime() -> datetime:
+    """ Override for timezone.localtime to deal with naive times and local times"""
+    if settings.USE_TZ:
+        return timezone.localtime()
+    return datetime.now()

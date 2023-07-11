@@ -27,6 +27,7 @@ from tone.models import WorkspaceMember, Workspace, ApproveInfo, WorkspaceAccess
     InSiteWorkProcessMsg, InSiteWorkProcessUserMsg, InSiteSimpleMsg, BaseConfig, TestTemplate
 from tone.services.report.report_services import ReportTemplateService
 from tone.settings import MEDIA_ROOT
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class WorkspaceService(CommonService):
         workspace = Workspace.objects.filter(id=ws_id)
         allow_modify_fields = ['show_name', 'description', 'owner', 'is_public', 'logo', 'is_show']
         if workspace.first() is None:
-            return False, 'Workspace 不存在'
+            return False, ErrorCode.WORKSPACE_NOT_EXISTS.to_api
 
         if 'is_show' in data:
             self.update_ws_is_show(data)
@@ -92,7 +93,7 @@ class WorkspaceService(CommonService):
         if data.get('show_name'):
             compare_workspace = Workspace.objects.filter(show_name=data.get('show_name')).first()
             if compare_workspace is not None and compare_workspace.id != ws_id:
-                return False, '显示名称已存在'
+                return False, ErrorCode.WORKSPACE_EXISTS.to_api
 
         if data.get('owner'):
             # 所有权转交：替换 ws_owner为 ws_admin
@@ -299,10 +300,10 @@ class WorkspaceService(CommonService):
     def check_ws(data):
         name = data.get('name')
         if name and Workspace.objects.filter(name=name).exists():
-            return 201, '名称已存在'
+            return 201, ErrorCode.WORKSPACE_EXISTS.to_api
         show_name = data.get('show_name')
         if show_name and Workspace.objects.filter(show_name=show_name).exists():
-            return 201, '显示名已存在'
+            return 201, ErrorCode.WORKSPACE_SHOW_NAME_EXISTS.to_api
         return 200, 'success'
 
 
@@ -396,7 +397,7 @@ class WorkspaceMemberService(CommonService):
         ws_id = data.get('ws_id')
         reason = data.get('reason')
         if WorkspaceMember.objects.filter(user_id=operator.id, ws_id=ws_id).exists():
-            return False, '你已经是Workspace成员!'
+            return False, ErrorCode.USER_IN_WORKSPACE.to_api
         if ApproveInfo.objects.filter(
                 object_type='workspace',
                 object_id=ws_id,
@@ -467,12 +468,12 @@ class WorkspaceMemberService(CommonService):
         user_id = data.get('user_id')
         role_id = data.get('role_id')
         if user_id == operator:
-            return False, '不能修改自己'
+            return False, ErrorCode.NO_PERMISSION_FOR_ROLE.to_api
         member_obj = WorkspaceMember.objects.filter(ws_id=ws_id, user_id=user_id)
         # 不能修改owner
         member_role_title = Role.objects.get(id=member_obj.first().role_id).title
         if member_role_title == 'ws_owner':
-            return False, '不能修改 WS owner'
+            return False, ErrorCode.NO_PERMISSION_FOR_ROLE.to_api
         # 系统级管理员可以直接修改
         sys_role_id = RoleMember.objects.get(user_id=operator).role_id
         sys_role_title = Role.objects.get(id=sys_role_id).title
@@ -483,7 +484,7 @@ class WorkspaceMemberService(CommonService):
             user_member_obj = WorkspaceMember.objects.filter(ws_id=ws_id, user_id=operator).first()
             role = Role.objects.filter(id=user_member_obj.role_id).first()
             if role.id >= member_obj.first().role_id:
-                return False, '当前权限不足'
+                return False, ErrorCode.NO_PERMISSION_FOR_ROLE.to_api
             if Role.objects.filter(title__in=WS_ROLE_MAP.get(role.title), id=role_id).exists():
                 member_obj.update(role_id=role_id)
         # 设置ws角色，发送消息到被操作人
@@ -496,12 +497,12 @@ class WorkspaceMemberService(CommonService):
         ws_id = data.get('ws_id')
         # 自己不能删除自己
         if operator in member_list:
-            return False, '自己不能移除自己'
+            return False, ErrorCode.NO_PERMISSION_FOR_ROLE.to_api
         # 不能移除owner
         member_obj = WorkspaceMember.objects.filter(ws_id=ws_id, user_id=data.get('user_id'))
         member_role_title = Role.objects.get(id=member_obj.first().role_id).title
         if member_role_title == 'ws_owner':
-            return False, '不能移除 WS owner'
+            return False, ErrorCode.NO_PERMISSION_FOR_ROLE.to_api
         # 系统级管理员可以直接删除除owner外成员
         sys_role_id = RoleMember.objects.get(user_id=operator).role_id
         sys_role_title = Role.objects.get(id=sys_role_id).title
@@ -510,7 +511,7 @@ class WorkspaceMemberService(CommonService):
             user_member_obj = WorkspaceMember.objects.filter(ws_id=ws_id, user_id=operator).first()
             role = Role.objects.filter(id=user_member_obj.role_id).first()
             if role.id >= member_obj.first().role_id:
-                return False, '当前权限不足'
+                return False, ErrorCode.NO_PERMISSION_FOR_ROLE.to_api
         with transaction.atomic():
             WorkspaceMember.objects.filter(ws_id=ws_id, user_id__in=member_list).delete()
             WorkspaceAccessHistory.objects.filter(ws_id=ws_id, user_id__in=member_list).delete()

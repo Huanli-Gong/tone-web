@@ -4,6 +4,7 @@ from initial.base_config.initialize import BaseConfigDataInitialize
 from initial.docs.initialize import HelpDocDataInitialize
 from initial.job_type.initialize import JobTypeDataInitialize
 from initial.role_type.initialize import RoleTypeDataInitialize
+from initial.schedule.initialize import init_schedule
 from initial.workspace.initialize import WorkspaceDataInitialize
 from tone.models import RoleMember, User, Role
 
@@ -20,6 +21,8 @@ def initialize_all():
         WorkspaceDataInitialize().initialize_common_ws()
         # 帮助文档
         HelpDocDataInitialize().initialize_help_data()
+        # schedule
+        init_schedule()
     return 'success!'
 
 
