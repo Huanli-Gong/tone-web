@@ -105,7 +105,7 @@ class ProjectService(CommonService):
         is_show = data.get('is_show')
         assert name, ProductException(ErrorCode.NAME_NEED)
         assert ws_id, ProductException(ErrorCode.WS_NEED)
-        assert product_id, ProductException(ErrorCode.PRODUCT_NEED)
+        assert product_id, ProductException(ErrorCode.PRODUCT_ID_NEED)
         self.check_name(name, ws_id)
         Project.objects.create(name=name, description=description, ws_id=ws_id, product_version=product_version,
                                product_id=product_id, is_show=is_show)
@@ -183,7 +183,7 @@ class RepoService(CommonService):
         git_url = data.get('git_url')
         ws_id = data.get('ws_id')
         assert name, ProductException(ErrorCode.NAME_NEED)
-        assert git_url, ProductException(ErrorCode.PRODUCT_NEED)
+        assert git_url, ProductException(ErrorCode.PRODUCT_ID_NEED)
         assert ws_id, ProductException(ErrorCode.WS_NEED)
         self.check_name(name, ws_id)
         self.check_repo(git_url)
