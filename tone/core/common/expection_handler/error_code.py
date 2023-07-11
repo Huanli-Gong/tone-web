@@ -171,6 +171,7 @@ class ErrorCode(Enum):
     CASE_NOT_EXISTS = ("1-15-004", "case不存在", "", "", "")
     METRIC_NOT_EXISTS = ("1-15-005", "metric不存在", "", "", "")
     DOMAIN_DELETE_ERROR = ("1-15-006", '请先将该domain下的 suite/case 全部解绑，再尝试删除', "", "", "")
+    CASE_EXISTS = ("1-15-007", "case已存在", "", "", "")
     PRODUCT_DUPLICATION = ("1-16-001", "workspace下已存在同名产品", "", "", "")
     PRODUCT_ID_NEED = ("1-16-002", "产品id为必填参数", "", "", "")
     PRODUCT_NAME_NEED = ("1-16-003", "产品名称为必填参数", "", "", "")
