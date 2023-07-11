@@ -82,7 +82,7 @@ class TestCaseService(CommonService):
     def create(self, data):
         test_case = TestCase.objects.filter(test_suite_id=data.get('test_suite_id'), name=data.get('name')).first()
         if test_case:
-            return False, 'case 已存在'
+            return False, ErrorCode.CASE_EXISTS.to_api
         # domain兼容多选
         domain_list = self.get_domain_list(data)
         form_fields = ['name', 'test_suite_id', 'repeat', 'timeout', 'doc',
@@ -127,7 +127,7 @@ class TestCaseService(CommonService):
                                'doc', 'description', 'var', 'is_default', 'alias', 'certificated']
         test_case = TestCase.objects.filter(id=pk)
         if test_case is None:
-            return False, 'case 不存在.'
+            return False, ErrorCode.CASE_NOT_EXISTS.to_api
         # domain兼容多选
         domain_list = self.get_domain_list(data)
         update_data = dict()
@@ -386,7 +386,7 @@ class TestSuiteService(CommonService):
         test_framework = get_config_from_db('TEST_FRAMEWORK', 'tone')
         suite = TestSuite.objects.filter(name=data.get('name'), test_framework=test_framework).first()
         if suite:
-            return False, 'suite 已存在.'
+            return False, ErrorCode.SUITE_EXISTS.to_api
         else:
             create_data.update({'test_framework': test_framework})
             if data.get('test_type') == 'business':
@@ -451,9 +451,9 @@ class TestSuiteService(CommonService):
                                                              test_suite_id=test_suite.id).delete()
                     return True, "Success"
                 else:
-                    return False, '测试管理员仅能删除自己创建'
+                    return False, ErrorCode.SUITE_DELETE_ERROR.to_api
             else:
-                return False, "TestSuite doesn't existed"
+                return False, ErrorCode.SUITE_NOT_EXISTS.to_api
 
     @staticmethod
     def update_owner(data):
@@ -513,7 +513,7 @@ class TestSuiteService(CommonService):
     def sync_case(self, suite_id):
         suite = TestSuite.objects.filter(id=suite_id)
         if not suite.exists():
-            return 202, 'suite不存在'
+            return 202, ErrorCode.SUITE_NOT_EXISTS.to_api
         if suite.first().test_framework == 'aktf':
             return self._sync_case_from_aktf(suite_id)
         return self._sync_case_from_tone(suite_id)
@@ -595,13 +595,16 @@ class TestSuiteService(CommonService):
 
     @staticmethod
     def _sync_case_to_db(suite, case_name_list, doc='', configs=None):
-        case_obj_list, exist_test_case_id_list = [], []
+        case_obj_list, exist_test_case_id_list, domain_relation_list = [], [], []
+        case_domain_mapping = {}
         for case_name in case_name_list:
             short_name = '-'.join([item.split('=')[-1] for item in case_name.split(',')])
             if configs and configs.get(short_name):
                 timeout = configs[short_name]['timeout']
                 repeat = configs[short_name]['repeat']
+                domain_name = configs[short_name]['area']
             else:
+                domain_name = None
                 timeout = 3600
                 repeat = 1 if suite.test_type == TestType.FUNCTIONAL else 3
             cases = TestCase.objects.filter(test_suite_id=suite.id, name=case_name)
@@ -619,6 +622,12 @@ class TestSuiteService(CommonService):
                 is_default=suite.is_default,
                 short_name=short_name
             ))
+            # 如果配置文件里有配置领域且该领域在系统内已添加，就使用该领域，否则，当前case集成所属suite的领域
+            if domain_name and TestDomain.objects.filter(name=domain_name).exists():
+                domain_id = TestDomain.objects.get(name=domain_name).id
+            else:
+                domain_id = DomainRelation.objects.get(object_type='suite', object_id=suite.id).domain_id
+            case_domain_mapping.update({case_name, domain_id})
         if not case_obj_list:
             # 说明数据库中数据与 gitee 数据已经同步
             return
@@ -630,28 +639,15 @@ class TestSuiteService(CommonService):
                 test_case_id__in=exist_test_case_id_list).delete()
             WorkspaceCaseRelation.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
-        suite_domain_list = DomainRelation.objects.filter(object_type='suite', object_id=suite.id)
-        suite_domain_id_list = []
-        for suite_domain in suite_domain_list:
-            suite_domain_id_list.append(suite_domain.domain_id)
-        test_case_id_list = list(TestCase.objects.filter(test_suite_id=suite.id).values_list('id', flat=True))
-        case_domain_id = list(DomainRelation.objects.filter(
-            object_type='case',
-            object_id__in=test_case_id_list
-        ).values_list('object_id', flat=True))
-        case_domain_none_id_list = []
-        for test_case_id in test_case_id_list:
-            if test_case_id not in case_domain_id:
-                case_domain_none_id_list.append(test_case_id)
-        for index in range(len(suite_domain_id_list)):
-            for case_domain_noneid in case_domain_none_id_list:
-                update_dict = {
-                    'object_type': 'case',
-                    'object_id': case_domain_noneid,
-                    'domain_id': suite_domain_list[index].domain_id
-                }
-                DomainRelation.objects.create(**update_dict)
-
+        for case_name, domain_id in case_domain_mapping:
+            domain_relation_list.append(
+                DomainRelation(
+                    object_type='case',
+                    object_id=TestCase.objects.get(name=case_name).id,
+                    domain_id=domain_id
+                )
+            )
+        DomainRelation.objects.bulk_create(domain_relation_list)
         # 保存性能case 默认指标
         if suite.test_type == TestType.PERFORMANCE and configs:
             metric_list = []
@@ -825,7 +821,7 @@ class TestMetricService(CommonService):
         allow_modify_fields = ['name', 'cv_threshold', 'cmp_threshold', 'direction']
         test_metric = TestMetric.objects.filter(id=pk)
         if test_metric.first() is None:
-            return False, 'metric not existed.'
+            return False, ErrorCode.METRIC_NOT_EXISTS.to_api
         update_data = dict()
         for field in allow_modify_fields:
             if data.get(field):
@@ -1060,10 +1056,9 @@ class TestDomainService(CommonService):
 
     @staticmethod
     def delete(data):
-        msg = "请先将该domain下的 suite/case 全部解绑，再尝试删除"
         # domain下关联case未解绑，不能删除domain
         if DomainRelation.objects.filter(domain_id__in=data.get('id_list')).exists():
-            return False, msg
+            return False, ErrorCode.DOMAIN_DELETE_ERROR.to_api
         TestDomain.objects.filter(id__in=data.get('id_list')).delete()
         return True, '删除成功'
 

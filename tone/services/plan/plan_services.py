@@ -7,11 +7,10 @@ Author:
 import logging
 import re
 import random
-
 import croniter
-from apscheduler.triggers.cron import CronTrigger
 from django.db.models import Q
 from django.db import transaction
+from django_q.models import Schedule
 
 from tone.core.common.job_result_helper import get_server_ip_sn
 from tone.core.handle.report_handle import ReportHandle
@@ -48,7 +47,7 @@ class PlanService(CommonService):
         q &= Q(ws_id=data.get('ws_id')) if data.get('ws_id') else q
         q &= Q(name__icontains=data.get('name')) if data.get('name') else q
         q &= Q(enable=data.get('enable')) if data.get('enable') else q
-        q &= Q(creator=data.get('creator')) if data.get('creator') else q
+        q &= Q(creator=data.get('creator_name')) if data.get('creator_name') else q
         return queryset.filter(q)
 
     @staticmethod
@@ -208,6 +207,10 @@ class PlanService(CommonService):
     @staticmethod
     def check_stage_relation(data):
         msg = ''
+        # if data.get('env_prep'):
+        #     env_prep_info = data.get('env_prep')
+        #     if not env_prep_info.get('machine_info', dict()):
+        #         return False, '添加环境准备阶段, 机器配置信息不能为空'
         if data.get('test_config'):
             test_stage_info = data.get('test_config', list())
             if not test_stage_info:
@@ -232,7 +235,7 @@ class PlanService(CommonService):
             if env_prep_info.get('machine_info'):
                 for run_index, tmp_machine_info in enumerate(env_prep_info.get('machine_info', dict()), start=1):
                     machine_ip_sn = tmp_machine_info.get('machine')
-                    channel_type = tmp_machine_info.get('channel_type', 'otheragent')
+                    channel_type = tmp_machine_info.get('channel_type', 'staragent')
                     try:
                         tmp_ip, tmp_sn = get_server_ip_sn(machine_ip_sn, channel_type)
                     except (TypeError, Exception):
@@ -274,7 +277,7 @@ class PlanService(CommonService):
             for run_index, tmp_machine_info in enumerate(env_prep_info.get('machine_info', dict()), start=1):
                 machine_ip_sn = tmp_machine_info.get('machine', '').strip()
                 try:
-                    tmp_ip, tmp_sn = get_server_ip_sn(machine_ip_sn, tmp_machine_info.get('channel_type', 'otheragent'))
+                    tmp_ip, tmp_sn = get_server_ip_sn(machine_ip_sn, tmp_machine_info.get('channel_type', 'staragent'))
                 except (TypeError, Exception):
                     tmp_ip = tmp_sn = None
                 if re.match(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}', machine_ip_sn) is None:
@@ -285,7 +288,7 @@ class PlanService(CommonService):
                                                            run_index=run_index,
                                                            instance_stage_id=prepare_env_stage.id,
                                                            extend_info=tmp_machine_info,
-                                                           channel_type=data.get('channel_type', 'otheragent'),
+                                                           channel_type=data.get('channel_type', 'staragent'),
                                                            ip=tmp_ip if tmp_ip is not None else machine_ip_sn,
                                                            sn=tmp_sn if tmp_sn is not None else machine_ip_sn,
                                                            script_info=tmp_machine_info.get('script'),
@@ -405,6 +408,18 @@ class PlanService(CommonService):
             # 启动定时任务
             if test_plan.enable and test_plan.cron_schedule:
                 PlanScheduleService().resume_schedule(plan_id)
+
+        # if test_plan.enable and test_plan.cron_schedule:
+        #     if ScheduleMap.objects.filter(object_type='plan', object_id=plan_id).exists():
+        #         PlanScheduleService().remove_schedule(plan_id)
+        #     PlanScheduleService().add_plan_to_schedule(plan_id)
+        # # 启用状态关闭, 并且定时任务, 删除触发任务
+        # if not test_plan.enable and test_plan.cron_schedule and \
+        #         ScheduleMap.objects.filter(object_type='plan', object_id=plan_id).exists():
+        #     PlanScheduleService().remove_schedule(plan_id)
+        # if test_plan.enable and not test_plan.cron_schedule and \
+        #         ScheduleMap.objects.filter(object_type='plan', object_id=plan_id).exists():
+        #     PlanScheduleService().remove_schedule(plan_id)
 
     def delete_plan(self, data, operator):
         plan_id = data.get('plan_id')
@@ -566,10 +581,6 @@ class PlanService(CommonService):
         if not cron_express:
             return False, ErrorCode.PLAN_CRON_EMPTY.to_api
         try:
-            CronTrigger.from_crontab(cron_express)
-        except ValueError:
-            return False, ErrorCode.PLAN_CRON_FORMAT_ERROR.to_api
-        try:
             cron = croniter.croniter(cron_express, datetime.now())
             data_list = [cron.get_next(datetime).strftime(time_fmt) for _ in range(query_times)]
         except Exception:
@@ -585,13 +596,15 @@ class PlanService(CommonService):
         return schedule_job_id
 
     def get_plan_next_time(self, plan_id):
-        from tone.core.schedule.single_scheduler import scheduler
         next_time = None
         schedule_job_id = self.get_schedule_job_id(plan_id)
         if schedule_job_id is not None:
-            schedule_job = scheduler.get_job(job_id=schedule_job_id)
+            if not isinstance(schedule_job_id, int):
+                return
+            schedule_job = Schedule.objects.filter(id=schedule_job_id).first()
             if schedule_job:
-                next_time = schedule_job.next_run_time
+                # next_time = schedule_job.next_run_time
+                next_time = schedule_job.next_run
         return next_time
 
     def get_plan_last_time(self, plan_id):
@@ -633,6 +646,9 @@ class PlanResultService(CommonService):
 
         with transaction.atomic():
             plan_instance_queryset.delete()
+            # PlanInstanceStageRelation.objects.filter(plan_instance_id=plan_instance_id).delete()
+            # PlanInstancePrepareRelation.objects.filter(plan_instance_id=plan_instance_id).delete()
+            # PlanInstanceTestRelation.objects.filter(plan_instance_id=plan_instance_id).delete()
         return True
 
     @staticmethod
@@ -659,7 +675,13 @@ class PlanScheduleService(object):
         if not plan.exists():
             logger.info('no plan, so can not add to schedule. plan_id:{}'.format(plan_id))
             return
-        ScheduleHandle.add_crontab_job(TestPlanScheduleJob.run, plan.first().cron_info, args=[plan_id])
+        # ScheduleHandle.add_crontab_job(TestPlanScheduleJob.run, plan.first().cron_info, args=[plan_id])
+        ScheduleHandle.add_crontab_job(
+            ScheduleHandle.PLAN_SCHEDULE_FUNC,
+            plan.first().cron_info,
+            args=str(plan_id),
+            name=plan.first().name
+        )
 
     @staticmethod
     def stop_schedule(plan_id):

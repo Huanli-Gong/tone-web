@@ -23,7 +23,8 @@ class TestTemplateHandle(BaseHandle):
         """
         self.data_dic['job_type_id'] = job_type_id = self.data.get('job_type', None)
         assert job_type_id, ValueError(ErrorCode.TYPE_ID_LACK)
-        job_type = JobType.objects.get(id=job_type_id)
+        job_type = JobType.objects.filter(id=job_type_id).first()
+        assert job_type, ValueError(ErrorCode.TYPE_NONEXISTENT)
         self.ws_id = job_type.ws_id
         self.data_dic['ws_id'] = self.ws_id
         if 'name' in self.data:

@@ -16,6 +16,7 @@ from tone.models import WorkspaceMember, User, RoleMember, Role, ApproveInfo, Wo
     InSiteWorkProcessUserMsg, InSiteWorkProcessMsg, InSiteSimpleMsg, WorkspaceAccessHistory
 from tone.serializers.auth.auth_serializers import UserSerializer, LoginUserInfoSerializer
 from tone.services.sys.interface_token_services import InterfaceTokenService
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 
 class ProfileSchema(object):
@@ -42,16 +43,16 @@ class AuthService(CommonService):
             login(request, user)
             user_info = self.get_login_user_info(request)
             return True, user_info
-        return False, '用户名或密码错误'
+        return False, ErrorCode.USER_OR_PASS_ERROR.to_api
 
     def user_register(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
         password_repeat = request.data.get('password_repeat')
         if User.objects.filter(username=username).exists():
-            return False, '用户名已存在'
+            return False, ErrorCode.USER_EXISTS_ERROR.to_api
         if password != password_repeat:
-            return False, '两次输入的密码不一致'
+            return False, ErrorCode.PASSWORD_COMMIT_ERROR.to_api
 
         user = User.objects.create_user(
             username=username,
@@ -83,16 +84,16 @@ class AuthService(CommonService):
             password=old_password
         )
         if not user:
-            return False, '旧密码输入错误'
+            return False, ErrorCode.OLD_PASSWORD_ERROR .to_api
 
         if new_password != new_password_repeat:
-            return False, '两次输入的新密码不一致'
+            return False, ErrorCode.PASSWORD_COMMIT_ERROR .to_api
 
         if authenticate(
             username=User.objects.get(id=user_id).username,
             password=new_password
         ):
-            return False, '新密码不能与旧密码一致'
+            return False, ErrorCode.PASSWORD_SAME_TO_OLD_ERROR .to_api
 
         sign_password = make_password(new_password)
         User.objects.filter(id=user_id).update(password=sign_password)
@@ -144,7 +145,7 @@ class UserService(CommonService):
         user_id = data.get('user_id')
         role_id = data.get('role_id')
         if user_id == operator:
-            return False, '不能更改本人的角色'
+            return False, ErrorCode.UPDATE_ERROR.to_api
         # 修改用户角色信息, 权限逐级递减, 低级别不能修改高级别
         user_role_member = RoleMember.objects.filter(user_id=operator).first()
         role = Role.objects.filter(id=user_role_member.role_id).first()
@@ -152,7 +153,7 @@ class UserService(CommonService):
         role_member = RoleMember.objects.filter(user_id=user_id)
         user_role = Role.objects.filter(id=role_member.first().role_id).first()
         if role.id >= user_role.id and role.title != 'sys_admin':
-            return False, '当前权限不足'
+            return False, ErrorCode.PERMISSION_ERROR.to_api
         if role_id:
             if role_member.first() is None:
                 RoleMember.objects.create(user_id=user_id, role_id=role_id)

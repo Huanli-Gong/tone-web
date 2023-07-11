@@ -6,9 +6,10 @@ from django.db import connection
 from tone.core.common.redis_cache import redis_cache
 from tone.core.common.services import CommonService
 from tone.core.utils.tone_thread import ToneThread
-from tone.models import TestJob, TestJobCase, TestServerSnapshot, CloudServerSnapshot, FuncResult, PerfResult, \
+from tone.models import TestJob, TestJobCase, FuncResult, PerfResult, \
     Workspace, Product, Project, TestSuite, TestCase, Baseline, FuncBaselineDetail, PerfBaselineDetail, TestMetric, \
     User, datetime, WorkspaceCaseRelation, TestJobSuite, TestServer, CloudServer
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 
 class DashboardService(CommonService):
@@ -208,7 +209,7 @@ class DashboardService(CommonService):
                 try:
                     datetime.strptime('{}'.format(tmp_time), '%Y-%m-%d')
                 except ValueError:
-                    return False, f'时间格式{tmp_time}不符合要求'
+                    return False, ErrorCode.TIME_FORMAT_ERROR.to_api
         else:
             latest = 30
             current_date = datetime.now()
@@ -353,7 +354,7 @@ class DashboardService(CommonService):
                 for tmp_time in [start_time, end_time]:
                     datetime.strptime('{}'.format(tmp_time), '%Y-%m-%d')
             except ValueError:
-                return False, f'时间格式{tmp_time}不符合要求'
+                return False, ErrorCode.TIME_FORMAT_ERROR.to_api
             end_time = str(datetime.strptime('{}'.format(end_time), '%Y-%m-%d') + timedelta(days=1))
         else:
             latest = 180
@@ -420,7 +421,7 @@ class DashboardService(CommonService):
             for tmp_time in [start_time, end_time]:
                 datetime.strptime('{} 00:00:00'.format(tmp_time), '%Y-%m-%d %H:%M:%S')
         except ValueError:
-            return False, f'时间格式{tmp_time}不符合要求'
+            return False, ErrorCode.TIME_FORMAT_ERROR.to_api
         end_time = str(datetime.strptime('{}'.format(end_time), '%Y-%m-%d') + timedelta(days=1))
         cursor = connection.cursor()
         if create_type == 'personal':
@@ -515,7 +516,7 @@ class DashboardService(CommonService):
         project_id = data.get('project_id')
         project_obj = Project.objects.filter(id=project_id).first()
         if project_obj is None:
-            return False, 'Project 不存在'
+            return False, ErrorCode.PROJECT_NOT_EXISTS.to_api
         job_queryset = job_queryset.filter(project_id=project_id)
         return True, job_queryset
 
@@ -566,7 +567,7 @@ class DashboardService(CommonService):
                 for tmp_time in [start_time, end_time]:
                     datetime.strptime('{} 00:00:00'.format(tmp_time), '%Y-%m-%d %H:%M:%S')
             except ValueError:
-                return False, f'时间格式{tmp_time}不符合要求'
+                return False, ErrorCode.TIME_FORMAT_ERROR.to_api
             date_list = self.get_date_list(start_time, end_time)
         else:
             # 最近30天数据
@@ -634,7 +635,7 @@ class DashboardService(CommonService):
         if not end_time:
             end_time = datetime.now().strftime('%Y-%m-%d')
         if start_time > end_time:
-            return False, '开始时间不能大于结束时间'
+            return False, ErrorCode.TIME_BETWEEN_ERROR.to_api
         delta_time = datetime.strptime(end_time, '%Y-%m-%d') - datetime.strptime(start_time, '%Y-%m-%d')
         project_jobs = TestJob.objects.filter(ws_id=ws_id, project_id=project_id)
         for d in range(delta_time.days + 1):
