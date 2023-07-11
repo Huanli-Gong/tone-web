@@ -521,14 +521,14 @@ class JobTestService(CommonService):
             self.del_dir(job_path)
             os.makedirs(job_path)
             job_yaml = job_path + '/job.yaml'
-            tar_file_name = '/job_%s.tar.gz' % test_job_id
-            target_file = job_path + tar_file_name
             result_dir = job_path + '/result'
             if os.path.exists(result_dir):
                 os.remove(result_dir)
             os.makedirs(result_dir)
             job = TestJob.objects.filter(id=test_job_id).first()
             if job:
+                tar_file_name = '/%s.tar.gz' % job.name
+                target_file = job_path + tar_file_name
                 job_yaml_dict = dict(
                     name=job.name,
                     need_reboot=job.need_reboot,
@@ -562,7 +562,7 @@ class JobTestService(CommonService):
                 tf.add(job_yaml, arcname='job.yaml')
                 tf.add(result_dir, arcname='result')
                 tf.close()
-                oss_file = OFFLINE_DATA_DIR + tar_file_name
+                oss_file = OFFLINE_DATA_DIR + '/' + test_job_id + tar_file_name
                 ftp_path = oss_file.replace(MEDIA_ROOT.strip('/'), '')
                 res = sftp_client.upload_file(target_file, ftp_path)
                 if res:

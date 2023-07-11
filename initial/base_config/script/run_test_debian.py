@@ -1,7 +1,16 @@
 # flake8: noqa
 
-RUN_TEST_DEBIAN = """
-#!/bin/bash
+RUN_TEST_DEBIAN = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来执行测试用例、上传测试结果和执行日志（针对Debian系统）
+# 主要操作是：
+#   1.安装依赖
+#   2.安装测试用例
+#   3.执行测试用例
+#   4.上传测试结果及日志
+#--------------------------------------------
+
 export PYTHONIOENCODING=utf-8
 
 TONE_STORAGE_HOST={tone_storage_host}

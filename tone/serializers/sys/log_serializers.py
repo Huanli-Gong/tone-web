@@ -33,7 +33,7 @@ class OperationsLosSerializer(CommonSerializer):
             owner_obj = User.objects.filter(id=owner_id).first()
             if owner_obj:
                 creator_name = owner_obj.first_name if owner_obj.first_name else owner_obj.last_name
-                obj.old_values.update({'owner': '{}-{}'.format(creator_name, owner_obj.emp_id)})
+                obj.old_values.update({'owner': creator_name})
         return str(obj.old_values)
 
     @staticmethod
@@ -43,7 +43,7 @@ class OperationsLosSerializer(CommonSerializer):
             owner_obj = User.objects.filter(id=owner_id).first()
             if owner_obj:
                 creator_name = owner_obj.first_name if owner_obj.first_name else owner_obj.last_name
-                obj.new_values.update({'owner': '{}-{}'.format(creator_name, owner_obj.emp_id)})
+                obj.new_values.update({'owner': creator_name})
         return str(obj.new_values)
 
     @staticmethod

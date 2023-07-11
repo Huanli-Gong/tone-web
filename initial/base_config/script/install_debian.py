@@ -1,7 +1,12 @@
 # flake8: noqa
 
-INSTALL_KERNEL_DEBIAN = """
-#!/bin/bash
+INSTALL_KERNEL_DEBIAN = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来安装内核（针对Debian系统）
+# 使用场景：当用户在创建JOB选择安装内核时
+# 系统会执行该脚本来安装指定内核
+#--------------------------------------------
 
 logfile='/tmp/tone_run.log'
 

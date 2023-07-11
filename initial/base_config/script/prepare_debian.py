@@ -1,7 +1,15 @@
 # flake8: noqa
 
-PREPARE_DEBIAN = """
-#!/bin/bash
+PREPARE_DEBIAN = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来 clone tone 仓库代码、安装 tone 及其依赖（针对Debian系统）
+# 使用场景：运行测试用例之前的准备步骤
+# 主要操作是：
+#   1.安装依赖
+#   2.clone tone
+#   3.安装 tone
+#--------------------------------------------
 
 if [ $# -lt 1 ];then
   echo "usage:$0 INSTALL_PATH"

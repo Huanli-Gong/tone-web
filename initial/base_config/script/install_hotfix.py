@@ -1,8 +1,12 @@
 # flake8: noqa
 
-INSTALL_HOTFIX = """
+INSTALL_HOTFIX = """#!/bin/sh
 
-#!/bin/sh
+#--------------------------------------------
+# 该脚本用来安装内核的 hotfix
+# 使用场景：当用户在创建JOB选择安装内核且安装 hotfix 选项为"是"时
+# 系统会执行该脚本来安装内核的hotfix
+#--------------------------------------------
 
 
 script_path=$(readlink -f `dirname $0`)

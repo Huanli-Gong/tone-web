@@ -863,6 +863,7 @@ class CloudServerService(CommonService):
                                         run_mode='standalone',
                                         server_object_id=pk).update(server_object_id=None)
             CloudServer.objects.filter(id=pk).delete()
+            ServerTagRelation.objects.filter(run_environment='aliyun', object_type='standalone', object_id=pk).delete()
             operation_li = list()
             log_data = {
                 'creator': user_id,
@@ -1764,9 +1765,10 @@ class ServerSnapshotService(CommonService):
         q = Q()
         if data.get('ws_id'):
             q &= Q(ws_id=data.get('ws_id'))
-        test_server_list = TestServerSnapshot.objects.exclude(ip='').filter(q).values_list('ip', flat=True).distinct()
-        cloud_server_list = CloudServerSnapshot.objects.exclude(private_ip='').filter(q). \
-            values_list('private_ip', flat=True).distinct()
+        test_server_list = TestServerSnapshot.objects.exclude(ip='').exclude(ip__isnull=True).exclude(ip='随机').\
+            filter(q).values_list('ip', flat=True).distinct()
+        cloud_server_list = CloudServerSnapshot.objects.exclude(private_ip='').exclude(private_ip__isnull=True).\
+            exclude(private_ip='随机').filter(q).values_list('private_ip', flat=True).distinct()
         test_server_sn_list = TestServerSnapshot.objects.exclude(sn='').filter(q & Q(ip='') & Q(sn__isnull=False)). \
             values_list('sn', flat=True).distinct()
         cloud_server_sn_list = CloudServerSnapshot.objects.exclude(sn=''). \

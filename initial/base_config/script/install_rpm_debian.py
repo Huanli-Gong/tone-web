@@ -1,7 +1,12 @@
 # flake8: noqa
 
-INSTALL_RPM_DEBIAN = """
-#!/bin/bash
+INSTALL_RPM_DEBIAN = """#!/bin/bash
+
+#--------------------------------------------
+# 该脚本用来安装RPM包（针对Debian系统）
+# 使用场景：当用户在创建JOB选择安装RPM时
+# 系统会执行该脚本来安装指定的RPM包
+#--------------------------------------------
 
 script_path=$(readlink -f `dirname $0`)
 
