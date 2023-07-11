@@ -43,7 +43,7 @@ class ReportTemplateService(CommonService):
         name = data.get('name', '')
         ws_id = data.get('ws_id')
         if ReportTemplate.objects.filter(name=name, ws_id=ws_id).exists():
-            return False, '报告模板名称已存在'
+            return False, ErrorCode.REPORT_NAME_EXIST.to_api
 
         update_fields = ['ws_id', 'name', 'description', 'need_test_background', 'need_test_method',
                          'need_test_summary', 'need_test_conclusion', 'need_test_env', 'need_func_data',
@@ -152,15 +152,15 @@ class ReportTemplateService(CommonService):
         ws_id = data.get('ws_id')
         success, report_template_queryset = self.check_report_template(report_template_id)
         if not success:
-            return False, '报告模板id不存在'
+            return False, ErrorCode.REPORT_TEMPLATE_NOT_EXIST.to_api
         report_template = report_template_queryset.first()
         if report_template.is_default:
-            return False, '默认模板不允许修改'
+            return False, ErrorCode.DEFAULT_TEMPLATE_UPDATE_ERROR.to_api
         if not check_operator_permission(operator, report_template):
-            return False, ''
+            return False, ErrorCode.PERMISSION_ERROR.to_api
         if report_template.name != data.get('name') and ReportTemplate.objects.filter(name=data.get('name'),
                                                                                       ws_id=ws_id).exists():
-            return False, '报告模板名称不能重复'
+            return False, ErrorCode.REPORT_TEMPLATE_NAME_EXIST.to_api
         update_data = dict()
         allow_update_fields = ['name', 'description', 'need_test_background', 'need_test_method',
                                'need_test_summary', 'need_test_conclusion', 'need_test_env', 'need_env_description',
@@ -184,12 +184,12 @@ class ReportTemplateService(CommonService):
         report_template_id = data.get('id')
         success, report_template_queryset = self.check_report_template(report_template_id)
         if not success:
-            return False, '报告模板id不存在'
+            return False, ErrorCode.REPORT_TEMPLATE_NOT_EXIST.to_api
         report_template = report_template_queryset.first()
         if report_template.is_default:
-            return False, '默认模板不允许删除'
+            return False, ErrorCode.DEFAULT_TEMPLATE_UPDATE_ERROR.to_api
         if not check_operator_permission(operator, report_template):
-            return False, ''
+            return False, ErrorCode.PERMISSION_ERROR.to_api
         with transaction.atomic():
             report_template_queryset.delete()
             item_queryset = ReportTmplItem.objects.filter(tmpl_id=report_template_id)
@@ -202,10 +202,10 @@ class ReportTemplateService(CommonService):
         report_template_id = data.get('id')
         success, report_template_queryset = self.check_report_template(report_template_id)
         if not success:
-            return False, '报告模板id不存在'
+            return False, ErrorCode.REPORT_TEMPLATE_NOT_EXIST.to_api
         report_template = report_template_queryset.first()
         if ReportTemplate.objects.filter(name=data.get('name', ''), ws_id=data.get('ws_id')).exists():
-            return False, '报告模板名称不能重复'
+            return False, ErrorCode.REPORT_TEMPLATE_NAME_EXIST.to_api
         report_template.id = None
         if data.get('name'):
             report_template.name = data.get('name')
