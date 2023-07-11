@@ -358,6 +358,8 @@ class TestServerService(CommonService):
                 error_logger.error(f'remove server from toneagent failed!server:'
                                    f'{server.ip}, error:{str(e)}')
             TestServer.objects.filter(id=pk).delete()
+            ServerTagRelation.objects.filter(run_environment='aligroup', object_type='standalone', object_id=pk). \
+                delete()
             operation_li = list()
             log_data = {
                 'creator': user_id,
