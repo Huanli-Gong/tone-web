@@ -13,6 +13,8 @@ import shutil
 import stat
 import uuid
 from django.db import transaction
+from django_q.tasks import async_task
+
 from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.core.utils.sftp_client import sftp_client
@@ -24,6 +26,7 @@ from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail, TestJo
     CloudServerSnapshot, BaselineServerSnapshot, BaselineDownloadRecord, TestClusterSnapshot, TestClusterServerSnapshot
 from tone.services.portal.sync_portal_task_servers import sync_baseline, sync_baseline_del
 from tone.serializers.sys.baseline_serializers import FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 
 def back_fill_version(func):
@@ -86,7 +89,7 @@ class BaselineService(CommonService):
         ws_id = data.get('ws_id')
         baseline = Baseline.objects.filter(name=name, ws_id=ws_id).first()
         if baseline:
-            return False, '基线已存在'
+            return False, ErrorCode.BASELINE_EXISTS.to_api
         data.update({'creator': creator})
         form_fields = ['name', 'version', 'description', 'test_type', 'creator', 'ws_id']
         create_data = dict()
@@ -104,12 +107,12 @@ class BaselineService(CommonService):
         baseline_id = data.get("baseline_id")
         baseline = Baseline.objects.filter(name=name, test_type=test_type, ws_id=ws_id).first()
         if baseline is not None and str(baseline.id) != str(baseline_id):
-            return False, '基线已存在'
+            return False, ErrorCode.BASELINE_EXISTS.to_api
         allow_modify_fields = ['name', 'description']
         baseline = Baseline.objects.filter(id=baseline_id)
         if baseline.first() is None:
-            return False, '基线不存在.'
-        sync_baseline.delay(baseline_id)
+            return False, ErrorCode.BASELINE_NOT_EXISTS.to_api
+        async_task(sync_baseline, baseline_id)
         update_data = dict()
         data.update({'update_user': update_user})
         for field in allow_modify_fields:
@@ -121,7 +124,7 @@ class BaselineService(CommonService):
     @staticmethod
     def delete(data):
         baseline_id = data.get("baseline_id")
-        sync_baseline_del.delay(baseline_id)
+        async_task(sync_baseline_del, baseline_id)
         # 删除基线分类
         Baseline.objects.filter(id=baseline_id).delete()
         # 删除基线相关的其他信息
@@ -275,9 +278,7 @@ class BaselineService(CommonService):
 class BaselineUploadService(CommonService):
     def post(self, data, file, operator):
         if not operator or not operator.id:
-            code = 201
-            msg = '登录信息失效，请重新登录。'
-            return code, msg, None
+            return ErrorCode.LOGIN_ERROR.code, ErrorCode.LOGIN_ERROR.to_api, None
         file_path = MEDIA_ROOT + OFFLINE_DATA_DIR
         if not os.path.exists(file_path):
             os.makedirs(file_path)
@@ -290,9 +291,7 @@ class BaselineUploadService(CommonService):
             tar_file = tarfile.open(file_name, 'r')
             baseline_info = yaml.load(tar_file.extractfile('baseline.yaml').read(), Loader=yaml.FullLoader)
             if baseline_info.get('test_type') != data.get('test_type'):
-                code = 201
-                msg = '测试类型不匹配'
-                return code, msg, None
+                return ErrorCode.TEST_TYPE_NOT_MATCH.code, ErrorCode.TEST_TYPE_NOT_MATCH.to_api, None
             baseline_dict = dict(
                 name=data.get('name', baseline_info.get('name')),
                 version=baseline_info.get('version'),
@@ -310,7 +309,7 @@ class BaselineUploadService(CommonService):
                 code, msg, func_obj_list, perf_obj_list, server_obj_list, error_list = \
                     self.build_baseline_data(baseline, baseline_detail_list, baseline_server_list, operator)
                 if code == 201:
-                    return code, msg, error_list
+                    return code, ErrorCode.PARAMS_ERROR.to_params_api(msg), error_list
                 if func_obj_list:
                     FuncBaselineDetail.objects.bulk_create(func_obj_list)
                 if perf_obj_list:
@@ -320,11 +319,11 @@ class BaselineUploadService(CommonService):
             tar_file.close()
             os.remove(file_name)
         except KeyError:
-            code = 201
-            msg = '所选文件为空文件，请重新选择文件导入。'
+            code = ErrorCode.UPLOAD_FILE_EMPTY.code
+            msg = ErrorCode.UPLOAD_FILE_EMPTY.to_api
         except tarfile.ReadError:
-            code = 201
-            msg = '所选文件格式错误，请选择以 .tar 为后缀的文件导入。'
+            code = ErrorCode.UPLOAD_FILE_FORMAT.code
+            msg = ErrorCode.UPLOAD_FILE_FORMAT.to_api
         except Exception as ex:
             code = 201
             msg = ''
@@ -622,7 +621,7 @@ class FuncBaselineService(CommonService):
                 update_data.update({field: data.get(field)})
         update_data['update_user'] = user_id
         baseline_detail.update(**update_data)
-        sync_baseline.delay(baseline_detail.first().baseline_id)
+        async_task(sync_baseline, baseline_detail.first().baseline_id)
         return True, baseline_detail.first()
 
     @staticmethod
@@ -640,7 +639,7 @@ class FuncBaselineService(CommonService):
 
         baseline_id = func_detail.baseline_id
         func_detail.delete()
-        sync_baseline.delay(baseline_id)
+        async_task(sync_baseline, baseline_id)
 
 
 def get_job_baseline_server(job_id, case_id):
@@ -783,7 +782,7 @@ class PerfBaselineService(CommonService):
         if PerfBaselineDetail.objects.filter(id=detail_id).exists():
             baseline_id = PerfBaselineDetail.objects.filter(id=detail_id).first().baseline_id
             PerfBaselineDetail.objects.filter(id=detail_id).delete()
-            sync_baseline.delay(baseline_id)
+            async_task(sync_baseline, baseline_id)
 
     @staticmethod
     def get_test_suite_name(queryset, name):
@@ -850,12 +849,12 @@ class PerfBaselineService(CommonService):
         suite_id = data.get('suite_id')
         case_id = data.get('case_id')
         if not TestSuite.objects.filter(id=suite_id).exists() or not TestCase.objects.filter(id=case_id).exists():
-            return False, "suite 或 case 已经被删除"
+            return False, ErrorCode.ADD_BASELINE_ERROR.to_api
         if not all([baseline_id, case_id, job_id, suite_id]):
-            return False, "Required request parameters: 1.baseline_id, 2.job_id, 3.suite_id, 4.case_id"
+            return False, ErrorCode.ADD_BASELINE_NEED_PARAMS.to_api
         test_job = TestJob.objects.filter(id=job_id).first()
         if not test_job:
-            return False, "关联job不存在!"
+            return False, ErrorCode.ADD_BASELINE_JOB_MISSING.to_api
         add_baseline_thread = ToneThread(self.add_one_perf_back,
                                          (baseline_id, case_id, job_id, suite_id, test_job, user_id))
         add_baseline_thread.start()
@@ -1058,13 +1057,13 @@ class PerfBaselineService(CommonService):
                 q &= Q(test_suite_id__in=suite_id_list)
                 raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ')) ' + end_sql
             else:
-                return False, "请求参数错误！"
+                return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
         elif suite_id_list:
             suite_id_list_str = ','.join(str(e) for e in suite_id_list)
             raw_sql = pre_sql + 'a.test_suite_id IN (' + suite_id_list_str + ') ' + end_sql
             q &= Q(test_suite_id__in=suite_id_list)
         else:
-            return False, "请求参数错误！"
+            return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
         # 加入基线和测试基线相同时，匹配基线
         add_perf_baseline_thread = ToneThread(self._add_perf_baseline_backend, (baseline_id, baseline_server_list,
                                                                                 job_id, perf_baseline_detail_list, q,

@@ -1,78 +1,74 @@
 import logging
-from datetime import datetime
 
-from apscheduler.jobstores.base import JobLookupError
-from apscheduler.triggers.cron import CronTrigger
+import arrow
+from croniter import croniter
+from django_q.models import Schedule
 
 from tone.core.schedule.schedule_job import ScheduleJob
-from tone.core.schedule.single_scheduler import scheduler
+from tone.core.utils.date_util import localtime
+from tone.models import TestPlan
 from tone.models.plan.schedule_models import ScheduleMap
 
 logger = logging.getLogger('test_plan')
 
 
 class ScheduleHandle(ScheduleJob):
+    PLAN_SCHEDULE_FUNC = 'tone.core.schedule.schedule_job.TestPlanScheduleJob.run'
 
     @classmethod
-    def add_crontab_job(cls, job_function, expression, args=None, next_run_time=datetime.now()):
-        """
-        expression:
-        https://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html#module-apscheduler.triggers.cron
-        """
-        minute, hour, day, month, day_of_week = expression.split(' ')
-        real_day_of_week = cls.day_of_week_format(day_of_week)
-        job = scheduler.add_job(job_function, trigger='cron', args=args, minute=minute, hour=hour,
-                                day=day, month=month, day_of_week=real_day_of_week,
-                                misfire_grace_time=600)
-        ScheduleMap.objects.create(schedule_job_id=job.id, object_id=args[0])
+    def add_crontab_job(cls, job_function, expression, args=None, name=None):
+        schedule_job = Schedule.objects.create(
+            func=job_function,
+            schedule_type=Schedule.CRON,
+            cron=expression,
+            args=args,
+            name=name,
+            next_run=cls.get_next_run_time(expression)
+        )
+        ScheduleMap.objects.create(schedule_job_id=schedule_job.id, object_id=int(args))
+        return schedule_job
 
     @classmethod
-    def day_of_week_format(cls, day_of_week):
-        # 此方法为了解决添加定时任务时格式效验和实际运行定时任务两个模块对day_of_week差异
-        # 添加定时任务效验定时任务格式使用CronTrigger.from_crontab(cron_express)，该模块中1-6代表周一到周六，0代表周天
-        # 实际使用scheduler.add_job添加定时任务时，day_of_week参数中，6代表周一，0代表周二，1代表周三，***，4代表周六，5代表周天
-        real_day_of_week = ""
-        for i in day_of_week:
-            if not i.isdigit():
-                real_day_of_week += i
+    def pause_job(cls, schedule_job_id=None, obj_id=None, obj_type='plan'):
+        if not schedule_job_id and obj_id:
+            schedule_job_id = ScheduleMap.objects.get(object_type=obj_type, object_id=obj_id).schedule_job_id
+        Schedule.objects.filter(id=schedule_job_id).update(cron=None, next_run=None)
+
+    @classmethod
+    def resume_job(cls, schedule_job_id=None, obj_id=None, obj_type='plan'):
+        plan = TestPlan.objects.get(id=obj_id)
+        if not schedule_job_id and obj_id:
+            # 如果Schedule不存在则创建
+            schedule = Schedule.objects.filter(args=str(plan.id)) .first()
+            if not schedule:
+                cls.add_crontab_job(
+                    cls.PLAN_SCHEDULE_FUNC,
+                    plan.cron_info,
+                    args=str(plan.id),
+                    name=plan.name
+                )
             else:
-                real_day_of_week += str((int(i) + 5) % 7)
-        return cls.week_replace(real_day_of_week)
+                schedule.cron = plan.cron_info
+                if not schedule.next_run:
+                    schedule.next_run = cls.get_next_run_time(plan.cron_info)
+                schedule.save()
+                ScheduleMap.objects.get_or_create(
+                    schedule_job_id=schedule.id,
+                    object_type='plan',
+                    object_id=plan.id
+                )
 
     @classmethod
-    def week_replace(cls, real_day_of_week):
-        # 将day_of_week中数字转换为星期缩写，避免周一至周五6-3报错
-        return real_day_of_week \
-            .replace('6', 'mon') \
-            .replace('0', 'tue') \
-            .replace('1', 'wed') \
-            .replace('2', 'thu') \
-            .replace('3', 'fri') \
-            .replace('4', 'sat') \
-            .replace('5', 'sun')
+    def remove_job(cls, schedule_job_id=None, obj_id=None, obj_type='plan'):
+        if not schedule_job_id and obj_id:
+            schedule_job_id = ScheduleMap.objects.get(object_type=obj_type, object_id=obj_id).schedule_job_id
+        if str(schedule_job_id).isdigit():
+            Schedule.objects.filter(id=schedule_job_id).delete()
+        ScheduleMap.objects.filter(schedule_job_id=schedule_job_id, object_id=obj_id).delete(really_delete=True)
 
     @classmethod
-    def add_standard_job(cls, job_function, trigger_type, **kwargs):
-        scheduler.add_job(job_function, trigger_type, misfire_grace_time=3600, **kwargs)
-
-    @classmethod
-    def pause_job(cls, job_id=None, obj_id=None, obj_type='plan'):
-        if not job_id and obj_id:
-            job_id = ScheduleMap.objects.get(object_type=obj_type, object_id=obj_id).schedule_job_id
-        scheduler.pause_job(job_id)
-
-    @classmethod
-    def resume_job(cls, job_id=None, obj_id=None, obj_type='plan'):
-        if not job_id and obj_id:
-            job_id = ScheduleMap.objects.get(object_type=obj_type, object_id=obj_id).schedule_job_id
-        scheduler.resume_job(job_id)
-
-    @classmethod
-    def remove_job(cls, job_id=None, obj_id=None, obj_type='plan'):
-        if not job_id and obj_id:
-            job_id = ScheduleMap.objects.get(object_type=obj_type, object_id=obj_id).schedule_job_id
-        try:
-            scheduler.remove_job(job_id)
-        except JobLookupError:
-            pass
-        ScheduleMap.objects.filter(schedule_job_id=job_id, object_id=obj_id).delete(really_delete=True)
+    def get_next_run_time(cls, cron_exp):
+        next_run = arrow.get(
+            croniter(cron_exp, localtime()).get_next()
+        )
+        return next_run.strftime('%Y-%m-%d %X')

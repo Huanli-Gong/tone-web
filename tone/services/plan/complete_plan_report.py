@@ -1,6 +1,5 @@
 import itertools
 import logging
-from tone.celery import app
 from tone.models import PlanInstance, PlanInstanceTestRelation, TestJob, ReportTemplate, Project, \
     ReportObjectRelation, datetime, ReportTmplItem, ReportTmplItemSuite, PlanInstanceStageRelation
 
@@ -11,7 +10,7 @@ from tone.views.api.get_domain_group import get_domain_group
 logger = logging.getLogger('test_plan')
 
 
-@app.task
+# @app.task
 def plan_create_report(plan_inst_id):  # noqa: C901
     plan_instance = PlanInstance.objects.filter(id=plan_inst_id).first()
     if plan_instance is not None and plan_instance.auto_report:

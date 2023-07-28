@@ -2,8 +2,8 @@ from datetime import timedelta
 import logging
 
 from django.db.models import Q
+from django_q.tasks import async_task
 
-from tone.celery import app
 from tone.models import BaseConfig, SiteConfig, SitePushConfig, TestJob, datetime
 from tone.services.portal.sync_portal_services import SyncPortalService
 from tone.core.handle.report_handle import ReportHandle
@@ -68,7 +68,7 @@ def sync_portal_task():  # noqa: C901
         job_id_list = list(set(tmp_job_id_list))
         if job_id_list:
             logger.info(f'配置：{tmp_ws_id}-{tmp_project_id},推送job列表:{job_id_list}')
-            [sync_job_data.delay(tmp_job_id) for tmp_job_id in job_id_list[::-1]]
+            [async_task(sync_job_data, tmp_job_id) for tmp_job_id in job_id_list[::-1]]
             tmp_min_job_id = sorted(job_id_list)[0]
             site_push_obj.sync_start_time = TestJob.objects.get(id=tmp_min_job_id).gmt_created
             site_push_obj.save()
@@ -116,7 +116,7 @@ def check_master_config_job(job_id):
     return False, None
 
 
-@app.task
+# @app.task
 def sync_job_data(job_id, check_master=False):
     """同步Job数据到portal"""
     check_master_res, tmp_sync_job_cache = check_master_config_job(job_id)
@@ -142,13 +142,13 @@ def sync_job_data(job_id, check_master=False):
         job_obj.save()
 
 
-@app.task
+# @app.task
 def sync_job_portal(job_id):
     """同步Job到portal"""
     return SyncPortalService().sync_job(job_id)
 
 
-@app.task
+# @app.task
 def sync_job_state_portal(job_id):
     """同步job状态到portal"""
     state_map = {'pending': 0, 'running': 1, 'success': 2, 'fail': 3, 'stop': 4, 'skip': 5}
@@ -156,31 +156,31 @@ def sync_job_state_portal(job_id):
     return SyncPortalService().sync_job_status(job_id, state)
 
 
-@app.task
+# @app.task
 def sync_func_result_portal(test_job_id):
     """同步功能结果到portal"""
     return SyncPortalService().sync_func_result(test_job_id)
 
 
-@app.task
+# @app.task
 def sync_perf_result_portal(test_job_id):
     """同步性能结果到portal"""
     return SyncPortalService().sync_perf_result(test_job_id)
 
 
-@app.task
+# @app.task
 def save_report(test_job_id):
     """保存报告"""
     ReportHandle(test_job_id).save_report()
 
 
-@app.task
+# @app.task
 def sync_baseline(baseline_id):
     """修改基线"""
     return SyncPortalService().sync_baseline(baseline_id)
 
 
-@app.task
+# @app.task
 def sync_baseline_del(baseline_id):
     """删除基线"""
     return SyncPortalService().sync_baseline_del(baseline_id)

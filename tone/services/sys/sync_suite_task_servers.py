@@ -1,18 +1,10 @@
-import base64
-import hashlib
-import hmac
 import json
 import logging
 import subprocess
-import time
-import urllib
-import urllib.request as urllib2
 
 import requests
 
 from tone import settings
-from tone.celery import app
-from tone.core.common import constant
 from tone.core.common.toneagent import SendTaskRequest
 from tone.core.utils.config_parser import get_config_from_db
 from tone.models import BaseConfig, SuiteData, datetime, CaseData

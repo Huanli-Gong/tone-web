@@ -24,6 +24,7 @@ from tone.models import TestServer, CloudServer, ServerTag, ServerTagRelation, \
     TestCluster, TestClusterServer, CloudAk, CloudImage, User, Workspace, TestTmplCase, TestTemplate, \
     TestServerSnapshot, CloudServerSnapshot, ReleaseServerRecord
 from tone.settings import TONEAGENT_DOMAIN
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 error_logger = logging.getLogger('error')
 scheduler_logger = logging.getLogger('scheduler')
@@ -149,11 +150,13 @@ class TestServerService(CommonService):
 
     def add_group_server(self, post_data):
         if 'ips' not in post_data:
-            return False, 'ip is required'
+            return False, ErrorCode.SERVER_IP_NEED.to_api
+        if 'state' not in post_data:
+            return False, ErrorCode.SERVER_STATE_NEED.to_api
         if 'owner' not in post_data:
-            return False, 'owner is required'
+            return False, ErrorCode.SERVER_OWNER_NEED.to_api
         if 'ws_id' not in post_data:
-            return False, 'ws_id is required'
+            return False, ErrorCode.SERVER_WS_NEED.to_api
         update_owner(post_data)
         for ip in post_data.get('ips'):
             # 向tone-agent平台注册机器
@@ -232,7 +235,7 @@ class TestServerService(CommonService):
                 else:
                     ip_list.append(ip)
         if len(ips) == 0:
-            return False, '机器未找到'
+            return False, ErrorCode.SERVER_MISSING.to_api
         return self._mul_add_server(ips, post_data, in_pool, operator)
 
     @staticmethod
@@ -250,7 +253,7 @@ class TestServerService(CommonService):
     def update_server(self, server_id):
         test_server = TestServer.objects.filter(id=server_id).first()
         if not test_server:
-            return False, '机器不存在'
+            return False, ErrorCode.SERVER_MISSING.to_api
         success = True
         msg = '机器更新成功'
         test_server.save()
@@ -282,13 +285,13 @@ class TestServerService(CommonService):
     def update(data, pk, user_id):
         test_server = TestServer.objects.filter(id=pk)
         if test_server is None:
-            return False, 'server 不存在'
+            return False, ErrorCode.SERVER_MISSING.to_api
         if test_server.first().state != data.get('state') and \
                 test_server.first().state == TestServerEnums.SERVER_STATE_CHOICES[1][0]:
-            return False, '机器被占用，不可修改状态'
+            return False, ErrorCode.SERVER_OCCUPIED.to_api
         # 机器状态为 Occupied 时，不能修改 控制通道、机器名称、使用状态
         if test_server.first().state == TestServerEnums.SERVER_STATE_CHOICES[1][1] and data.get('channel_type'):
-            return False, 'Occupied时：控制通道、机器、使用状态不能编辑'
+            return False, ErrorCode.SERVER_OCCUPIED.to_api
         update_owner(data)
         allow_update = ['channel_type', 'state', 'owner', 'description', 'name', 'description']
         update_data = dict()
@@ -322,31 +325,31 @@ class TestServerService(CommonService):
     @staticmethod
     def deploy(post_data):
         if 'deploy_user' not in post_data or 'deploy_pass' not in post_data:
-            return False, '参数错误。'
+            return False, ErrorCode.AGENT_DEPLOY_ERROR.to_api
         test_server = TestServer.objects.filter(id=post_data['server_id'])
         if test_server:
             if test_server.first().channel_state:
-                return False, 'agent 已部署'
+                return False, ErrorCode.AGENT_DEPLOY_EXISTS.to_api
             test_server.update(channel_state=True)
         else:
-            return False, '部署失败，机器不存在'
+            return False, ErrorCode.AGENT_DEPLOY_FAIL.to_api
         return True, ''
 
     def delete(self, data, pk, user_id):
         with transaction.atomic():
             test_server = TestServer.objects.filter(id=pk)
             if len(test_server) == 0:
-                return 201, '机器不存在'
+                return 201, ErrorCode.SERVER_MISSING.to_api
             if test_server.first().spec_use == 1 and TestClusterServer.objects.filter(server_id=pk,
                                                                                       cluster_type='aligroup').exists():
-                return 201, '机器被集群使用'
+                return 201, ErrorCode.SERVER_OCCUPIED_BY_CLUSTER.to_api
             elif test_server.first().spec_use == 2:
-                return 201, '机器被job使用'
+                return 201, ErrorCode.SERVER_OCCUPIED_BY_JOB.to_api
             if test_server.first().state == 'Occupied':
-                return 201, '机器被占用'
+                return 201, ErrorCode.SERVER_OCCUPIED.to_api
             # 当物理机下面有虚拟机时，不允许直接删除物理机
             if TestServer.objects.filter(parent_server_id=test_server.first().id).exists():
-                return 201, '物理机下面有虚拟机, 不允许删除'
+                return 201, ErrorCode.SERVER_DELETE_FAIL.to_api
             TestTmplCase.objects.filter(server_provider='aligroup',
                                         run_mode='standalone',
                                         server_object_id=pk).update(server_object_id=None)
@@ -358,6 +361,8 @@ class TestServerService(CommonService):
                 error_logger.error(f'remove server from toneagent failed!server:'
                                    f'{server.ip}, error:{str(e)}')
             TestServer.objects.filter(id=pk).delete()
+            ServerTagRelation.objects.filter(run_environment='aligroup', object_type='standalone', object_id=pk). \
+                delete()
             operation_li = list()
             log_data = {
                 'creator': user_id,
@@ -526,17 +531,17 @@ class TestServerService(CommonService):
             added_server = TestServer.objects.filter(parent_server_id=server_id).values_list('ip', flat=True)
             item_list = [item for item in item_list if item.get('ip') not in added_server]
             return 200, item_list
-        return 201, '物理机不存在'
+        return 201, ErrorCode.SERVER_MISSING.to_api
 
     def add_vm_server(self, data, user_id):
         parent_id = data.get('server_id')
         phy_server = TestServer.objects.filter(id=parent_id).first()
         if not phy_server:
-            return False, '物理机不存在'
+            return False, ErrorCode.SERVER_MISSING.to_api
         ips = data.get('ips')
         post_data = {}
         if 'ws_id' not in data:
-            return False, 'ws_id is required'
+            return False, ErrorCode.WS_NEED.to_api
         post_data['state'] = 'Available' if not data.get('state') else data.get('state')
         post_data['owner'] = user_id if not data.get('owner') else data.get('owner')
         post_data['tags'] = data.get('tags', [])
@@ -618,15 +623,15 @@ class CloudServerService(CommonService):
     def check_instance(post_data):
         ws_id = post_data.get('ws_id')
         if 'is_instance' not in post_data:
-            return False, '参数错误'
+            return False, ErrorCode.SERVER_PARAMS_ERROR.to_api
         if int(post_data['is_instance']):
             instance_server = CloudServer.objects.filter(instance_id=post_data.get('instance_id')).first()
             if instance_server:
                 workspace = Workspace.objects.filter(id=instance_server.ws_id).first()
                 if workspace:
-                    return False, f'该机器实例已经存在于【{workspace.show_name}】Workspace下！'
+                    return False, ErrorCode.SERVER_INSTANCE_EXISTS.to_api
                 else:
-                    return False, '该机器实例已存在'
+                    return False, ErrorCode.SERVER_INSTANCE_EXISTS.to_api
         else:
             if post_data.get('cluster_server_id') or post_data.get('cloud_server_id'):
                 if post_data.get('cluster_server_id'):
@@ -648,10 +653,10 @@ class CloudServerService(CommonService):
                         cluster_id = TestClusterServer.objects.filter(
                             server_id=cloud_server_id).first().cluster_id
                         cluster_name = TestCluster.objects.filter(id=cluster_id).first().name
-                        return False, '配置名称已存在于{}集群中'.format(cluster_name)
+                        return False, ErrorCode.SERVER_CONFIG_EXISTS.to_api
             else:
                 if CloudServer.objects.filter(ws_id=ws_id, is_instance=0, template_name=post_data.get('name')).exists():
-                    return False, '配置名称{}已被使用，请修改后重试。'.format(post_data.get('name'))
+                    return False, ErrorCode.SERVER_CONFIG_EXISTS.to_api
         return True, 'success'
 
     def create(self, post_data, user_id):
@@ -683,10 +688,10 @@ class CloudServerService(CommonService):
             private_ip = post_data.get('private_ip', '')
             driver, provider = self.get_ali_driver(post_data['ak_id'], post_data['region'], post_data['zone'])
             if not driver:
-                return False, 'provider driver is none'
+                return False, ErrorCode.SERVER_PROVIDER_NOT_EXISTS.to_api
             instance, disk_info = driver.get_instance(post_data['instance_id'], post_data['zone'])
             if not instance:
-                return False, 'instance is none'
+                return False, ErrorCode.SERVER_INSTANCE_NOT_EXISTS.to_api
             if provider == TestServerEnums.CLOUD_SERVER_PROVIDER_CHOICES[0][0]:
                 bandwidth = driver.get_bandwidth(post_data['instance_id'], post_data['region'])
                 pub_ip = instance['public_ips'][0] if instance['public_ips'] \
@@ -767,7 +772,7 @@ class CloudServerService(CommonService):
     def update(data, pk, user_id):
         cloud_server = CloudServer.objects.filter(id=pk)
         if not cloud_server:
-            return False, '云上机器不存在'
+            return False, ErrorCode.CLOUD_SERVER_NOT_EXISTS.to_api
         update_owner(data)
         update_data = dict(
             owner=data.get('owner', cloud_server.first().owner),
@@ -783,7 +788,7 @@ class CloudServerService(CommonService):
         if not is_instance:
             if CloudServer.objects.filter(template_name=data.get('name'), ws_id=ws_id).exists() and \
                     CloudServer.objects.filter(template_name=data.get('name'), ws_id=ws_id).first().id != pk:
-                return False, '配置名称已存在'
+                return False, ErrorCode.SERVER_INSTANCE_EXISTS.to_api
 
             cloud_ak = CloudAk.objects.filter(id=data.get('ak_id'), query_scope='all').first()
             temp_data = dict(
@@ -851,10 +856,9 @@ class CloudServerService(CommonService):
                 return True, 'success'
         except IndexError:
             self.delete_cloud_server(pk, user_id)
-            return True, 'server has been released'
+            return True, ErrorCode.CLOUD_SERVER_RELEASED.to_api
         except Exception as e:
-            msg = 'release server error:{}'.format(str(e))
-            return False, msg
+            return False, ErrorCode.CLOUD_SERVER_RELEASE_ERROR.to_params_api(str(e))
 
     @staticmethod
     def delete_cloud_server(pk, user_id):
@@ -920,14 +924,14 @@ class CloudServerService(CommonService):
 
     def get_region_list(self, data):
         if not data.get('ak_id'):
-            return False, '未选择AK，请先选择'
+            return False, ErrorCode.AK_NEED.to_api
         driver, provider = self.get_ali_driver(data.get('ak_id'))
         if not driver:
-            return False, '连接云服务器失败'
+            return False, ErrorCode.AK_NOT_EXISTS.to_api
         regions = driver.get_regions()
         if regions:
             return True, regions
-        return False, 'AK配置密钥不正确'
+        return False, ErrorCode.AK_CONFIG_ERROR.to_api
 
     def get_zone_list(self, data):
         driver, provider = self.get_ali_driver(data.get('ak_id'), data.get('region'))
@@ -1044,10 +1048,10 @@ class CloudAkService(CommonService):
         access_id = data.get('access_id')
         access_key = data.get('access_key')
         if not all([ws_id, name, provider, access_id, access_key]):
-            return False, 'The necessary parameters not exist'
+            return False, ErrorCode.SERVER_PARAMS_ERROR.to_api
         cloud_ak = CloudAk.objects.filter(ws_id=ws_id, name=name, provider=provider).first()
         if cloud_ak is not None:
-            return False, 'cloud ak already exists'
+            return False, ErrorCode.AK_EXISTS.to_api
         form_fields = ['name', 'provider', 'access_id', 'access_key', 'ws_id', 'description',
                        'enable', 'resource_group_id', 'vm_quota']
         create_data = dict()
@@ -1065,13 +1069,13 @@ class CloudAkService(CommonService):
         name = data.get('name')
         provider = data.get('provider')
         if not all([ak_id, ws_id, name, provider]):
-            return False, 'The necessary parameters not exist'
+            return False, ErrorCode.SERVER_PARAMS_ERROR.to_api
         cloud_ak = CloudAk.objects.filter(ws_id=ws_id, name=name, provider=provider).first()
         if cloud_ak is not None and str(cloud_ak.id) != str(ak_id):
-            return False, 'cloud ak name existed'
+            return False, ErrorCode.AK_EXISTS.to_api
         cloud_ak = CloudAk.objects.filter(id=ak_id)
         if cloud_ak.first() is None:
-            return False, 'cloud ak not exists'
+            return False, ErrorCode.AK_NOT_EXISTS.to_api
         allow_modify_fields = ['name', 'provider', 'access_id', 'access_key', 'description',
                                'enable', 'resource_group_id', 'vm_quota']
         update_data = dict()
@@ -1194,7 +1198,7 @@ class TestClusterService(CommonService):
             post_data['description'] = ''
         test_cluster = TestCluster.objects.filter(name=post_data['name'], ws_id=post_data['ws_id']).first()
         if test_cluster:
-            return False, '集群已存在'
+            return False, ErrorCode.CLUSTER_EXISTS.to_api
         is_instance = post_data.get('is_instance') if post_data.get('is_instance') else 1
         update_owner(post_data)
         create_data = dict(
@@ -1320,7 +1324,7 @@ class TestClusterServerService(CommonService):
     def create_test_server(post_data, user_id):
         if TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'],
                                             var_name=post_data['var_name']).exists():
-            return False, '变量名已存在'
+            return False, ErrorCode.CLUSTER_VAR_EXISTS.to_api
         test_server = TestServer.objects.\
             filter((Q(ip=post_data['ip']) | Q(sn=post_data['ip'])) & Q(ws_id=post_data['ws_id']))
         update_owner(post_data)
@@ -1355,7 +1359,7 @@ class TestClusterServerService(CommonService):
         )
         cluster_server = TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'], server_id=server_id)
         if cluster_server:
-            return False, '机器已添加'
+            return False, ErrorCode.CLUSTER_SERVER_EXISTS.to_api
         cluster_server = TestClusterServer.objects.create(**create_data)
         with transaction.atomic():
             operation_li = list()
@@ -1379,7 +1383,7 @@ class TestClusterServerService(CommonService):
         # 同一集群下，变量名不能相同
         if TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'],
                                             var_name=post_data['var_name']).exists():
-            return False, '变量名已存在'
+            return False, ErrorCode.CLUSTER_VAR_EXISTS.to_api
 
         server_id_list = TestClusterServer.objects.filter(cluster_id=post_data['cluster_id']
                                                           ).values_list('server_id', flat=True)
@@ -1388,7 +1392,7 @@ class TestClusterServerService(CommonService):
             if cloud_server.exists():
                 if cloud_server.first().region != post_data.get('region') or \
                         cloud_server.first().zone != post_data.get('zone'):
-                    return False, '同一集群下，region和zone必须保持一致'
+                    return False, ErrorCode.CLUSTER_SAME_WITH_PARAM.to_api
         return True, ''
 
     def create_cloud_server(self, post_data, user_id):
@@ -1425,7 +1429,7 @@ class TestClusterServerService(CommonService):
         )
         cluster_server = TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'], server_id=server_id)
         if cluster_server:
-            return False, '机器已添加'
+            return False, ErrorCode.CLUSTER_SERVER_EXISTS.to_api
         cluster_server = TestClusterServer.objects.create(**create_data)
         with transaction.atomic():
             operation_li = list()
@@ -1450,8 +1454,7 @@ class TestClusterServerService(CommonService):
         tmp_server = TestClusterServer.objects.filter(cluster_id=cluster_server.first().cluster_id,
                                                       var_name=data.get('var_name')).first()
         if tmp_server is not None and tmp_server.id != pk:
-            return False, '变量名在集群: {} 中已存在'.format(TestCluster.objects.get(
-                id=cluster_server.first().cluster_id).name)
+            return False, ErrorCode.CLUSTER_VAR_EXISTS.to_api
         update_data = dict(
             baseline_server=0 if data.get('baseline_server') in [False, 'false'] else 1,
             kernel_install=0 if data.get('kernel_install') in [False, 'false'] else 1,
@@ -1493,13 +1496,12 @@ class TestClusterServerService(CommonService):
     def update_cloud_server(data, pk, user_id):
         cluster_server = TestClusterServer.objects.filter(id=pk)
         if cluster_server.first() is None:
-            return False, '机器不存在'
+            return False, ErrorCode.CLOUD_SERVER_NOT_EXISTS.to_api
         # 同一集群下，变量名不能相同
         tmp_server = TestClusterServer.objects.filter(cluster_id=cluster_server.first().cluster_id,
                                                       var_name=data.get('var_name')).first()
         if tmp_server is not None and tmp_server.id != pk:
-            return False, '变量名在集群: {} 中已存在'.format(TestCluster.objects.get(
-                id=cluster_server.first().cluster_id).name)
+            return False, ErrorCode.CLUSTER_VAR_EXISTS.to_api
         allow_update_fields = ['role', 'baseline_server', 'kernel_install', 'var_name']
         update_data = dict()
         for field in allow_update_fields:
@@ -1540,7 +1542,7 @@ class TestClusterServerService(CommonService):
                 test_server_obj = test_server.first()
                 if test_server_obj is not None and not test_server_obj.in_pool:
                     if test_server_obj.state == 'Occupied':
-                        return False, '机器被占用'
+                        return False, ErrorCode.SERVER_OCCUPIED.to_api
                     # 通过集群加入的虚拟机，父主机也删除
                     if test_server_obj.parent_server_id is not None:
                         TestServer.objects.filter(id=test_server_obj.parent_server_id).delete()
@@ -1553,7 +1555,7 @@ class TestClusterServerService(CommonService):
                 test_server_obj = test_server.first()
                 if test_server_obj is not None and not test_server_obj.in_pool:
                     if test_server_obj.state == 'Occupied':
-                        return False, '机器被占用'
+                        return False, ErrorCode.SERVER_OCCUPIED.to_api
                     test_server.delete()
                 else:
                     test_server.update(spec_use=0)
@@ -1585,7 +1587,7 @@ class TestClusterServerService(CommonService):
         cluster_server = TestClusterServer.objects.filter(cluster_id=post_data.get('cluster_id'),
                                                           var_name=post_data.get('var_name')).first()
         if cluster_server is not None and cluster_server_id is not None and cluster_server_id != cluster_server.id:
-            return False, '变量名已存在'
+            return False, ErrorCode.CLUSTER_VAR_EXISTS.to_api
         return True, '变量名校验通过'
 
 
@@ -1754,7 +1756,7 @@ class ToneAgentService(CommonService):
             result = requests.get(list_url).json()
         except Exception as e:
             error_logger.error('request to toneagent version list api failed! detail: {}'.format(str(e)))
-            return False, 'request to toneagent version list api failed!'
+            return False, ErrorCode.TONE_AGENT_VERSION_ERROR.to_api
         return True, result['data']
 
 
