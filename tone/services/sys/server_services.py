@@ -1357,6 +1357,11 @@ class TestClusterServerService(CommonService):
             kernel_install=post_data['kernel_install'],
             var_name=post_data['var_name']
         )
+        cluster_server = TestClusterServer.objects.filter(cluster_type='aligroup', server_id=server_id).first()
+        if cluster_server:
+            test_cluster = TestCluster.objects.filter(id=cluster_server.cluster_id).first()
+            if test_cluster:
+                return False, ErrorCode.CLUSTER_SERVER_USED.to_params_api("已被集群：" + test_cluster.name + "使用。")
         cluster_server = TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'], server_id=server_id)
         if cluster_server:
             return False, ErrorCode.CLUSTER_SERVER_EXISTS.to_api
@@ -1427,6 +1432,11 @@ class TestClusterServerService(CommonService):
             kernel_install=post_data['kernel_install'],
             var_name=post_data['var_name']
         )
+        cluster_server = TestClusterServer.objects.filter(cluster_type='aliyun', server_id=server_id).first()
+        if cluster_server:
+            test_cluster = TestCluster.objects.filter(id=cluster_server.cluster_id).first()
+            if test_cluster:
+                return False, ErrorCode.CLUSTER_SERVER_USED.to_params_api("已被集群：" + test_cluster.name + "使用。")
         cluster_server = TestClusterServer.objects.filter(cluster_id=post_data['cluster_id'], server_id=server_id)
         if cluster_server:
             return False, ErrorCode.CLUSTER_SERVER_EXISTS.to_api
