@@ -523,11 +523,11 @@ class TestSuiteService(CommonService):
         try:
             cases, doc, configs = self.get_case_info_by_gitee(suite.name, suite.test_type)
         except Exception as e:
-            return False, 'get case info from gitee failed'
+            return False, f'get case info from gitee failed({e}'
         try:
             self._sync_case_to_db(suite, cases, doc, configs)
         except Exception as e:
-            return False, 'sync case to db failed'
+            return False, f'sync case to db failed({e})'
         return True, 'success'
 
     @staticmethod
@@ -627,7 +627,7 @@ class TestSuiteService(CommonService):
                 domain_id = TestDomain.objects.get(name=domain_name).id
             else:
                 domain_id = DomainRelation.objects.get(object_type='suite', object_id=suite.id).domain_id
-            case_domain_mapping.update({case_name, domain_id})
+            case_domain_mapping.update({case_name: domain_id})
         if not case_obj_list:
             # 说明数据库中数据与 gitee 数据已经同步
             return
@@ -639,15 +639,15 @@ class TestSuiteService(CommonService):
                 test_case_id__in=exist_test_case_id_list).delete()
             WorkspaceCaseRelation.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
-        for case_name, domain_id in case_domain_mapping:
-            domain_relation_list.append(
-                DomainRelation(
-                    object_type='case',
-                    object_id=TestCase.objects.get(name=case_name).id,
-                    domain_id=domain_id
+            for case_name, domain_id in case_domain_mapping.items():
+                domain_relation_list.append(
+                    DomainRelation(
+                        object_type='case',
+                        object_id=TestCase.objects.filter(name=case_name, test_suite_id=suite.id).last().id,
+                        domain_id=domain_id
+                    )
                 )
-            )
-        DomainRelation.objects.bulk_create(domain_relation_list)
+            DomainRelation.objects.bulk_create(domain_relation_list)
         # 保存性能case 默认指标
         if suite.test_type == TestType.PERFORMANCE and configs:
             metric_list = []
@@ -663,7 +663,7 @@ class TestSuiteService(CommonService):
                         cmp_threshold=v['avg'] / 100,
                         direction='increase' if v['direct'] == 'up' else 'decline',
                         object_type='case',
-                        object_id=TestCase.objects.get(name=case_name, test_suite_id=suite.id).id
+                        object_id=TestCase.objects.filter(name=case_name, test_suite_id=suite.id).last().id
                     ))
             if metric_list:
                 TestMetric.objects.bulk_create(metric_list)
