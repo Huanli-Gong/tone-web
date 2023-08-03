@@ -13,6 +13,7 @@ from django.http import HttpResponse
 
 from tone.models import User
 from tone.core.common.expection_handler.error_code import ErrorCode
+from tone.settings.auth_settings import PUB_API_TOKEN
 
 
 def token_required(func):
@@ -40,18 +41,19 @@ def token_required(func):
 
 
 def check_token(signature, user, request, expired_time=300):
-    try:
-        token = base64.b64decode(signature).decode('utf-8').split('|')
-        if len(token) != 3:
-            raise ValueError(ErrorCode.TOKEN_FORMAT_ERROR)
-        username = token[0]
-        _token = token[1]
-        timestamp = float(token[2])
+    token = base64.b64decode(signature).decode('utf-8').split('|')
+    if len(token) != 3:
+        raise ValueError(ErrorCode.TOKEN_FORMAT_ERROR)
+    username = token[0]
+    _token = token[1]
+    timestamp = float(token[2])
+    if _token == PUB_API_TOKEN:
+        if not User.objects.filter(username=user).exists():
+            raise ValueError(ErrorCode.USERNAME_NOT_REGISTER)
+    else:
         if not User.objects.filter(username=username, token=_token).exists() or username != user:
             raise ValueError(ErrorCode.USERNAME_NOT_REGISTER)
-        if time.time() - timestamp > expired_time:
-            raise ValueError(ErrorCode.TOKEN_OVERDUE)
-    except Exception:
-        raise ValueError(ErrorCode.TOKEN_FORMAT_ERROR)
+    if time.time() - timestamp > expired_time:
+        raise ValueError(ErrorCode.TOKEN_OVERDUE)
     request.user = User.objects.get(username=user)
     return True
