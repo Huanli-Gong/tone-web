@@ -7,15 +7,13 @@ Author: Yfh
 import json
 from datetime import datetime
 
-from django.db import connection
 from django.db.models import Q
 from tone.core.utils.common_utils import query_all_dict
-from tone.models import FuncResult, TestJob, JobTagRelation, User, TestJobCase, PerfResult, JobTag, \
-    Project
+from tone.models import FuncResult, TestJob, JobTagRelation, User, PerfResult, JobTag, Project
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
 from tone.core.common.job_result_helper import get_job_case_run_server, date_add
 from tone.core.common.services import CommonService
-from tone.core.common.constant import ANALYSIS_SQL_MAP
+from tone.core.common.constant import ANALYSIS_SQL_MAP, ANALYSIS_SUITE_LIST_SQL_MAP, ANALYSIS_METRIC_LIST_SQL_MAP
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import AnalysisException
 
@@ -191,6 +189,18 @@ class PerfAnalysisService(CommonService):
         return sql
 
     @staticmethod
+    def get_suite_list_sql(test_type, tag):
+        if test_type == 'performance' and tag:
+            sql = ANALYSIS_SUITE_LIST_SQL_MAP.get('group_perf_tag')
+        elif test_type == 'functional' and tag:
+            sql = ANALYSIS_SUITE_LIST_SQL_MAP.get('group_func_tag')
+        elif test_type == 'performance':
+            sql = ANALYSIS_SUITE_LIST_SQL_MAP.get('group_perf')
+        else:
+            sql = ANALYSIS_SUITE_LIST_SQL_MAP.get('group_func')
+        return sql
+
+    @staticmethod
     def get_job_list(result_data, provider_env):
         job_id_list = list()
         job_list = list()
@@ -236,6 +246,87 @@ class PerfAnalysisService(CommonService):
                     })
                     job_id_list.append(value.get('job_id'))
         return list(sorted(job_list, key=lambda x: x.get('job_id'), reverse=True))
+
+    def get_suite_case_list(self, data):
+        start_time = data.get('start_time', None)
+        end_time = data.get('end_time', None)
+        ws_id = data.get('ws_id')
+        project_id = data.get('project_id')
+        test_type = data.get('test_type')
+        provider_env = data.get('provider_env', 'aligroup')
+        tag = data.get('tag', None)
+        assert project_id, AnalysisException(ErrorCode.PROJECT_ID_NEED)
+        assert test_type, AnalysisException(ErrorCode.TEST_TYPE_LACK)
+        assert ws_id, AnalysisException(ErrorCode.WS_NEED)
+        assert start_time, AnalysisException(ErrorCode.START_TIME_NEED)
+        assert end_time, AnalysisException(ErrorCode.END_TIME_NEED)
+        end_time = date_add(end_time, 1)
+        raw_sql = self.get_suite_list_sql(test_type, tag).format(project=project_id, ws_id=ws_id,
+                                                                 start_time=datetime.strptime(start_time, '%Y-%m-%d'),
+                                                                 end_time=datetime.strptime(end_time, '%Y-%m-%d'),
+                                                                 tag=tag, provider_env=provider_env)
+        suite_case_list = query_all_dict(raw_sql)
+        suite_list = list()
+        for suite_info in suite_case_list:
+            case_dict = dict()
+            case_dict['test_case_id'] = suite_info['test_case_id']
+            case_dict['test_case_name'] = suite_info['test_case_name']
+            suite_exist = [suite for suite in suite_list if suite['test_suite_id'] == suite_info['test_suite_id']]
+            if len(suite_exist) == 0:
+                suite_dict = dict()
+                suite_dict['test_suite_id'] = suite_info['test_suite_id']
+                suite_dict['test_suite_name'] = suite_info['test_suite_name']
+                suite_dict['test_case_list'] = list()
+                suite_dict['test_case_list'].append(case_dict)
+                suite_list.append(suite_dict)
+            else:
+                case_exist = [case for case in suite_exist[0]['test_case_list']
+                              if case['test_case_id'] == suite_info['test_case_id']]
+                if len(case_exist) == 0:
+                    suite_exist[0]['test_case_list'].append(case_dict)
+        return suite_list
+
+    def get_metric_list(self, data):
+        start_time = data.get('start_time', None)
+        end_time = data.get('end_time', None)
+        ws_id = data.get('ws_id')
+        project_id = data.get('project_id')
+        test_type = data.get('test_type')
+        provider_env = data.get('provider_env', 'aligroup')
+        tag = data.get('tag', None)
+        test_suite_id = data.get('test_suite_id')
+        test_case_id = data.get('test_case_id')
+        assert project_id, AnalysisException(ErrorCode.PROJECT_ID_NEED)
+        assert test_type, AnalysisException(ErrorCode.TEST_TYPE_LACK)
+        assert ws_id, AnalysisException(ErrorCode.WS_NEED)
+        assert start_time, AnalysisException(ErrorCode.START_TIME_NEED)
+        assert end_time, AnalysisException(ErrorCode.END_TIME_NEED)
+        assert test_suite_id, AnalysisException(ErrorCode.TEST_CASE_NEED)
+        assert test_case_id, AnalysisException(ErrorCode.TEST_SUITE_NEED)
+        end_time = date_add(end_time, 1)
+        raw_sql = self.get_metric_list_sql(test_type, tag).format(project=project_id, ws_id=ws_id,
+                                                                  start_time=datetime.strptime(start_time, '%Y-%m-%d'),
+                                                                  end_time=datetime.strptime(end_time, '%Y-%m-%d'),
+                                                                  tag=tag, provider_env=provider_env,
+                                                                  test_suite_id=test_suite_id,
+                                                                  test_case_id=test_case_id)
+        metric_res_list = query_all_dict(raw_sql)
+        metric_list = list()
+        for metric in metric_res_list:
+            metric_list.append(metric['metric'])
+        return metric_list
+
+    @staticmethod
+    def get_metric_list_sql(test_type, tag):
+        if test_type == 'performance' and tag:
+            sql = ANALYSIS_METRIC_LIST_SQL_MAP.get('group_perf_tag')
+        elif test_type == 'functional' and tag:
+            sql = ANALYSIS_METRIC_LIST_SQL_MAP.get('group_func_tag')
+        elif test_type == 'performance':
+            sql = ANALYSIS_METRIC_LIST_SQL_MAP.get('group_perf')
+        else:
+            sql = ANALYSIS_METRIC_LIST_SQL_MAP.get('group_func')
+        return sql
 
 
 class FuncAnalysisService(CommonService):
