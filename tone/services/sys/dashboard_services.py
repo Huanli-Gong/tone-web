@@ -5,6 +5,7 @@ from django.db import connection
 
 from tone.core.common.redis_cache import redis_cache
 from tone.core.common.services import CommonService
+from tone.core.utils.common_utils import execute_sql
 from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestJob, TestJobCase, FuncResult, PerfResult, \
     Workspace, Product, Project, TestSuite, TestCase, Baseline, FuncBaselineDetail, PerfBaselineDetail, TestMetric, \
@@ -45,8 +46,7 @@ class DashboardService(CommonService):
             UNION ALL
             (SELECT id FROM perf_result ORDER BY id DESC LIMIT 0,1)
             """
-            cursor.execute(search_sql)
-            rows = cursor.fetchall()
+            rows = execute_sql(search_sql)
             if rows:
                 job_total_num = rows[0]
                 job_running_num = rows[1]
@@ -240,17 +240,15 @@ class DashboardService(CommonService):
             'test_conf': 0,
             'date': datetime.strftime(day_start_time, "%Y-%m-%d"),
         }
-        with connection.cursor() as cursor:
-            cursor.execute(search_sql)
-            rows = cursor.fetchall()
-            if rows:
-                data = {
-                    'job': rows[0][0],
-                    'metric': rows[2][0],
-                    'sub_case': rows[1][0],
-                    'test_conf': rows[3][0],
-                    'date': datetime.strftime(day_start_time, "%Y-%m-%d"),
-                }
+        rows = execute_sql(search_sql)
+        if rows:
+            data = {
+                'job': rows[0][0],
+                'metric': rows[2][0],
+                'sub_case': rows[1][0],
+                'test_conf': rows[3][0],
+                'date': datetime.strftime(day_start_time, "%Y-%m-%d"),
+            }
         return data
 
     @staticmethod
@@ -363,8 +361,8 @@ class DashboardService(CommonService):
             start_time = end_time - timedelta(days=latest)
         query_cmd = 'SELECT A.gmt_created, A.job_count, B.case_count, C.func_result_count, D.perf_result_count FROM ' \
                     '(SELECT DATE_FORMAT(gmt_created,"%Y-%m-%d") AS gmt_created, COUNT(id) AS job_count from test_job' \
-                    ' where is_deleted=0 and gmt_created BETWEEN "{}" AND ' \
-                    '"{}" GROUP BY DATE_FORMAT(gmt_created,"%Y-%m-%d")) AS A LEFT JOIN ' \
+                    ' where is_deleted=0 and gmt_created BETWEEN %s AND ' \
+                    '%s GROUP BY DATE_FORMAT(gmt_created,"%Y-%m-%d")) AS A LEFT JOIN ' \
                     '(select DATE_FORMAT(gmt_created,"%Y-%m-%d") AS gmt_created, COUNT(id) AS case_count ' \
                     'from test_job_case where is_deleted=0 GROUP BY DATE_FORMAT(gmt_created,"%Y-%m-%d")) AS B ' \
                     'ON A.gmt_created=B.gmt_created LEFT JOIN (SELECT DATE_FORMAT(gmt_created,"%Y-%m-%d") ' \
@@ -373,11 +371,9 @@ class DashboardService(CommonService):
                     'A.gmt_created=C.gmt_created LEFT JOIN (SELECT DATE_FORMAT(gmt_created,"%Y-%m-%d") ' \
                     'AS gmt_created, COUNT(id) AS perf_result_count from perf_result where is_deleted=0 GROUP BY ' \
                     'DATE_FORMAT(gmt_created,"%Y-%m-%d")) AS D ON A.gmt_created=D.gmt_created' \
-                    ''.format(str(start_time).split(' ')[0], str(end_time).split(' ')[0])
-
-        cursor = connection.cursor()
-        cursor.execute(query_cmd)
-        for tmp_data in cursor.fetchall():
+                    ''
+        rows = execute_sql(query_cmd, [str(start_time).split(' ')[0], str(end_time).split(' ')[0]])
+        for tmp_data in rows:
             res_data.append({
                 'sub_case': tmp_data[3] if tmp_data[3] else 0,
                 'metric': tmp_data[4] if tmp_data[4] else 0,
@@ -389,20 +385,18 @@ class DashboardService(CommonService):
 
     @staticmethod
     def ws_create_job(_):
-        cursor = connection.cursor()
-        cursor.execute('SELECT A.ws_id, B.show_name, COUNT(*) FROM test_job AS A LEFT JOIN workspace AS B '
+        rows = execute_sql('SELECT A.ws_id, B.show_name, COUNT(*) FROM test_job AS A LEFT JOIN workspace AS B '
                        'ON A.ws_id=B.id WHERE B.is_deleted=0 and A.is_deleted=0 GROUP BY A.ws_id;')
         return True, sorted([{'ws_id': tmp_data[0],
                               'show_name': tmp_data[1],
                               'count': tmp_data[2]}
-                             for tmp_data in cursor.fetchall()], key=lambda x: x['count'], reverse=True)
+                             for tmp_data in rows], key=lambda x: x['count'], reverse=True)
 
     def department_user(self, _):
-        cursor = connection.cursor()
-        cursor.execute('SELECT dep_desc, COUNT(*) FROM user GROUP BY dep_desc;')
+        rows = execute_sql('SELECT dep_desc, COUNT(*) FROM user GROUP BY dep_desc;')
         origin_merge_dep = [{'department': self.get_dep_desc(team_data[0]),
                              'count': team_data[1]}
-                            for team_data in cursor.fetchall()]
+                            for team_data in rows]
         merge_data = dict()
         for tmp_dep in origin_merge_dep:
             if tmp_dep['department'] in merge_data:
@@ -425,22 +419,22 @@ class DashboardService(CommonService):
         end_time = str(datetime.strptime('{}'.format(end_time), '%Y-%m-%d') + timedelta(days=1))
         cursor = connection.cursor()
         if create_type == 'personal':
-            cursor.execute('SELECT B.first_name, B.last_name, B.dep_desc, COUNT(*)FROM test_job AS A JOIN user AS B ON'
-                           ' A.creator=B.id WHERE A.is_deleted=0 AND A.gmt_created BETWEEN "{}" AND "{}" GROUP BY '
-                           'creator ORDER BY COUNT(*) DESC LIMIT 10;'.format(start_time, end_time))
+            rows = execute_sql('SELECT B.first_name, B.last_name, B.dep_desc, COUNT(*)FROM test_job AS A JOIN user AS B ON'
+                           ' A.creator=B.id WHERE A.is_deleted=0 AND A.gmt_created BETWEEN %s AND %s GROUP BY '
+                           'creator ORDER BY COUNT(*) DESC LIMIT 10;', [start_time, end_time])
             return True, sorted([{'name': tmp_data[0] if tmp_data[0] else tmp_data[1],
                                   'dep_desc': self.get_dep_desc(tmp_data[2]),
                                   'count': tmp_data[3]}
-                                 for tmp_data in cursor.fetchall()], key=lambda x: x['count'], reverse=True)
+                                 for tmp_data in rows], key=lambda x: x['count'], reverse=True)
         else:
-            cursor.execute('SELECT B.id, B.show_name, COUNT(*)FROM test_job AS A join workspace AS B ON'
+            rows = execute_sql('SELECT B.id, B.show_name, COUNT(*)FROM test_job AS A join workspace AS B ON'
                            ' A.ws_id=B.id WHERE A.is_deleted=0 AND B.is_deleted=0 AND '
-                           'A.gmt_created BETWEEN "{}" AND "{}" GROUP BY '
-                           'ws_id ORDER BY COUNT(*) DESC LIMIT 10;'.format(start_time, end_time))
+                           'A.gmt_created BETWEEN %s AND %s GROUP BY '
+                           'ws_id ORDER BY COUNT(*) DESC LIMIT 10;', [start_time, end_time])
             return True, sorted([{'ws_id': tmp_data[0],
                                   'show_name': tmp_data[1],
                                   'count': tmp_data[2]}
-                                 for tmp_data in cursor.fetchall()], key=lambda x: x['count'], reverse=True)
+                                 for tmp_data in rows], key=lambda x: x['count'], reverse=True)
 
     @staticmethod
     def get_dep_desc(origin_dep_desc):
@@ -579,25 +573,23 @@ class DashboardService(CommonService):
         date_job = {datetime.strftime(date, '%Y-%m-%d'): [[], 0, 0] for date in date_list[:-1]}
         start_time = date_list[0]
         end_time = date_list[-1]
-        with connection.cursor() as cursor:
-            query_project_job = """
-            SELECT
-            DATE_FORMAT(gmt_created, "%Y-%m-%d"), id, state
-            FROM test_job
-            WHERE is_deleted=0 AND project_id={} AND ws_id="{}" and gmt_created BETWEEN "{}" AND "{}"
-            """.format(project_id, ws_id, start_time, end_time)
-            cursor.execute(query_project_job)
-            rows = cursor.fetchall()
-            for row_data in rows:
-                tmp_date = row_data[0]
-                tmp_job_id = row_data[1]
-                tmp_state = row_data[2]
-                if tmp_date in date_job:
-                    date_job[tmp_date][0].append(tmp_job_id)
-                    if tmp_state == 'success':
-                        date_job[tmp_date][1] += 1
-                    if tmp_state == 'fail':
-                        date_job[tmp_date][2] += 1
+        query_project_job = """
+        SELECT
+        DATE_FORMAT(gmt_created, "%Y-%m-%d"), id, state
+        FROM test_job
+        WHERE is_deleted=0 AND project_id=%s AND ws_id=%s and gmt_created BETWEEN %s AND %s
+        """
+        rows = execute_sql(query_project_job, [project_id, ws_id, start_time, end_time])
+        for row_data in rows:
+            tmp_date = row_data[0]
+            tmp_job_id = row_data[1]
+            tmp_state = row_data[2]
+            if tmp_date in date_job:
+                date_job[tmp_date][0].append(tmp_job_id)
+                if tmp_state == 'success':
+                    date_job[tmp_date][1] += 1
+                if tmp_state == 'fail':
+                    date_job[tmp_date][2] += 1
         for temp_date, tmp_data in date_job.items():
             job_id_list = tmp_data[0]
             complete_num = tmp_data[1]

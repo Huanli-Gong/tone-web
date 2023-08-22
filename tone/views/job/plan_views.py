@@ -7,6 +7,7 @@ Author:
 from django.http import HttpResponse
 from rest_framework.response import Response
 
+from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.views import CommonAPIView
 from tone.models import TestPlan, json, PlanInstance, TestJob
 from tone.schemas.job.plan_schemas import PlanListSchema, PlanDetailSchema, PlanCopySchema, PlanResultDetailSchema, \
@@ -49,6 +50,9 @@ class PlanDetailView(CommonAPIView):
 
     def get(self, request):
         """查询计划详情"""
+        if not request.user.id:
+            return Response(dict(code=ErrorCode.LOGIN_ERROR.code,
+                                 msg=ErrorCode.LOGIN_ERROR.msg))
         queryset = self.get_queryset().filter(id=request.GET.get('id')).first()
         response_data = self.get_response_data(queryset, many=False, page=False)
         return Response(response_data)

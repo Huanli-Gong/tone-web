@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
 
+from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.views import CommonAPIView, BaseView
 from tone.models import Workspace, WorkspaceMember, ApproveInfo, WorkspaceAccessHistory, json, User
 from tone.schemas.sys.workspace_schemas import WorkspaceSchema, WorkspaceHistorySchema, WorkspaceMemberSchema, \
@@ -244,6 +245,9 @@ class ApproveQuantityView(BaseView):
         backlog_count为待审核数量
         finished_count为审批记录数量
         """
+        if not request.user.id:
+            return Response(dict(code=ErrorCode.LOGIN_ERROR.code,
+                                 msg=ErrorCode.LOGIN_ERROR.msg))
         data = self.service.get_quantity(request.GET)
         if not data:
             response_data = self.get_response_code(msg='缺少ws_id参数')

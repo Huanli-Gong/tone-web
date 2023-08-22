@@ -153,3 +153,16 @@ def parse_env_info_by_delimiter(original_env_data, delimiter='\n'):
         item_list = item.split('=', 1)
         env_data[item_list[0]] = item_list[1]
     return env_data
+
+
+def execute_sql(sql, params=None):
+    with connection.cursor() as cursor:
+        try:
+            if params:
+                cursor.execute(sql, params=params)
+            else:
+                cursor.execute(sql)
+            rows = cursor.fetchall()
+            return rows
+        except Exception as e:
+            raise ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)

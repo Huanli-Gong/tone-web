@@ -458,6 +458,9 @@ class CloudAkView(CommonAPIView):
         """
         查询ak列表
         """
+        if not request.GET.get('ws_id'):
+            return Response(dict(code=ErrorCode.COMMENT_PARAMS_MISSING.code,
+                                 msg=ErrorCode.COMMENT_PARAMS_MISSING.msg))
         order_by, queryset = self.service.filter(self.get_queryset(), request.GET)
         if order_by:
             self.order_by = order_by

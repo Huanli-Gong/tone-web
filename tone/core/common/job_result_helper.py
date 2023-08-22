@@ -15,7 +15,7 @@ from tone.core.common.expection_handler.custom_error import JobTestException
 import requests
 from django.db.models import Count, Case, When, Q
 from django.db import connection
-from tone.core.utils.common_utils import query_all_dict
+from tone.core.utils.common_utils import query_all_dict, execute_sql
 
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
@@ -37,7 +37,7 @@ def calc_job(job_id):
     """
     test_type = TestJob.objects.get(id=job_id).test_type
     if test_type == 'performance':
-        count_dict, total = count_prefresult_state_num(job_id)
+        count_dict, total = count_pref_result_state_num(job_id)
         na = total - count_dict.get('increase_count', 0) - count_dict.get('decline_count', 0) - count_dict.get(
             'normal_count', 0) - count_dict.get('invalid_count', 0)
         result = {'count': total, 'increase': count_dict.get('increase_count', 0), 'decline':
@@ -57,7 +57,7 @@ def calc_job(job_id):
     return result
 
 
-def count_prefresult_state_num(job_id, test_suite_id=None, test_case_id=None):
+def count_pref_result_state_num(job_id, test_suite_id=None, test_case_id=None):
     count_dict = {}
     search = """ and test_job_id={} """.format(job_id)
     if test_suite_id:
@@ -73,19 +73,18 @@ def count_prefresult_state_num(job_id, test_suite_id=None, test_case_id=None):
                     FROM perf_result 
                     WHERE 
                     is_deleted is False 
-                    AND test_job_id={} 
+                    AND test_job_id=%s 
                     ORDER BY `id` asc limit 0, 1) 
                 and id<=(SELECT id 
                     FROM perf_result 
                     WHERE 
-                    is_deleted is False AND test_job_id={} 
+                    is_deleted is False AND test_job_id=%s 
                     ORDER BY `id` desc limit 0, 1) 
                 {} 
                 and is_deleted is False 
                 group by `track_result`
-            """.format(job_id, job_id, search)
-        cursor.execute(search_sql)
-        count = cursor.fetchall()
+            """.format(search)
+        count = execute_sql(search_sql, [job_id, job_id])
         for i in count:
             count_dict[str(i[0])+'_count'] = i[1]
         total = sum(count_dict.values())
@@ -108,19 +107,18 @@ def count_funcresult_state_num(job_id, test_suite_id=None, test_case_id=None):
                     FROM func_result 
                     WHERE 
                     is_deleted is False 
-                    AND test_job_id={} 
+                    AND test_job_id=%s 
                     ORDER BY `id` asc limit 0, 1) 
                 and id<=(SELECT id 
                     FROM func_result 
                     WHERE 
-                    is_deleted is False AND test_job_id={} 
+                    is_deleted is False AND test_job_id=%s 
                     ORDER BY `id` desc limit 0, 1) 
                 {} 
                 and is_deleted is False 
                 group by `sub_case_result`
-            """.format(job_id, job_id, search)
-        cursor.execute(search_sql)
-        count = cursor.fetchall()
+            """.format(search)
+        count = execute_sql(search_sql, [job_id, job_id])
         for i in count:
             count_dict[str(i[0])] = i[1]
         total = count_dict.get("1", 0) + count_dict.get("2", 0) + count_dict.get("3", 0) + count_dict.get("4", 0) + \
@@ -128,7 +126,7 @@ def count_funcresult_state_num(job_id, test_suite_id=None, test_case_id=None):
     return count_dict, total
 
 
-def perse_func_result(job_id, sub_case_result, match_baseline):
+def parse_func_result(job_id, sub_case_result, match_baseline):
     count_case_fail, count_total, count_fail, count_no_match_baseline = 0, 0, 0, 0
     id_sql = """
         id >= (
@@ -158,17 +156,16 @@ def perse_func_result(job_id, sub_case_result, match_baseline):
         ) """.format(job_id, job_id)
     with connection.cursor() as cursor:
         search_sql = """
-            SELECT COUNT(*) FROM test_job_case WHERE job_id={} AND state='fail'
+            SELECT COUNT(*) FROM test_job_case WHERE job_id=%s AND state='fail'
             UNION ALL
-            SELECT COUNT(*) FROM func_result WHERE test_job_id={} AND {}
+            SELECT COUNT(*) FROM func_result WHERE test_job_id=%s AND {}
             UNION ALL
-            SELECT COUNT(*) FROM func_result  WHERE test_job_id={} AND sub_case_result={} AND {}
+            SELECT COUNT(*) FROM func_result  WHERE test_job_id=%s AND sub_case_result=%s AND {}
             UNION ALL
-            SELECT COUNT(*) FROM func_result  WHERE test_job_id={} AND sub_case_result={} AND match_baseline={} AND {}
-        """.format(job_id, job_id, id_sql, job_id, sub_case_result, id_sql, job_id, sub_case_result, match_baseline,
+            SELECT COUNT(*) FROM func_result  WHERE test_job_id=%s AND sub_case_result=%s AND match_baseline=%s AND {}
+        """.format(id_sql, id_sql, job_id, sub_case_result, match_baseline,
                    id_sql)
-        cursor.execute(search_sql)
-        result = cursor.fetchall()
+        result = execute_sql(search_sql, [job_id, job_id, job_id, sub_case_result, job_id, sub_case_result, match_baseline])
         if result and len(result) == 4:
             count_case_fail, count_total, count_fail, count_no_match_baseline = result[0][0], result[1][0], result[2][
                 0], result[3][0]
@@ -182,7 +179,7 @@ def calc_job_suite(job_id, test_suite_id, ws_id, test_type, test_result=None):
     count_data = dict()
     result = None
     if test_type == PERFORMANCE:
-        count_dict, total = count_prefresult_state_num(job_id, test_suite_id)
+        count_dict, total = count_pref_result_state_num(job_id, test_suite_id)
         na = total - count_dict.get('increase_count', 0) - count_dict.get('decline_count', 0) - count_dict.get(
             'normal_count', 0) - count_dict.get('invalid_count', 0)
         count_data['count'] = total
@@ -239,7 +236,7 @@ def calc_job_case(job_case, suite_result, test_type, is_api=False):
     count_data = dict()
     result = None
     if test_type == PERFORMANCE:
-        count_dict, total = count_prefresult_state_num(job_case.job_id, job_case.test_suite_id, job_case.test_case_id)
+        count_dict, total = count_pref_result_state_num(job_case.job_id, job_case.test_suite_id, job_case.test_case_id)
         na = total - count_dict.get('increase_count', 0) - count_dict.get('decline_count', 0) - count_dict.get(
             'normal_count', 0) - count_dict.get('invalid_count', 0)
         count_data['count'] = total

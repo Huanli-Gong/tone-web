@@ -368,7 +368,7 @@ FILTER_JOB_TAG_SQL = """
         job_tag AS B,
         job_tag_relation AS C 
     WHERE
-        A.project_id = {project_id}
+        A.project_id = %s
         AND B.NAME = 'analytics' 
         AND B.id = C.tag_id 
         AND A.id = C.job_id 

@@ -11,6 +11,7 @@ from urllib.parse import urlparse, parse_qs, urlencode
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.views import CommonAPIView
 from tone.models import User, Role, WorkspaceMember, Workspace, RoleMember, WorkspaceAccessHistory
 from tone.schemas.auth.auth_schemas import UserSchema
@@ -74,6 +75,9 @@ class UserView(CommonAPIView):
     search_fields = ['first_name', 'last_name']
 
     def get(self, request):
+        if not request.user.id:
+            return Response(dict(code=ErrorCode.LOGIN_ERROR.code,
+                                 msg=ErrorCode.LOGIN_ERROR.msg))
         request.roles = list(Role.objects.all())
         request.role_members = list(RoleMember.objects.all())
         queryset = self.service.filter(self.get_queryset(), request.GET, request.user.id)
@@ -112,6 +116,9 @@ class RoleView(CommonAPIView):
 
     def get(self, request):
         """获取角色信息列表"""
+        if not request.user.id:
+            return Response(dict(code=ErrorCode.LOGIN_ERROR.code,
+                                 msg=ErrorCode.LOGIN_ERROR.msg))
         data = self.service.filter(self.get_queryset(), request.GET, operator=request.user.id)
         response_data = self.get_response_data(data)
         response_data['data'] = {

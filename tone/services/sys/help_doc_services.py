@@ -5,6 +5,7 @@ from django_q.tasks import async_task
 
 from tone.core.common.constant import PROD_SITE_URL
 from tone.core.common.services import CommonService
+from tone.core.utils.common_utils import execute_sql
 from tone.models import HelpDoc, datetime, SiteConfig, SitePushConfig, TestJob, Comment, BaseConfig
 from tone.services.portal.sync_portal_services import SyncPortalService
 from tone.services.portal.sync_portal_task_servers import sync_job_data
@@ -254,14 +255,12 @@ class TestFarmService(CommonService):
                     job_queryset = job_queryset.filter(name__icontains=filter_job)
                 return True, job_queryset.order_by('sync_time', 'id'), 0
             else:
-                cursor = connection.cursor()
                 query_cmd = '''SELECT id, name, sync_time FROM test_job 
-                WHERE ws_id='{}' AND project_id='{}' AND 
-                name REGEXP '{}' AND `start_time` IS NOT NULL  and is_deleted=0 
+                WHERE ws_id=%s AND project_id=%s AND 
+                name REGEXP %s AND `start_time` IS NOT NULL  and is_deleted=0 
                 ORDER BY if (`sync_time` IS NULL, 0, 1) ASC, id ASC LIMIT {}, {}'''.format(
-                    ws_id, project_id, job_name_rule, (page_num - 1) * page_size, page_size)
-                cursor.execute(query_cmd)
-                job_data = cursor.fetchall()
+                    (page_num - 1) * page_size, page_size)
+                job_data = execute_sql(query_cmd, [ws_id, project_id, job_name_rule])
                 return True, [{'id': tmp_data[0],
                                'name': tmp_data[1],
                                'sync_time': tmp_data[2]} for tmp_data in job_data], page_num

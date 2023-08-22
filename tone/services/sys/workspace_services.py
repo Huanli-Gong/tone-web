@@ -15,7 +15,7 @@ from django.db.models import Q, When, Case
 from initial.job_type.initialize import JobTypeDataInitialize
 from tone.core.common.constant import RANDOM_THEME_COLOR_LIST, WS_LOGO_DIR, DOC_IMG_DIR
 from tone.core.common.exceptions.exception_class import DataExistsException
-from tone.core.common.job_result_helper import perse_func_result
+from tone.core.common.job_result_helper import parse_func_result
 from tone.core.common.msg_notice import InSiteMsgHandle
 from tone.core.common.permission_config_info import WS_ROLE_MAP, WS_SHOW_MEMBER_CONFIG
 from tone.core.common.services import CommonService
@@ -986,7 +986,7 @@ def get_job_state(test_job_id, test_type, state, func_view_config):
         state = 'pending'
     if test_type == 'functional' and (state == 'fail' or state == 'success'):
         if func_view_config and func_view_config.config_value == '2':
-            count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(test_job_id, 2, 0)
+            count_case_fail, count_total, count_fail, count_no_match_baseline = parse_func_result(test_job_id, 2, 0)
             if count_total == 0:
                 state = 'fail'
                 return state

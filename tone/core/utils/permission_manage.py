@@ -7,8 +7,9 @@ from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
 from tone import settings
+from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.permission_config_info import SYS_PERMISSION_CONFIG, WS_PERMISSION_CONFIG, VALID_URL_LIST, \
-    RE_PERMISSION_CONFIG
+    RE_PERMISSION_CONFIG, NEED_WS_ID_PARAM_API_LIST
 from tone.core.utils.config_parser import get_config_from_db
 from tone.models import RoleMember, WorkspaceMember, Role, Workspace, User
 
@@ -156,6 +157,11 @@ class ValidPermission(MiddlewareMixin):
     def check_ws_permission(self, current_path, current_role_name, user_id, ws_id, current_method):
         """ws级别权限校验"""
         workspace_member = WorkspaceMember.objects.filter(user_id=user_id, ws_id=ws_id).first()
+        workspace = Workspace.objects.filter(id=ws_id).first()
+        if not workspace:
+            return False
+        if not workspace_member and not workspace.is_public:
+            return False
         res_check = self.ws_white_handle(workspace_member, current_path, current_role_name, user_id, ws_id)
         if res_check == 'success':
             return True
@@ -226,6 +232,9 @@ class ValidPermission(MiddlewareMixin):
         if self.check_white_list(current_path):
             return None
         ws_id = self.parse_request_ws_id(request)
+        if request.method == 'GET' and not ws_id and current_path in NEED_WS_ID_PARAM_API_LIST:
+            return JsonResponse(dict(code=ErrorCode.COMMENT_PARAMS_MISSING.code,
+                                     msg=ErrorCode.COMMENT_PARAMS_MISSING.msg))
 
         # from tone.services.auth.auth_services import OpenCoralUCenter
         # ucenter_service = OpenCoralUCenter()
@@ -235,6 +244,10 @@ class ValidPermission(MiddlewareMixin):
         current_method = request.method
         if request.user is None or request.user.id is None:
             # 游客
+            if ws_id:
+                workspace = Workspace.objects.filter(id=ws_id).first()
+                if workspace and not workspace.is_common:
+                    return response_403
             if request.method == 'DELETE':
                 return response_403
             if ws_id:

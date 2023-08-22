@@ -16,7 +16,7 @@ from tone.core.common.constant import CASE_STEP_STAGE_MAP, PREPARE_STEP_STAGE_MA
 from tone.core.common.enums.job_enums import JobState
 from tone.core.common.info_map import get_result_map
 from tone.core.common.job_result_helper import calc_job_suite, calc_job_case, calc_job, get_job_case_run_server, \
-    get_test_config, perse_func_result
+    get_test_config, parse_func_result
 from tone.core.common.serializers import CommonSerializer
 from tone.core.utils.common_utils import kernel_info_format, format_env_info
 from tone.core.utils.tone_thread import ToneThread
@@ -58,7 +58,7 @@ class JobTestSerializer(CommonSerializer):
             func_view_config = BaseConfig.objects.filter(config_type='ws', ws_id=obj.ws_id,
                                                          config_key='FUNC_RESULT_VIEW_TYPE').first()
             if func_view_config and func_view_config.config_value == '2':
-                count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(obj.id, 2, 0)
+                count_case_fail, count_total, count_fail, count_no_match_baseline = parse_func_result(obj.id, 2, 0)
                 if count_total == 0:
                     state = 'fail'
                     return state
@@ -231,7 +231,7 @@ class JobTestSummarySerializer(CommonSerializer):
             func_view_config = BaseConfig.objects.filter(config_type='ws', ws_id=obj.ws_id,
                                                          config_key='FUNC_RESULT_VIEW_TYPE').first()
             if func_view_config and func_view_config.config_value == '2':
-                count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(obj.id, 2, 0)
+                count_case_fail, count_total, count_fail, count_no_match_baseline = parse_func_result(obj.id, 2, 0)
                 if count_total == 0:
                     state = 'fail'
                     return state

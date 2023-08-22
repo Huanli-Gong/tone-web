@@ -7,6 +7,7 @@ Author: Yfh
 from rest_framework.response import Response
 from django.utils.decorators import method_decorator
 
+from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.views import CommonAPIView
 from tone.schemas.job.jt_schemas import JobItemSchema, JobTypeSchema
 from tone.models import JobType, JobTypeItem, JobTypeItemRelation
@@ -30,6 +31,9 @@ class JobTypeView(CommonAPIView):
         """
         获取WorkSpace下JobType列表接口
         """
+        if not (request.GET.get('ws_id') or request.GET.get('jt_id')):
+            return Response(dict(code=ErrorCode.COMMENT_PARAMS_MISSING.code,
+                                 msg=ErrorCode.COMMENT_PARAMS_MISSING.msg))
         queryset = self.service.filter(self.get_queryset(), request.GET)
         response_data = self.get_response_data(queryset, page=False)
         return Response(response_data)

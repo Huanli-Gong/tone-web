@@ -305,3 +305,36 @@ RE_PERMISSION_CONFIG = {
 }
 
 WS_SHOW_MEMBER_CONFIG = ['ws_owner', 'ws_admin', 'ws_test_admin', 'ws_member']
+
+NEED_WS_ID_PARAM_API_LIST = [
+    '/api/server/cloud_ak/',
+    '/api/baseline/list/',
+    # '/api/job/type/',
+    '/api/job/template/',
+    '/api/job/test/',
+    '/api/plan/list/',
+    '/api/plan/view/',
+    '/api/report/test/report/',
+    '/api/report/template/list/',
+    '/api/case/test_suite/retrieve/',
+    '/api/sys/project/',
+    '/api/sys/product/',
+    '/api/job/test/upload/offline/',
+    '/api/sys/workspace/member/',
+    '/api/sys/workspace/member/quantity/',
+    '/api/sys/approve/quantity/',
+    '/api/job/tag/',
+    '/api/server/test_server/',
+    '/api/server/cloud_server/',
+    '/api/server/test_cluster/',
+    '/api/server/server_tag/',
+    '/api/sys/project/drag/',
+    '/api/sys/product/drag/',
+    '/api/sys/ws_config/',
+    '/api/sys/operation/log/',
+    '/api/case/workspace/case/',
+    '/api/case/workspace/config/',
+    # '/api/sys/workspace/history/',
+    '/api/sys/repository/',
+    # '/api/get/product/version/'
+]

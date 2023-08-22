@@ -20,7 +20,7 @@ from itertools import chain
 from threading import Thread
 
 from tone.core.common.callback import CallBackType, JobCallBack
-from tone.core.utils.common_utils import query_all_dict
+from tone.core.utils.common_utils import query_all_dict, execute_sql
 from tone.core.common.enums.job_enums import JobCaseState, JobState
 from tone.core.common.enums.ts_enums import TestServerState
 from tone.core.common.info_map import get_result_map
@@ -42,7 +42,7 @@ from tone.settings import cp
 from tone.core.common.redis_cache import runner_redis_cache
 from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
-from tone.core.common.job_result_helper import get_test_config, perse_func_result
+from tone.core.common.job_result_helper import get_test_config, parse_func_result
 from tone.core.utils.sftp_client import sftp_client
 
 
@@ -111,15 +111,19 @@ class JobTestService(CommonService):
         collection_jobs = JobCollection.objects.filter(user_id=operator)
         collect_job_set = set(collection_jobs.values_list('job_id', flat=True))
         query_sql = []
+        sql_params = []
         if data.get('tab') == 'my' or data.get('my_job'):
-            query_sql.append('AND creator="{}"'.format(operator))
+            query_sql.append('AND creator=%s')
+            sql_params.append(operator)
         if data.get('tab') == 'collection' or data.get('collection'):
             if collect_job_set:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in collect_job_set)))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in collect_job_set))
             else:
                 return res, 0
         if data.get('name'):
-            query_sql.append('AND name LIKE "%{}%"'.format(data.get('name').replace('_', '\_').replace('%', '\%')))
+            query_sql.append('AND name LIKE %s')
+            sql_params.append('%' + data.get('name').replace('_', '\_').replace('%', '\%') + '%')
         if data.get('job_id'):
             job_id = data.get('job_id')
             if isinstance(job_id, int):
@@ -127,7 +131,8 @@ class JobTestService(CommonService):
             else:
                 if not job_id.isdigit():
                     job_id = 0
-            query_sql.append('AND id="{}"'.format(job_id))
+            query_sql.append('AND id=%s')
+            sql_params.append(str(job_id))
         if data.get('state'):
             input_state_list = data.get('state').split(',')
             if 'pass' in input_state_list:
@@ -136,9 +141,11 @@ class JobTestService(CommonService):
             if 'pending' in state_list:
                 state_list.append('pending_q')
             if len(state_list) == 1:
-                query_sql.append('AND state="{}"'.format(state_list[0]))
+                query_sql.append('AND state=%s')
+                sql_params.append(state_list[0])
             else:
-                query_sql.append('AND state IN {}'.format(tuple(state_list)))
+                query_sql.append('AND state IN %s')
+                sql_params.append(tuple(state_list))
         if data.get('search'):
             # 模糊搜索只包含以下维度：job_id, job_name, 创建人名字，job类型
             search = data.get('search')
@@ -146,18 +153,22 @@ class JobTestService(CommonService):
             user_ids = [user['id'] for user in users]
             job_types = JobType.objects.filter(name=search).values('id')
             job_type_ids = [job_type['id'] for job_type in job_types]
-            search_sql = 'name LIKE "%{0}%" OR id like "%{0}%" '.format(search)
+            search_sql = 'name LIKE %s OR id like %s '
+            sql_params.append([f'%{search}%', f'%{search}%'])
             if user_ids:
-                search_sql += 'OR creator IN ({}) '.format(','.join(str(user_id) for user_id in user_ids))
+                search_sql += 'OR creator IN %s '
+                sql_params.append(tuple(user_id for user_id in user_ids))
             if job_type_ids:
-                search_sql += 'OR job_type_id IN ({})'.format(','.join(str(type_id) for type_id in job_type_ids))
+                search_sql += 'OR job_type_id IN %s'
+                sql_params.append(tuple(type_id for type_id in job_type_ids))
             query_sql.append(f'AND ({search_sql})')
         if data.get('test_suite'):
             test_suite = json.loads(data.get('test_suite'))
             test_suites = TestJobSuite.objects.filter(test_suite_id__in=test_suite).values('job_id')
             job_ids = [test_suite['job_id'] for test_suite in test_suites]
             if job_ids:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in job_ids))
             else:
                 query_sql.append('AND id=0')
         if data.get('server'):
@@ -166,7 +177,8 @@ class JobTestService(CommonService):
             cloud_server_objs = CloudServerSnapshot.objects.filter(private_ip=server)
             id_li = list(set([obj.job_id for obj in server_objs]) | set([obj.job_id for obj in cloud_server_objs]))
             if id_li:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in id_li)))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in id_li))
             else:
                 query_sql.append('AND id=0')
         if data.get('tags'):
@@ -174,7 +186,8 @@ class JobTestService(CommonService):
             job_tags = JobTagRelation.objects.filter(tag_id__in=tags).values('job_id')
             job_ids = [job_tag['job_id'] for job_tag in job_tags]
             if job_ids:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(str(job_id) for job_id in job_ids))
             else:
                 query_sql.append('AND id=0')
         if data.get('fail_case'):
@@ -182,7 +195,8 @@ class JobTestService(CommonService):
             fail_cases = FuncResult.objects.filter(sub_case_name__in=fail_case, sub_case_result=2)
             job_ids = [fail_case.test_job_id for fail_case in fail_cases]
             if job_ids:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in job_ids))
             else:
                 query_sql.append('AND id=0')
         if data.get('creation_time'):
@@ -196,20 +210,25 @@ class JobTestService(CommonService):
             start_time, end_time = self.check_time_fmt(completion_time)
             end_state = tuple(['stop', 'fail', 'success'])
             query_sql.append(
-                'AND end_time BETWEEN "{}" AND "{}" AND state IN {}'.format(start_time, end_time, end_state))
+                'AND end_time BETWEEN %s AND %s AND state IN %s')
+            sql_params.extend([start_time, end_time, end_state])
         if data.get('filter_id'):
-            query_sql.append('AND NOT id IN ({})'.format(data.get('filter_id')))
+            query_sql.append('AND NOT id IN %s')
+            sql_params.append(data.get('filter_id'))
         if data.get('creators'):
             creators = json.loads(data.get('creators'))
-            query_sql.append('AND creator IN ({})'.format(','.join(str(creator) for creator in creators)))
+            query_sql.append('AND creator IN %s')
+            sql_params.append(tuple(creator for creator in creators))
         if data.get('test_type') or pass_test_type:
             test_type = data.get('test_type') if data.get('test_type') else pass_test_type
-            query_sql.append('AND test_type="{}"'.format(test_type))
+            query_sql.append('AND test_type=%s')
+            sql_params.append(test_type)
         filter_fields = ['project_id', 'job_type_id', 'product_id', 'server_provider', 'product_version',
                          'ws_id']
         for filter_field in filter_fields:
             if data.get(filter_field):
-                query_sql.append('AND {}="{}"'.format(filter_field, data.get(filter_field)))
+                query_sql.append('AND {}=%s'.format(filter_field))
+                sql_params.append(data.get(filter_field))
         extend_sql = ' '.join(query_sql)
         func_view_config = BaseConfig.objects.filter(config_type='ws', ws_id=data.get('ws_id'),
                                                      config_key='FUNC_RESULT_VIEW_TYPE').first()
@@ -238,12 +257,11 @@ class JobTestService(CommonService):
             FROM test_job A
             RIGHT JOIN (
             SELECT id FROM test_job
-            WHERE is_deleted=0 and ws_id='{}' {} ORDER BY id DESC LIMIT {}, {}) B
+            WHERE is_deleted=0 and {} ORDER BY id DESC LIMIT {}, {}) B
             ON A.id=B.id ORDER BY B.id DESC
-            """.format(data.get('ws_id'), extend_sql, (page_num - 1) * page_size, page_size)
+            """.format(extend_sql, (page_num - 1) * page_size, page_size)
 
-            cursor.execute(search_sql)
-            rows = cursor.fetchall()
+            rows = execute_sql(search_sql, sql_params)
             job_id_list = [row_data[0] for row_data in rows]
             test_server_shot = TestServerSnapshot.objects.filter(job_id__in=job_id_list)
             clould_server_shot = CloudServerSnapshot.objects.filter(job_id__in=job_id_list)
@@ -257,8 +275,7 @@ class JobTestService(CommonService):
             total = 0
             query_total = """
             SELECT COUNT(id) FROM test_job WHERE is_deleted=0 {} ORDER BY id DESC""".format(extend_sql)
-            cursor.execute(query_total)
-            rows = cursor.fetchall()
+            rows = execute_sql(query_total, sql_params)
             if rows:
                 total = rows[0][0]
         return res, total
@@ -305,7 +322,7 @@ class JobTestService(CommonService):
             state = 'pending'
         if test_type == 'functional' and (state == 'fail' or state == 'success'):
             if func_view_config and func_view_config.config_value == '2':
-                count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(test_job_id, 2, 0)
+                count_case_fail, count_total, count_fail, count_no_match_baseline = parse_func_result(test_job_id, 2, 0)
                 if count_total == 0:
                     state = 'fail'
                     return state

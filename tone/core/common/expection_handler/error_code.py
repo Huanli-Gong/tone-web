@@ -27,7 +27,7 @@ class ErrorCode(Enum):
     TO_TESTFARM_REG_ERROR = ("1-03-012", "job名称规则不符合regex规范(不能为空 .* 匹配全部)", "", "", "")
     TO_TESTFARM_JOBS_EMPTY = ("1-03-013", "Workspace下project无job 或 名称规则未过滤到job", "", "", "")
     TO_TESTFARM_ID_ERROR = ("1-03-014", "推送配置 id 不正确, 请刷新后重试", "", "", "")
-    COMMENT_PARAMS_MISSING = ("1-03-015", "参数缺失", "", "", "")
+    COMMENT_PARAMS_MISSING = ("1-03-015", "参数缺失", "", "参数缺失", "")
     COMMENT_UPDATE_ERROR = ("1-03-016", "记录不存在或没有操作权限", "", "", "")
     BASE_CONFIG_PARAMS_ERROR = ("1-03-017", "auto_recover_server参数值格式不符合: 0 / 1", "", "", "")
     BASE_CONFIG_PARAMS_ERROR_1 = ("1-03-018", "recover_server_protect_duration参数值格式不符合数字格式", "", "", "")
@@ -198,13 +198,14 @@ class ErrorCode(Enum):
     TOKEN_INVALID = ("1-19-004", "签名无效", "", "无", "")
     TOKEN_NEED = ("1-19-005", "签名为必填参数", "", "无", "")
     USERNAME_NEED = ("1-19-006", "username为必填参数", "", "无", "")
-    LOGIN_ERROR = ("1-19-007", "请先登录", "", "无", "")
+    LOGIN_ERROR = ("1-19-007", "请先登录", "", "请先登录", "")
     UPDATE_ERROR = ("1-19-008", "自己不能修改自己", "", "无", "")
     USER_OR_PASS_ERROR = ("1-19-009", "用户名或密码错误", "", "无", "")
     USER_EXISTS_ERROR = ("1-19-010", "用户名已存在", "", "无", "")
     PASSWORD_COMMIT_ERROR = ("1-19-011", "两次输入的密码不一致", "", "无", "")
     OLD_PASSWORD_ERROR = ("1-19-012", "旧密码输入错误", "", "无", "")
     PASSWORD_SAME_TO_OLD_ERROR = ("1-19-013", "新密码不能与旧密码一致", "", "无", "")
+    ILLEGALITY_PARAM_ERROR = ("1-19-009", "非法参数", "", "无", "")
 
     @property
     def code(self):

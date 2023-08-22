@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 
+from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.views import CommonAPIView, BaseView
 from tone.core.utils.tone_thread import ToneThread
 from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, TestDomain, TestBusiness
@@ -131,6 +132,9 @@ class TestSuiteView(CommonAPIView):
         """
         suite列表查询
         """
+        if not request.user.id:
+            return Response(dict(code=ErrorCode.LOGIN_ERROR.code,
+                                 msg=ErrorCode.LOGIN_ERROR.msg))
         page_many = True
         if request.GET.get('scope') == 'case':
             self.serializer_class = TestSuiteCaseSerializer
