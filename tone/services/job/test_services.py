@@ -1019,40 +1019,7 @@ class UpdateStateService(CommonService):
                 id=job_id,
                 state__in=['running', 'pending', 'pending_q']
             ).update(state=state)
-            self._operation_after_stop_job(job_obj, operation_note)
-
-    @staticmethod
-    def _operation_after_stop_job(job_obj, operation_note):
-        # 1.将未运行suite/case状态改为skip
-        TestJobSuite.objects.filter(
-            job_id=job_obj.id,
-            state=JobCaseState.PENDING
-        ).update(state=JobCaseState.SKIP)
-        TestJobCase.objects.filter(
-            job_id=job_obj.id,
-            state=JobCaseState.PENDING
-        ).update(state=JobCaseState.SKIP)
-        # 2.将正在运行的suite/case状态改为stop
-        TestJobSuite.objects.filter(
-            job_id=job_obj.id,
-            state=JobCaseState.RUNNING
-        ).update(state=JobCaseState.STOP)
-        TestJobCase.objects.filter(
-            job_id=job_obj.id,
-            state=JobCaseState.RUNNING
-        ).update(state=JobCaseState.STOP)
-        # 3.写操作记录
-        TestJobCase.objects.filter(
-            job_id=job_obj.id
-        ).update(note=operation_note)
-        # 4.释放机器
-        ToneThread(release_server, (job_obj.id,)).start()
-        # 7.回调接口
-        if job_obj.callback_api:
-            JobCallBack(
-                job_id=job_obj.id,
-                callback_type=CallBackType.JOB_STOPPED
-            ).callback()
+            operation_after_stop_job(job_obj, operation_note)
 
     @staticmethod
     def _update_suite_state(data, state, operation_note):
@@ -1095,6 +1062,39 @@ class UpdateStateService(CommonService):
             id=test_job_conf_id, state__in=['pending', 'running']
         ).update(state=state)
         TestJobCase.objects.filter(id=test_job_conf_id).update(note=operation_note)
+
+
+def operation_after_stop_job(job_obj, operation_note):
+    # 1.将未运行suite/case状态改为skip
+    TestJobSuite.objects.filter(
+        job_id=job_obj.id,
+        state=JobCaseState.PENDING
+    ).update(state=JobCaseState.SKIP)
+    TestJobCase.objects.filter(
+        job_id=job_obj.id,
+        state=JobCaseState.PENDING
+    ).update(state=JobCaseState.SKIP)
+    # 2.将正在运行的suite/case状态改为stop
+    TestJobSuite.objects.filter(
+        job_id=job_obj.id,
+        state=JobCaseState.RUNNING
+    ).update(state=JobCaseState.STOP)
+    TestJobCase.objects.filter(
+        job_id=job_obj.id,
+        state=JobCaseState.RUNNING
+    ).update(state=JobCaseState.STOP)
+    # 3.写操作记录
+    TestJobCase.objects.filter(
+        job_id=job_obj.id
+    ).update(note=operation_note)
+    # 4.释放机器
+    release_server(job_obj.id)
+    # 5.回调接口
+    if job_obj.callback_api:
+        JobCallBack(
+            job_id=job_obj.id,
+            callback_type=CallBackType.JOB_STOPPED
+        ).callback()
 
 
 def release_server(test_job_id):
