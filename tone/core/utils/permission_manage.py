@@ -16,6 +16,17 @@ from tone.models import RoleMember, WorkspaceMember, Role, Workspace, User
 logger = logging.getLogger('permission_manage')
 
 
+def check_admin_operator_permission(user_name):
+    user = User.objects.filter(username=user_name).first()
+    if not user:
+        return False
+    sys_role_id = RoleMember.objects.get(user_id=user.id).role_id
+    sys_role = Role.objects.get(id=sys_role_id).title
+    if sys_role not in ['super_admin', 'sys_admin', 'sys_test_admin']:
+            return False
+    return True
+
+
 def check_operator_permission(operator_id, check_obj):
     """非系统管理员super_admin, sys_admin ws_member 只能操作自己"""
     sys_role_id = RoleMember.objects.get(user_id=operator_id).role_id
@@ -38,13 +49,12 @@ def check_ws_operator_permission(user_name, ws_id):
     sys_role = Role.objects.get(id=sys_role_id).title
     if sys_role not in ['super_admin', 'sys_admin']:
         ws_member = WorkspaceMember.objects.filter(ws_id=ws_id, user_id=user.id).first()
-        if ws_member:
-            operator_role_id = ws_member.role_id
-            operator_role = Role.objects.get(id=operator_role_id).title
-            allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin', 'ws_member']
-            if operator_role not in allow_list:
-                return False
-        else:
+        if not ws_member:
+            return False
+        operator_role_id = ws_member.role_id
+        operator_role = Role.objects.get(id=operator_role_id).title
+        allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin', 'ws_member']
+        if operator_role not in allow_list:
             return False
     return True
 
