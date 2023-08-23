@@ -18,12 +18,12 @@ import re
 from tone import settings
 from tone.core.utils.sftp_client import sftp_client
 from tone.models.job.upload_models import OfflineUpload
-from tone.models.job.job_models import TestJob, TestJobCase, TestJobSuite, TestStep, Product, Project
+from tone.models.job.job_models import TestJob, TestJobCase, TestJobSuite, TestStep, Project
 from tone.models.sys.testcase_model import TestSuite, TestCase, TestMetric
 from tone.models.sys.server_models import TestServer, TestServerSnapshot, CloudServer, CloudServerSnapshot,\
     TestCluster, TestClusterServer
 from tone.models.job.result_models import FuncResult, PerfResult, ResultFile
-from tone.models.sys.baseline_models import PerfBaselineDetail, Baseline
+from tone.models.sys.baseline_models import PerfBaselineDetail
 from tone.core.common.constant import OFFLINE_DATA_DIR, RESULTS_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.services.job.test_services import JobTestService
@@ -63,60 +63,19 @@ class OfflineDataUploadService(object):
     def post(self, data, file, operator):
         original_file_name = file.name
         file_bytes = file.read()
-        code, msg, offline_upload_id = self._valid_params(data, file_bytes, original_file_name, operator)
-        if code == 201:
+        if not operator or not operator.id:
+            code = 201
+            msg = '登录信息失效，请重新登录。'
             return code, msg
-        upload_thread = Thread(target=self._post_background, args=(data, file_bytes, operator, offline_upload_id,
-                                                                   original_file_name))
+        if not re.match(r'^[A-Za-z0-9\{}\._-]+$', original_file_name) or len(original_file_name) > 128:
+            code = 201
+            msg = '文件名不符合规范，允许字母、数字、下划线、中划线、{date}占位符，"."，不允许中文,请修改后重新上传。'
+            return code, msg
+        upload_thread = Thread(target=self._post_background, args=(data, file_bytes, operator, original_file_name))
         upload_thread.start()
         return 200, ''
 
     def _valid_params(self, data, file_bytes, original_file_name, operator):
-        if not operator or not operator.id:
-            code = 201
-            msg = '登录信息失效，请重新登录。'
-            return code, msg, 0
-        if not re.match(r'^[A-Za-z0-9\{}\._-]+$', original_file_name) or len(original_file_name) > 128:
-            code = 201
-            msg = '文件名不符合规范，允许字母、数字、下划线、中划线、{date}占位符，"."，不允许中文,请修改后重新上传。'
-            return code, msg, 0
-        file_path = MEDIA_ROOT + OFFLINE_DATA_DIR
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-        file_name = file_path + '/' + str(uuid.uuid4()) + '.' + 'tar'
-        open(file_name, 'wb').write(file_bytes)
-        tmp_tar = tarfile.open(file_name, 'r')
-        if not data.get('test_type') in ('functional', 'performance'):
-            code = 201
-            msg = '不支持的测试类型。'
-            tmp_tar.close()
-            os.remove(file_name)
-            return code, msg, 0
-        try:
-            tmp_yaml = yaml.load(tmp_tar.extractfile('job.yaml').read(), Loader=yaml.FullLoader)
-        except Exception as e:
-            code = 201
-            msg = f'job.yaml文件解析错误。{str(e)}'
-            tmp_tar.close()
-            os.remove(file_name)
-            return code, msg, 0
-        if 'test_config' not in tmp_yaml:
-            code = 201
-            msg = 'job.yaml需要test_config节点数据。'
-            tmp_tar.close()
-            os.remove(file_name)
-            return code, msg, 0
-        if data.get('server_type') not in ('aligroup', 'aliyun'):
-            code = 201
-            msg = '请求参数机器类型错误。'
-            tmp_tar.close()
-            os.remove(file_name)
-            return code, msg, 0
-        code, msg, _ = self._valid_server_param(tmp_tar, file_name, data, tmp_yaml['test_config'])
-        if code == 201:
-            return code, msg, 0
-        tmp_tar.close()
-        os.remove(file_name)
         upload_dict = dict()
         upload_dict['file_name'] = original_file_name
         upload_dict['file_link'] = ''
@@ -129,6 +88,43 @@ class OfflineDataUploadService(object):
         upload_dict['state'] = 'file'
         upload_dict['state_desc'] = '上传文件中'
         offline_upload = OfflineUpload.objects.create(**upload_dict)
+        file_path = MEDIA_ROOT + OFFLINE_DATA_DIR
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+        file_name = file_path + '/' + str(uuid.uuid4()) + '.' + 'tar'
+        open(file_name, 'wb').write(file_bytes)
+        tmp_tar = tarfile.open(file_name, 'r')
+        if not data.get('test_type') in ('functional', 'performance'):
+            code = 201
+            msg = '不支持的测试类型。'
+            tmp_tar.close()
+            os.remove(file_name)
+            return code, msg, offline_upload.id
+        try:
+            tmp_yaml = yaml.load(tmp_tar.extractfile('job.yaml').read(), Loader=yaml.FullLoader)
+        except Exception as e:
+            code = 201
+            msg = f'job.yaml文件解析错误。{str(e)}'
+            tmp_tar.close()
+            os.remove(file_name)
+            return code, msg, offline_upload.id
+        if 'test_config' not in tmp_yaml:
+            code = 201
+            msg = 'job.yaml需要test_config节点数据。'
+            tmp_tar.close()
+            os.remove(file_name)
+            return code, msg, offline_upload.id
+        if data.get('server_type') not in ('aligroup', 'aliyun'):
+            code = 201
+            msg = '请求参数机器类型错误。'
+            tmp_tar.close()
+            os.remove(file_name)
+            return code, msg, offline_upload.id
+        code, msg, _ = self._valid_server_param(tmp_tar, file_name, data, tmp_yaml['test_config'])
+        if code == 201:
+            return code, msg, offline_upload.id
+        tmp_tar.close()
+        os.remove(file_name)
         return 200, '', offline_upload.id
 
     def _valid_server_param(self, tmp_tar, file_name, data, yaml_test_config):
@@ -168,7 +164,11 @@ class OfflineDataUploadService(object):
                     return code, msg, 0
         return code, msg, 0
 
-    def _post_background(self, req_data, file_bytes, operator, offline_upload_id, original_file_name):
+    def _post_background(self, req_data, file_bytes, operator, original_file_name):
+        code, msg, offline_upload_id = self._valid_params(req_data, file_bytes, original_file_name, operator)
+        if code == 201:
+            OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
+            return
         file_name, oss_link = self.upload_tar(file_bytes)
         if not file_name:
             msg = 'sftp上传文件失败。'
