@@ -37,6 +37,28 @@ class PerfAnalysisView(CommonAPIView):
         return Response(response_data)
 
 
+class PerfSuiteCaseListView(CommonAPIView):
+    service_class = PerfAnalysisService
+
+    @method_decorator(views_catch_error)
+    def post(self, request):
+        data = self.service.get_suite_case_list(request.data)
+        response_data = self.get_response_code()
+        response_data['data'] = data
+        return Response(response_data)
+
+
+class PerfMetricListView(CommonAPIView):
+    service_class = PerfAnalysisService
+
+    @method_decorator(views_catch_error)
+    def post(self, request):
+        data = self.service.get_metric_list(request.data)
+        response_data = self.get_response_code()
+        response_data['data'] = data
+        return Response(response_data)
+
+
 class FuncAnalysisView(CommonAPIView):
     permission_classes = []
     service_class = FuncAnalysisService

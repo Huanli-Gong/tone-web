@@ -68,10 +68,9 @@ def api_catch_error(func):
             resp = CommResp()
             logger = get_logger()
             try:
-                if len(err.args) > 0 and len(err.args[0]) == 2:
-                    err_code = err.args[0]
-                    code = err_code[0]
-                    msg = err_code[1]
+                if str(err).startswith('ErrorCode'):
+                    code = err.args[0].code
+                    msg = err.args[0].to_api
                 else:
                     msg = str(err)
                     code = 500

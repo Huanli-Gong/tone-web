@@ -678,6 +678,7 @@ def _get_cases_by_job_job_suite(test_job_id, job_cases, job_suite, detail_server
             'priority': case.priority,
             'env_info': dict(case.env_info),
             'repeat': case.repeat,
+            'timeout': case.timeout,
             'run_mode': case.run_mode,
             'server': server
         })

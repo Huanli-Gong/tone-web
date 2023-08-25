@@ -214,7 +214,7 @@ class PlanService(CommonService):
         if data.get('test_config'):
             test_stage_info = data.get('test_config', list())
             if not test_stage_info:
-                return False, ErrorCode.PLAN_PREPARE_EXIST.to_api
+                return False, ErrorCode.PLAN_PREPARE_EXISTS.to_api
             for tmp_stage_info in test_stage_info:
                 if not tmp_stage_info.get('template'):
                     return False, ErrorCode.PARAMS_ERROR.\
