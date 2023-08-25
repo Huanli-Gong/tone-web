@@ -165,6 +165,7 @@ class ErrorCode(Enum):
     CLUSTER_SAME_WITH_PARAM = ("1-14-031", '同一集群下，region和zone必须保持一致', "", "", "")
     TONE_AGENT_REQUEST_ERROR = ("1-14-032", 'TONE AGENT接口请求异常', "", "", "")
     TONE_AGENT_VERSION_ERROR = ("1-14-033", 'TONE AGENT版本列表接口请求异常', "", "", "")
+    CLUSTER_SERVER_USED = ("1-14-034", '该机器已被其他集群使用', "", "", "")
     SUITE_NOT_EXISTS = ("1-15-001", '该suite不存在', "", "", "")
     SUITE_EXISTS = ("1-15-002", '该suite已存在', "", "", "")
     SUITE_DELETE_ERROR = ("1-15-003", '测试管理员仅能删除自己创建', "", "", "")
