@@ -1092,32 +1092,34 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
     if suite_value:
         for case_info in suite_value:
             case_id_list.append(case_info['conf_id'])
+    case_id_str = tuple(case_id_list)
     case_id_sql = '' if is_all else ' AND a.test_case_id IN (' + ','.join(str(e) for e in case_id_list) + ')'
     baseline_result_list = None
     job_result_list = None
     if baseline_id_list:
-        baseline_id_str = ','.join(str(e) for e in baseline_id_list)
+        baseline_id_str = tuple(baseline_id_list)
         raw_sql = 'SELECT DISTINCT a.baseline_id as test_job_id,a.test_case_id,c.name as test_case_name,' \
                   'a.test_value,a.cv_value,a.max_value,a.value_list,a.metric,b.object_type,b.id,' \
-                  'b.cv_threshold,b.cmp_threshold,b.direction,b.unit FROM perf_baseline_detail a LEFT JOIN ' \
+                  'b.cv_threshold,b.cmp_threshold,b.direction,a.unit FROM perf_baseline_detail a LEFT JOIN ' \
                   'test_track_metric b ON a.metric = b.name AND ((b.object_type = "case" AND ' \
                   'b.object_id = a.test_case_id) or (b.object_type = "suite" AND ' \
                   'b.object_id = a.test_suite_id )) LEFT JOIN test_case c ON a.test_case_id=c.id WHERE ' \
-                  'a.baseline_id IN (' + baseline_id_str + ') AND a.test_suite_id=' + str(suite_id) + case_id_sql + \
+                  'a.baseline_id IN %s AND a.test_suite_id=%s' + case_id_sql + \
                   ' AND b.cv_threshold > 0 ORDER BY b.object_type,b.id desc'
-        baseline_result_list = query_all_dict(raw_sql.replace('\'', ''), params=None)
+        params = [baseline_id_str, suite_id] if is_all else [baseline_id_str, suite_id, case_id_str]
+        baseline_result_list = query_all_dict(raw_sql.replace('\'', ''), params=params)
     if job_id_list:
-        job_id_str = ','.join(str(e) for e in job_id_list)
+        job_id_str = tuple(job_id_list)
         raw_sql = 'SELECT DISTINCT a.test_job_id,a.test_case_id,c.name as test_case_name,a.test_value,' \
                   'a.cv_value,a.max_value,b.object_type,b.id,' \
-                  'a.value_list,a.metric,b.cv_threshold,b.cmp_threshold,b.direction,b.unit FROM perf_result a ' \
+                  'a.value_list,a.metric,b.cv_threshold,b.cmp_threshold,b.direction,a.unit FROM perf_result a ' \
                   'LEFT JOIN test_track_metric b ON a.metric = b.name AND ((b.object_type = "case" AND ' \
                   'b.object_id = a.test_case_id) or (b.object_type = "suite" AND ' \
                   'b.object_id = a.test_suite_id )) LEFT JOIN test_case c ON a.test_case_id=c.id' \
-                  ' WHERE a.test_job_id IN (' + job_id_str + \
-                  ') AND a.test_suite_id=' + str(suite_id) + case_id_sql + \
+                  ' WHERE a.test_job_id IN %s AND a.test_suite_id=%s' + case_id_sql + \
                   ' AND b.cv_threshold > 0 ORDER BY b.object_type,b.id desc'
-        job_result_list = query_all_dict(raw_sql.replace('\'', ''), params=None)
+        params = [job_id_str, suite_id] if is_all else [job_id_str, suite_id, case_id_str]
+        job_result_list = query_all_dict(raw_sql.replace('\'', ''), params=params)
     base_job_list = group_list.pop(base_index)
     base_is_baseline = base_job_list.get('is_baseline', 0)
     duplicate_conf = base_job_list.get('duplicate_conf')
@@ -1379,7 +1381,7 @@ def get_suite_conf_sub_case_v1(suite_id, suite_name, base_index, group_job_list,
                     values_list('sub_case_name', flat=True).distinct()
             else:
                 func_results = FuncResult.objects.filter(Q(test_job_id=duplicate_job_id) & Q(test_case_id=conf_id)). \
-                    values_list('sub_case_name', 'sub_case_result').distinct()
+                    values_list('sub_case_name', 'sub_case_result', 'match_baseline').distinct()
             exist_conf = [conf for conf in conf_list if conf['conf_id'] == conf_id]
             if exist_conf and len(exist_conf) > 0:
                 continue
@@ -1433,6 +1435,8 @@ def concurrent_calc_v1(func_result, suite, conf, compare_job_li, base_index, q):
     if isinstance(func_result, tuple):
         sub_case_name = func_result[0]
         result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result[1])
+        if func_result[2]:
+            result += '(匹配基线)'
     else:
         sub_case_name = func_result
         result = FUNC_CASE_RESULT_TYPE_MAP.get(2)
@@ -1441,7 +1445,6 @@ def concurrent_calc_v1(func_result, suite, conf, compare_job_li, base_index, q):
     q.put(
         {
             'sub_case_name': sub_case_name,
-            # 'result': result,
             'compare_data': compare_data,
         }
     )
