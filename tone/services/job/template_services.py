@@ -9,12 +9,11 @@ from django.db import transaction
 
 from tone.core.common.services import CommonService
 from tone.models import TestTemplate, TestTmplCase, TestTmplSuite, WorkspaceMember, Role, RoleMember, \
-    PlanStageTestRelation, TestPlan
+    PlanStageTestRelation, TestPlan, PlanInstance, User
 from tone.models.sys.config_models import TemplateTagRelation
 from tone.core.handle.template_handle import TestTemplateHandle
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import JobTestException
-from tone.serializers.job.plan_serializers import TestPlanSerializer
 
 
 class TestTemplateService(CommonService):
@@ -30,6 +29,24 @@ class TestTemplateService(CommonService):
         q &= Q(job_type_id__in=data.getlist('job_type_id')) if data.get('job_type_id') else q
         q &= Q(description__icontains=data.get('description')) if data.get('description') else q
         return queryset.filter(q)
+
+    def check_template_plan_running(self, data):
+        template_id = data.get('template_id')
+        assert template_id, JobTestException(ErrorCode.TEMPLATE_NEED)
+        plan_list = PlanStageTestRelation.objects.filter(tmpl_id=template_id).values_list('plan_id', flat=True)
+        plan_running_list = PlanInstance.objects.filter(plan_id__in=plan_list, state='running')
+        running_plan = list()
+        if plan_running_list:
+            for plan in plan_running_list:
+                plan_dict = dict()
+                plan_dict['plan_name'] = plan.name
+                user = User.objects.filter(id=plan.creator).first()
+                plan_dict['creator'] = ''
+                if user:
+                    plan_dict['creator'] = user.username
+                plan_dict['gmt_created'] = plan.gmt_created
+                running_plan.append(plan_dict)
+        return running_plan
 
     def update(self, data, operator):  # noqa: C901
         template_id = data.get('template_id')

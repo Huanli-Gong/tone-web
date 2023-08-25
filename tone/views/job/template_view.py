@@ -121,3 +121,14 @@ class TemplateDelView(CommonAPIView):
     @method_decorator(views_catch_error)
     def post(self, request):
         return Response(self.get_response_data(self.service.del_confirm(request.data), many=True, page=True))
+
+
+class TemplateCheckRunningView(CommonAPIView):
+    service_class = TestTemplateService
+
+    @method_decorator(views_catch_error)
+    def get(self, request):
+        data = self.service.check_template_plan_running(request.GET)
+        response_data = self.get_response_code()
+        response_data['data'] = data
+        return Response(response_data)

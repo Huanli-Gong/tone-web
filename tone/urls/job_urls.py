@@ -40,6 +40,7 @@ urlpatterns = [
     path('template/detail/', template_view.TestTemplateDetailView.as_view(), name='template_detail'),
     path('template/items/', template_view.TemplateItemsView.as_view(), name='template_items'),
     path('template/copy/', template_view.TemplateCopyView.as_view(), name='template_copy'),
+    path('template/check/', template_view.TemplateCheckRunningView.as_view(), name='template_check_running'),
     path('test/job-monitor-item/', test_view.JobMonitorItemView.as_view(), name='job_monitor_item'),
     path('yaml_data_verify/', test_view.YamlDataVerify.as_view(), name='yaml_data_verify'),
     path('data_conversion/', test_view.DataConversion.as_view(), name='data_conversion'),
