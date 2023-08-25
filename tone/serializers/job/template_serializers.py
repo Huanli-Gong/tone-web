@@ -9,7 +9,7 @@ from rest_framework import serializers
 from tone.core.common.serializers import CommonSerializer
 from tone.core.utils.common_utils import kernel_info_format
 from tone.models import TestTemplate, TestTmplCase, TestTmplSuite, TemplateTagRelation, JobTypeItem, \
-    JobTypeItemRelation, JobTag, ServerTag
+    JobTypeItemRelation, JobTag, ServerTag, TestCase
 from tone.models.job.job_models import JobType
 from tone.models.sys.auth_models import User
 from tone.core.common.job_result_helper import get_rerun_case_server, get_custom_server
@@ -165,6 +165,11 @@ class TestTemplateDetailSerializer(CommonSerializer):
             }
             cases = list()
             for case in templates_cases.filter(test_suite_id=template_suite.test_suite_id):
+                timeout = case.timeout
+                if not timeout:
+                    test_case = TestCase.objects.filter(id=case.test_case_id).first()
+                    if test_case:
+                        timeout = test_case.timeout
                 server_obj = get_rerun_case_server(case, template=True)
                 server_tag_id = list() if not case.server_tag_id else \
                     [tag for tag in ServerTag.objects.filter(id__in=str(case.server_tag_id).split(',')).
@@ -182,6 +187,7 @@ class TestTemplateDetailSerializer(CommonSerializer):
                     'priority': case.priority,
                     'env_info': case.env_info,
                     'repeat': case.repeat,
+                    'timeout': timeout,
                     'ip': server_obj.ip,
                     'is_instance': server_obj.is_instance,
                 })

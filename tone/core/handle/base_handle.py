@@ -17,7 +17,7 @@ from tone.core.common.expection_handler.custom_error import JobTestException
 from tone.core.utils.common_utils import pack_env_infos
 from tone.core.utils.verify_tools import check_ip
 from tone.models import TestServer, TestClusterServer, CloudServer, TestServerSnapshot, Product, Project, TestSuite, \
-    CloudServerSnapshot, TestCluster, CloudAk
+    CloudServerSnapshot, TestCluster, CloudAk, TestCase
 from tone.core.common.job_result_helper import get_server_ip_sn
 from tone.services.sys.server_services import CloudServerService
 
@@ -101,11 +101,17 @@ class BaseHandle(metaclass=ABCMeta):
         case_dict = dict()
         run_mode = TestSuite.objects.get(id=suite.get('test_suite')).run_mode
         self.check_server_param(case_dict, run_mode, case, provider)
+        case_timeout = case.get('timeout')
+        if not case_timeout:
+            test_case = TestCase.objects.filter(id=case.get('test_case')).first()
+            if test_case:
+                case_timeout = test_case.timeout
         case_dict.update(
             {
                 'test_suite_id': suite.get('test_suite'),
                 'test_case_id': case.get('test_case'),
                 'repeat': case.get('repeat', 1),
+                'timeout': case_timeout,
                 'server_provider': self.provider,
                 'need_reboot': case.get('need_reboot', False),
                 'console': case.get('console', False),

@@ -228,6 +228,7 @@ class TestTemplateCopyService(CommonService):
                     run_mode=case.run_mode,
                     server_provider=case.server_provider,
                     repeat=case.repeat,
+                    timeout=case.timeout,
                     custom_ip=case.custom_ip,
                     custom_sn=case.custom_sn,
                     custom_channel=case.custom_channel,

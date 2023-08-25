@@ -171,6 +171,7 @@ class TestJobCase(BaseModel):
     run_mode = models.CharField(max_length=64, choices=RUN_MODE_CHOICES, default='standalone', help_text='测试类型')
     server_provider = models.CharField(max_length=64, choices=SERVER_PROVIDER, default='aligroup')
     repeat = models.IntegerField(default=1, help_text='重复次数')
+    timeout = models.IntegerField(default=0, help_text='超时时间')
     server_object_id = models.IntegerField(null=True, blank=True, help_text='机器id')
     server_tag_id = models.CharField(null=True, blank=True, max_length=256, help_text='机器标签id字符串')
     env_info = json.JSONField(default=dict(), help_text='变量信息')
@@ -283,6 +284,7 @@ class TestTmplCase(BaseModel):
     run_mode = models.CharField(max_length=64, choices=RUN_MODE_CHOICES, default='standalone', help_text='测试类型')
     server_provider = models.CharField(max_length=64, choices=SERVER_PROVIDER, default='aligroup')
     repeat = models.IntegerField(default=1, help_text='重复次数')
+    timeout = models.IntegerField(default=0, help_text='超时时间')
     custom_ip = models.CharField(max_length=64, null=True, blank=True, help_text='自定义机器IP')
     custom_sn = models.CharField(max_length=64, null=True, blank=True, help_text='自定义机器SN')
     custom_channel = models.CharField(max_length=64, null=True, blank=True,
