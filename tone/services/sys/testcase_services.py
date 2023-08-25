@@ -770,12 +770,16 @@ class TestMetricService(CommonService):
     @staticmethod
     def filter(queryset, data):
         q = Q()
-        if data.get('suite_id'):
+        if data.get('suite_id') and not data.get('case_id'):
             q &= Q(object_type='suite')
             q &= Q(object_id=data.get('suite_id'))
-        if data.get('case_id'):
+        if not data.get('suite_id') and data.get('case_id'):
             case_id = data.get('case_id')
             q &= Q(object_type='case') & Q(object_id=case_id)
+        if data.get('suite_id') and data.get('case_id'):
+            case_id = data.get('case_id')
+            suite_id = data.get('suite_id')
+            q &= ((Q(object_type='case') & Q(object_id=case_id)) | (Q(object_type='suite') & Q(object_id=suite_id)))
         if data.get('run_mode'):
             q &= Q(run_mode=data.get('run_mode'))
         if data.get('owner'):
