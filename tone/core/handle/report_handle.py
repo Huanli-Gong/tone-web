@@ -278,11 +278,13 @@ class ReportHandle(object):
 
     def handle_func_result(self, func_result, report_item_conf):
         compare_data = list()
-        compare_data.append(FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result))
+        result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result)
+        if func_result.match_baseline:
+            result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result) + '(匹配基线)'
+        compare_data.append(result)
         ReportItemSubCase.objects.create(report_item_conf_id=report_item_conf.id,
                                          sub_case_name=func_result.sub_case_name,
-                                         result=FUNC_CASE_RESULT_TYPE_MAP.get(
-                                             func_result.sub_case_result),
+                                         result=result,
                                          compare_data=compare_data)
 
     def get_test_env(self):
@@ -597,7 +599,7 @@ def get_perf_suite_list_v1(report_item_id, base_index, is_automatic):
               'a.show_type, a.test_env, a.test_description, a.test_conclusion, ' \
               'b.id AS item_conf_id, b.test_conf_id AS conf_id,b.test_conf_name AS conf_name, b.conf_source,' \
               'b.compare_conf_list, c.test_metric,c.test_value,c.cv_value,d.doc AS test_suite_description,' \
-              'c.compare_data,e.cv_threshold,e.cmp_threshold,e.unit,e.direction' \
+              'c.compare_data,e.cv_threshold,e.cmp_threshold,c.unit,e.direction' \
               ' FROM report_item_suite a ' \
               'LEFT JOIN report_item_conf b ON b.report_item_suite_id=a.id ' \
               'LEFT JOIN report_item_metric c ON c.report_item_conf_id=b.id ' \
@@ -610,7 +612,7 @@ def get_perf_suite_list_v1(report_item_id, base_index, is_automatic):
                'a.show_type, a.test_env, a.test_description, a.test_conclusion, ' \
                'b.id AS item_conf_id, b.test_conf_id AS conf_id,b.test_conf_name AS conf_name, b.conf_source,' \
                'b.compare_conf_list, c.test_metric,c.test_value,c.cv_value,d.doc AS test_suite_description,' \
-               'c.compare_data,e.cv_threshold,e.cmp_threshold,e.unit,e.direction' \
+               'c.compare_data,e.cv_threshold,e.cmp_threshold,c.unit,e.direction' \
                ' FROM report_item_suite a ' \
                'LEFT JOIN report_item_conf b ON b.report_item_suite_id=a.id ' \
                'LEFT JOIN report_item_metric c ON c.report_item_conf_id=b.id ' \
