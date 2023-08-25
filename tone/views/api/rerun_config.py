@@ -7,7 +7,7 @@ Author: Yfh
 from tone.core.utils.common_utils import kernel_info_format, format_env_info
 from django.db.models import Q
 from tone.core.utils.tone_thread import ToneThread
-from tone.models import TestJob, TestJobSuite, TestJobCase, JobTagRelation, JobTag, FuncResult, ServerTag
+from tone.models import TestJob, TestJobSuite, TestJobCase, JobTagRelation, JobTag, FuncResult, ServerTag, TestCase
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_catch import api_catch_error
 from tone.core.common.expection_handler.error_code import ErrorCode
@@ -140,10 +140,16 @@ def _package_case(case_config, data, job_case, server_deleted_list, server_no_al
         server_obj_id = None
     elif not server_obj.server_object_id:
         server_obj_id = get_server_object_id(job_case)
+    case_timeout = job_case.timeout
+    if not case_timeout:
+        test_case = TestCase.objects.filter(id=job_case.test_case_id).first()
+        if test_case:
+            case_timeout = test_case.timeout
     case_config.append({
         'id': job_case.id,
         'test_case_id': job_case.test_case_id,
         'repeat': job_case.repeat,
+        'timeout': case_timeout,
         'customer_server': get_custom_server(job_case.id),
         'server_object_id': server_obj_id,
         'server_tag_id': server_tag_id,
