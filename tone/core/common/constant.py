@@ -155,17 +155,17 @@ ANALYSIS_SQL_MAP = {
         job_tag_relation AS G 
     WHERE
         A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
+        AND A.start_time >= %s
+        AND A.end_time <= %s
+        AND A.server_provider = %s
         AND A.test_type = 'performance' 
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric}) 
+        AND A.project_id = %s 
+        AND B.metric IN %s 
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
+        AND C.test_case_id = %s 
         AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
+        AND C.test_suite_id = %s 
         AND C.state IN ( 'success', 'fail' ) 
         AND A.state IN ( 'success', 'fail' ) 
         AND C.server_snapshot_id = D.id 
@@ -210,23 +210,23 @@ ANALYSIS_SQL_MAP = {
         job_tag_relation AS H
     WHERE
         A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
+        AND A.start_time >= %s
+        AND A.end_time <= %s
+        AND A.server_provider = %s
         AND A.test_type = 'performance' 
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric})  
+        AND A.project_id = %s 
+        AND B.metric IN %s  
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
+        AND C.test_case_id = %s 
         AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
+        AND C.test_suite_id = %s 
         AND C.state IN ( 'success', 'fail' ) 
         AND A.state IN ( 'success', 'fail' ) 
         AND C.server_snapshot_id = D.id 
         AND A.creator = E.id 
         AND F.job_id = A.id 
-        AND F.tag_id = {tag}
+        AND F.tag_id = %s
         AND A.is_deleted = 0
         AND B.is_deleted = 0
         AND C.is_deleted = 0
@@ -248,7 +248,7 @@ ANALYSIS_SQL_MAP = {
         A.build_pkg_info,
         E.first_name,
         E.last_name,
-        D.private_ip,
+        D.pub_ip,
         B.test_value,
         B.cv_value,
         B.note,
@@ -265,22 +265,22 @@ ANALYSIS_SQL_MAP = {
         perf_result AS B,
         test_job_case AS C,
         cloud_server_snapshot AS D,
-        user AS E,
+        USER AS E,
         job_tag AS F,
         job_tag_relation AS G  
     WHERE
         A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
+        AND A.start_time >= %s
+        AND A.end_time <= %s
+        AND A.server_provider = %s
         AND A.test_type = 'performance'
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric})
+        AND A.project_id = %s 
+        AND B.metric IN %s
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
+        AND C.test_case_id = %s 
         AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
+        AND C.test_suite_id = %s 
         AND C.state IN ( 'success', 'fail' ) 
         AND A.state IN ( 'success', 'fail' ) 
         AND C.server_snapshot_id = D.id 
@@ -305,7 +305,7 @@ ANALYSIS_SQL_MAP = {
         A.build_pkg_info,
         E.first_name,
         E.last_name,
-        D.private_ip,
+        D.pub_ip,
         B.test_value,
         B.cv_value,
         B.note,
@@ -328,23 +328,23 @@ ANALYSIS_SQL_MAP = {
         job_tag_relation AS H
     WHERE
         A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
+        AND A.start_time >= %s
+        AND A.end_time <= %s
+        AND A.server_provider = %s
         AND A.test_type = 'performance' 
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric}) 
+        AND A.project_id = %s 
+        AND B.metric IN %s 
         AND C.job_id = A.id 
         AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
+        AND C.test_case_id = %s 
         AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
+        AND C.test_suite_id = %s 
         AND C.state IN ( 'success', 'fail' ) 
         AND A.state IN ( 'success', 'fail' ) 
         AND C.server_snapshot_id = D.id 
         AND A.creator = E.id 
         AND F.job_id = A.id 
-        AND F.tag_id = {tag}
+        AND F.tag_id = %s
         AND A.is_deleted = 0
         AND B.is_deleted = 0
         AND C.is_deleted = 0
@@ -366,8 +366,7 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         A.test_suite_id,
         A.test_case_id,
         C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
+        D.name AS test_case_name
     FROM
         perf_result AS A,
         test_job AS B,
@@ -377,11 +376,11 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
+        AND B.project_id = %s 
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -389,7 +388,7 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         AND B.is_deleted = 0
         AND C.is_deleted = 0
         AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
@@ -399,22 +398,22 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         A.test_suite_id,
         A.test_case_id,
         C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
+        D.name AS test_case_name
     FROM
         perf_result AS A,
         test_job AS B,
         test_suite AS C,
         test_case AS D,
         job_tag AS E,
-        job_tag_relation AS F 
+        job_tag_relation AS F,
+        job_tag_relation AS G 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
+        AND B.project_id = %s 
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -422,19 +421,19 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         AND B.is_deleted = 0
         AND C.is_deleted = 0
         AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
-        AND F.tag_id = {tag}
+        AND B.id = G.job_id
+        AND G.tag_id = %s
    """,
     'group_func': """
         SELECT DISTINCT 
         A.test_suite_id,
         A.test_case_id,
         C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
+        D.name AS test_case_name
     FROM
         func_result AS A,
         test_job AS B,
@@ -442,11 +441,10 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         test_case AS D
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
+        AND B.project_id = %s 
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -454,15 +452,14 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         AND B.is_deleted = 0
         AND C.is_deleted = 0
         AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
     """,
     'group_func_tag': """
     SELECT DISTINCT 
         A.test_suite_id,
         A.test_case_id,
         C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
+        D.name AS test_case_name
     FROM
         func_result AS A,
         test_job AS B,
@@ -472,11 +469,10 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
+        AND B.project_id = %s 
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -484,10 +480,10 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         AND B.is_deleted = 0
         AND C.is_deleted = 0
         AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
-        AND F.tag_id = {tag}
+        AND F.tag_id = %s
    """,
 }
 
@@ -502,17 +498,17 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id} 
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s 
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
@@ -524,26 +520,26 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         perf_result AS A,
         test_job AS B,
         job_tag AS E,
-        job_tag_relation AS F 
+        job_tag_relation AS F,
+        job_tag_relation AS G 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id}
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
-        AND F.tag_id = {tag}
+        AND B.id = G.job_id
+        AND G.tag_id = %s
    """,
     'group_func': """
         SELECT DISTINCT 
@@ -553,17 +549,16 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         test_job AS B
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id} 
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s 
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s
     """,
     'group_func_tag': """
     SELECT DISTINCT 
@@ -575,20 +570,19 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id}
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
-        AND F.tag_id = {tag}
+        AND F.tag_id = %s
    """,
 }
 
@@ -600,7 +594,7 @@ FILTER_JOB_TAG_SQL = """
         job_tag AS B,
         job_tag_relation AS C 
     WHERE
-        A.project_id = {project_id}
+        A.project_id = %s
         AND B.NAME = 'analytics' 
         AND B.id = C.tag_id 
         AND A.id = C.job_id 
