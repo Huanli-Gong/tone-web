@@ -52,11 +52,13 @@ class PerfAnalysisService(CommonService):
         end_time = date_add(end_time, 1)
         job_list = []
         sql = self.get_sql(provider_env, tag)
-        metrics_str = ','.join("'" + e + "'" for e in metrics)
-        raw_sql = sql.format(project=project, test_suite=test_suite, test_case=test_case, metric=metrics_str,
-                             start_time=datetime.strptime(start_time, '%Y-%m-%d'),
-                             end_time=datetime.strptime(end_time, '%Y-%m-%d'), tag=tag, provider_env=provider_env)
-        metrics_result = query_all_dict(raw_sql)
+        metrics_str = tuple(metrics)
+        start_dt = datetime.strptime(start_time, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_time, '%Y-%m-%d')
+        params = [start_dt, end_dt, provider_env, project, metrics_str, test_case, test_suite]
+        if tag:
+            params.append(tag)
+        metrics_result = query_all_dict(sql, params=params)
         for metric in metrics:
             metric_result = [result for result in metrics_result if result['metric'] == metric]
             if metric_result:
@@ -261,11 +263,15 @@ class PerfAnalysisService(CommonService):
         assert start_time, AnalysisException(ErrorCode.START_TIME_NEED)
         assert end_time, AnalysisException(ErrorCode.END_TIME_NEED)
         end_time = date_add(end_time, 1)
-        raw_sql = self.get_suite_list_sql(test_type, tag).format(project=project_id, ws_id=ws_id,
-                                                                 start_time=datetime.strptime(start_time, '%Y-%m-%d'),
-                                                                 end_time=datetime.strptime(end_time, '%Y-%m-%d'),
-                                                                 tag=tag, provider_env=provider_env)
-        suite_case_list = query_all_dict(raw_sql)
+        start_time = datetime.strptime(start_time, '%Y-%m-%d')
+        end_time = datetime.strptime(end_time, '%Y-%m-%d')
+        raw_sql = self.get_suite_list_sql(test_type, tag)
+        params = [start_time, end_time, provider_env, project_id, ws_id]
+        if test_type == 'functional':
+            params = [start_time, end_time, project_id, ws_id]
+        if tag:
+            params.append(tag)
+        suite_case_list = query_all_dict(raw_sql, params=params)
         suite_list = list()
         for suite_info in suite_case_list:
             case_dict = dict()
@@ -304,13 +310,15 @@ class PerfAnalysisService(CommonService):
         assert test_suite_id, AnalysisException(ErrorCode.TEST_CASE_NEED)
         assert test_case_id, AnalysisException(ErrorCode.TEST_SUITE_NEED)
         end_time = date_add(end_time, 1)
-        raw_sql = self.get_metric_list_sql(test_type, tag).format(project=project_id, ws_id=ws_id,
-                                                                  start_time=datetime.strptime(start_time, '%Y-%m-%d'),
-                                                                  end_time=datetime.strptime(end_time, '%Y-%m-%d'),
-                                                                  tag=tag, provider_env=provider_env,
-                                                                  test_suite_id=test_suite_id,
-                                                                  test_case_id=test_case_id)
-        metric_res_list = query_all_dict(raw_sql)
+        start_time = datetime.strptime(start_time, '%Y-%m-%d')
+        end_time = datetime.strptime(end_time, '%Y-%m-%d')
+        params = [start_time, end_time, provider_env, project_id, test_suite_id, test_case_id, ws_id]
+        if test_type == 'functional':
+            params = [start_time, end_time, project_id, test_suite_id, test_case_id, ws_id]
+        if tag:
+            params.append(tag)
+        raw_sql = self.get_metric_list_sql(test_type, tag)
+        metric_res_list = query_all_dict(raw_sql, params=params)
         metric_list = list()
         for metric in metric_res_list:
             metric_list.append(metric['metric'])
@@ -400,20 +408,20 @@ class FuncAnalysisService(CommonService):
     def get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li):
         job_list = list()
         case_map = dict()
-        job_li = ','.join(str(e) for e in job_id_li)
+        job_li = tuple(job_id_li)
         if show_type == 'pass_rate':
             raw_sql = 'SELECT COUNT(*) AS all_case,SUM(case when sub_case_result=1 then 1 ELSE 0 END ) AS ' \
-                      'pass_case,test_job_id FROM func_result WHERE test_job_id IN (' + job_li + ') AND ' \
+                      'pass_case,test_job_id FROM func_result WHERE test_job_id IN %s AND ' \
                       'test_suite_id=%s AND test_case_id=%s GROUP BY test_job_id '
-            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case])
+            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [job_li, test_suite, test_case])
         else:
             assert sub_case_name, AnalysisException(ErrorCode.SUB_CASE_NEED)
             raw_sql = 'SELECT id,note,sub_case_result,test_job_id FROM func_result WHERE test_job_id ' \
-                      'IN (' + job_li + ') AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
-            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case, sub_case_name])
-        job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN (' + job_li + ')' \
+                      'IN %s AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
+            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [job_li, test_suite, test_case, sub_case_name])
+        job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN %s' \
                        ' AND test_suite_id=%s AND test_case_id=%s'
-        job_cases = query_all_dict(job_case_sql.replace('\'', ''), [test_suite, test_case])
+        job_cases = query_all_dict(job_case_sql.replace('\'', ''), [job_li, test_suite, test_case])
         for key, value in sub_case_map.items():
             if value:
                 job_case = [case for case in job_cases if case['job_id'] == value.get('job_id')]
