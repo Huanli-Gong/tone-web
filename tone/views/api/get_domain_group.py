@@ -60,13 +60,17 @@ def get_domain_group_v1(suite_list):
                 suite_id_list.append(suite.get('suite_id'))
         else:
             conf_id_list.extend(suite.get('conf_list'))
+    params = []
     if len(suite_id_list) > 0 and len(conf_id_list) > 0:
-        sql_filter += ' a.test_suite_id in (' + ','.join(str(e) for e in suite_id_list) + ')'
-        sql_filter += ' or a.id in (' + ','.join(str(e) for e in conf_id_list) + ')'
+        sql_filter += ' a.test_suite_id in %s'
+        sql_filter += ' or a.id in %s'
+        params = [tuple(suite_id_list), tuple(conf_id_list)]
     elif len(suite_id_list) > 0:
-        sql_filter += ' a.test_suite_id in (' + ','.join(str(e) for e in suite_id_list) + ')'
+        sql_filter += ' a.test_suite_id in %s'
+        params = [tuple(suite_id_list)]
     elif len(conf_id_list) > 0:
-        sql_filter += ' a.id in (' + ','.join(str(e) for e in conf_id_list) + ')'
+        sql_filter += ' a.id in %s'
+        params = [tuple(conf_id_list)]
     if len(suite_id_list) == 0 and len(conf_id_list) == 0:
         test_case_list = list()
     else:
@@ -80,7 +84,7 @@ def get_domain_group_v1(suite_list):
                   'ON a.test_suite_id=b.id WHERE a.id NOT IN (SELECT object_id from domain_relation WHERE ' \
                   'object_type="case" AND is_deleted=0) AND ' \
                   '(' + sql_filter + ')'
-        test_case_list = query_all_dict(raw_sql)
+        test_case_list = query_all_dict(raw_sql, params=params + params)
     for test_case in test_case_list:
         insert_conf(test_case.get('domain'), res_data, test_case.get('test_type'), test_case.get('test_suite_id'),
                     test_case.get('id'))
