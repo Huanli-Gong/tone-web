@@ -271,25 +271,23 @@ class PerfAnalysisService(CommonService):
             params = [start_time, end_time, project_id, ws_id]
         if tag:
             params.append(tag)
-        suite_case_list = query_all_dict(raw_sql, params=params)
+        suite_res_list = query_all_dict(raw_sql, params=params)
+        suite_case_list = sorted(suite_res_list, key=lambda x: x['test_suite_id'], reverse=True)
         suite_list = list()
+        tmp_suite_id = 0
+        suite_dict = dict()
         for suite_info in suite_case_list:
             case_dict = dict()
             case_dict['test_case_id'] = suite_info['test_case_id']
             case_dict['test_case_name'] = suite_info['test_case_name']
-            suite_exist = [suite for suite in suite_list if suite['test_suite_id'] == suite_info['test_suite_id']]
-            if len(suite_exist) == 0:
+            if suite_info['test_suite_id'] != tmp_suite_id:
+                tmp_suite_id = suite_info['test_suite_id']
                 suite_dict = dict()
                 suite_dict['test_suite_id'] = suite_info['test_suite_id']
                 suite_dict['test_suite_name'] = suite_info['test_suite_name']
                 suite_dict['test_case_list'] = list()
-                suite_dict['test_case_list'].append(case_dict)
                 suite_list.append(suite_dict)
-            else:
-                case_exist = [case for case in suite_exist[0]['test_case_list']
-                              if case['test_case_id'] == suite_info['test_case_id']]
-                if len(case_exist) == 0:
-                    suite_exist[0]['test_case_list'].append(case_dict)
+            suite_dict['test_case_list'].append(case_dict)
         return suite_list
 
     def get_metric_list(self, data):
