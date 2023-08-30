@@ -82,6 +82,7 @@ class ErrorCode(Enum):
     ID_NEED = ("1-05-046", "缺失记录id", "", "无", "")
     PRODUCT_PERMISSION_ERROR = ("1-05-047", "产品不存在或没有访问权限", "", "无", "")
     PARAMS_ERROR = ("1-05-048", "参数错误", "", "无", "")
+    PROVIDER_NEED = ("1-05-049", "provider为必填参数", "", "无", "")
     TEST_CASE_NEED = ("1-07-001", " test_case_id为必填参数", "", "", "")
     START_TIME_NEED = ("1-07-002", " start_time为必填参数", "", "", "")
     END_TIME_NEED = ("1-07-003", " end_time为必填参数", "", "", "")
