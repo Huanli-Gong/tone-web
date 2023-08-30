@@ -382,7 +382,7 @@ class FuncAnalysisService(CommonService):
             if analytics_tag_id_set.issubset(job_tag_relation_ids):
                 job_li.append(job)
         sub_case_map, job_id_li = self.get_sub_case_map(job_li, start_time, end_time)
-        res_data = None
+        res_data = dict()
         if job_id_li:
             res_data = self.get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li)
         return res_data
