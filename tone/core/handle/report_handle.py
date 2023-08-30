@@ -474,6 +474,7 @@ def package_name_v1(index, _data, name_li, report_item_id, test_type, base_index
 def get_func_suite_list_v1(report_item_id):
     suite_list = list()
     raw_sql = 'SELECT a.id AS item_suite_id, a.test_suite_id AS suite_id, a.test_suite_name AS suite_name, ' \
+              'a.test_env, a.test_description, a.test_conclusion,' \
               'b.id AS item_conf_id, b.test_conf_id AS conf_id,b.test_conf_name AS conf_name, b.conf_source,' \
               'b.compare_conf_list, c.sub_case_name, c.compare_data,c.result FROM report_item_suite a ' \
               'LEFT JOIN report_item_conf b ON b.report_item_suite_id=a.id ' \
@@ -493,6 +494,9 @@ def get_func_suite_list_v1(report_item_id):
             suite_data['item_suite_id'] = test_suite_obj['item_suite_id']
             suite_data['suite_id'] = test_suite_obj['suite_id']
             suite_data['suite_name'] = test_suite_obj['suite_name']
+            suite_data['test_env'] = test_suite_obj['test_env']
+            suite_data['test_description'] = test_suite_obj['test_description']
+            suite_data['test_conclusion'] = test_suite_obj['test_conclusion']
             conf_list = list()
             suite_list.append(suite_data)
         exist_conf = [conf for conf in conf_list if conf['conf_id'] == test_suite_obj['conf_id']]
