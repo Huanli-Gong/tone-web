@@ -1785,7 +1785,9 @@ class ServerSnapshotService(CommonService):
             values_list('sn', flat=True).distinct()
         cloud_server_sn_list = CloudServerSnapshot.objects.exclude(sn=''). \
             filter(q & Q(pub_ip='') & Q(sn__isnull=False)).values_list('sn', flat=True).distinct()
-        return list(test_server_list) + list(cloud_server_list) + list(test_server_sn_list) + list(cloud_server_sn_list)
+        res_list = list(test_server_list) + list(cloud_server_list) + list(test_server_sn_list) + list(
+            cloud_server_sn_list)
+        return list(set(res_list))
 
 
 class SyncServerStateService(CommonService):
