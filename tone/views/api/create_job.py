@@ -213,8 +213,8 @@ def get_ws(ws_name):
     return Workspace.objects.get(name=ws_name).id
 
 
-@token_required
 @api_catch_error
+@token_required
 def get_server_list(request):
     data = request.GET
     ws_id = data.get('ws_id')
@@ -232,8 +232,10 @@ def get_server_list(request):
             values_list('instance_id', flat=True).distinct()
         resp.data = list(queryset)
     return resp.json_resp()
-@token_required
+
+
 @api_catch_error
+@token_required
 def get_server_tag_list(request):
     data = request.GET
     ws_id = data.get('ws_id')
