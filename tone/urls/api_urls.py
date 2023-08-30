@@ -32,4 +32,9 @@ urlpatterns = [
     path('job/product/list/', query_job.get_product_job_list, name='job_product_list'),
     path('job/list/', query_job.get_job_info_list, name='job_list'),
     path('job/stop/', handle_job.stop_job, name='job_stop'),
+    path('job/get_job_suite/', query_job.get_job_suite, name='get_job_suite'),
+    path('job/get_job_metric/', query_job.get_job_metric, name='get_job_metric'),
+    path('job/get_job_sub_case/', query_job.get_job_sub_case, name='get_job_sub_case'),
+    path('workspace/get_server_info/', query_job.get_server_info, name='get_server_info'),
+    path('job/project/list/', query_job.get_project_job_list, name='job_project_list'),
 ]
