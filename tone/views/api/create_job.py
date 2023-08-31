@@ -16,7 +16,7 @@ from tone.core.handle.job_handle import JobDataHandle
 from tone.core.common.verify_token import token_required
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
-from tone.serializers.job.test_serializers import JobTestSerializer, JobSerializerForAPI
+from tone.core.utils.permission_manage import check_ws_operator_permission
 
 
 @api_catch_error
@@ -57,6 +57,8 @@ def conversion_data(data):  # noqa: C901
         ws_name = data.get('workspace')
         assert ws_name, ValueError(ErrorCode.WS_NAME_NEED)
         ws_id = get_ws(ws_name)
+    if not check_ws_operator_permission(data.get('username'), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     if data.get('template') or data.get('template_id'):
         data['data_from'] = 'template'
         template = TestTemplate.objects.get(id=data.get('template_id')) if data.get('template_id') else get_template(
@@ -213,13 +215,18 @@ def get_ws(ws_name):
     return Workspace.objects.get(name=ws_name).id
 
 
-@token_required
 @api_catch_error
+@token_required
 def get_server_list(request):
     data = request.GET
     ws_id = data.get('ws_id')
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
     provider = data.get('provider')
+    assert provider, ValueError(ErrorCode.PROVIDER_NEED)
     run_mode = data.get('run_mode')
+    assert run_mode, ValueError(ErrorCode.PARAMS_ERROR)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     resp = CommResp()
     if provider == 'aligroup' and run_mode == 'standalone':
         queryset = TestServer.objects.exclude(ip='').\
@@ -232,11 +239,16 @@ def get_server_list(request):
             values_list('instance_id', flat=True).distinct()
         resp.data = list(queryset)
     return resp.json_resp()
-@token_required
+
+
 @api_catch_error
+@token_required
 def get_server_tag_list(request):
     data = request.GET
     ws_id = data.get('ws_id')
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     resp = CommResp()
     queryset = ServerTag.objects.filter(ws_id=ws_id).values_list('name', flat=True)
     resp.data = list(queryset)
