@@ -641,8 +641,12 @@ def _get_cases_by_job_job_suite(test_job_id, job_cases, job_suite, detail_server
     cases = list()
     for case in job_cases.filter(test_suite_id=job_suite.test_suite_id):
         ip, is_instance, _, _ = get_job_case_server(case.id, is_config=True)
-        test_case_name = TestCase.objects.get_value(id=case.test_case_id) and TestCase.objects.get_value(
-            id=case.test_case_id).name
+        timeout = case.timeout
+        test_case_name = ''
+        test_case = TestCase.objects.filter(id=case.test_case_id).first()
+        if test_case:
+            timeout = test_case.timeout if not timeout else case.timeout
+            test_case_name = test_case.name
         server_info = get_job_case_run_server(case.id, return_field='obj')
         server = ({
             'ip': ip
@@ -678,7 +682,7 @@ def _get_cases_by_job_job_suite(test_job_id, job_cases, job_suite, detail_server
             'priority': case.priority,
             'env_info': dict(case.env_info),
             'repeat': case.repeat,
-            'timeout': case.timeout,
+            'timeout': timeout,
             'run_mode': case.run_mode,
             'server': server
         })
