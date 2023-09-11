@@ -666,7 +666,7 @@ class OutSiteMsgHandle(object):
                     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
                     end_date = datetime.now().strftime('%Y-%m-%d')
                     presult_e['link'] = '{}/ws/{}/test_analysis/time?' \
-                                        'test_type={}&show_type=0&provider_env={}&start_time={}&end_time={}&' \
+                                        'test_type={}&show_type=pass_rate&provider_env={}&start_time={}&end_time={}&' \
                                         'tag={}&project_id={}&test_suite_id={}&test_case_id={}&' \
                                         'metric={}&title={}%2F{}'.\
                         format(get_skip_url(), job_obj.ws_id, job_obj.test_type, job_obj.server_provider, start_date,
