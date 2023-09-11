@@ -30,8 +30,10 @@ class JobDataHandle(BaseHandle):
         """
         if self.is_api:
             env_info_delimiter = self.data.get('env_ifs')
+            self.data_dic['created_from'] = 'api'
         else:
             env_info_delimiter = '\n'
+            self.data_dic['created_from'] = 'web'
         if self.data_from == 'custom':
             self.data_dic['job_type_id'] = job_type_id = self.data.get('job_type')
             assert job_type_id, JobTestException(ErrorCode.TYPE_ID_LACK)

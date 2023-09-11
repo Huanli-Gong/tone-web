@@ -474,6 +474,7 @@ def package_name_v1(index, _data, name_li, report_item_id, test_type, base_index
 def get_func_suite_list_v1(report_item_id):
     suite_list = list()
     raw_sql = 'SELECT a.id AS item_suite_id, a.test_suite_id AS suite_id, a.test_suite_name AS suite_name, ' \
+              'a.test_env, a.test_description, a.test_conclusion,' \
               'b.id AS item_conf_id, b.test_conf_id AS conf_id,b.test_conf_name AS conf_name, b.conf_source,' \
               'b.compare_conf_list, c.sub_case_name, c.compare_data,c.result FROM report_item_suite a ' \
               'LEFT JOIN report_item_conf b ON b.report_item_suite_id=a.id ' \
@@ -493,6 +494,9 @@ def get_func_suite_list_v1(report_item_id):
             suite_data['item_suite_id'] = test_suite_obj['item_suite_id']
             suite_data['suite_id'] = test_suite_obj['suite_id']
             suite_data['suite_name'] = test_suite_obj['suite_name']
+            suite_data['test_env'] = test_suite_obj['test_env']
+            suite_data['test_description'] = test_suite_obj['test_description']
+            suite_data['test_conclusion'] = test_suite_obj['test_conclusion']
             conf_list = list()
             suite_list.append(suite_data)
         exist_conf = [conf for conf in conf_list if conf['conf_id'] == test_suite_obj['conf_id']]
@@ -692,27 +696,27 @@ def get_server_info(tag, objs):  # nq  c901
             baseline_id_list.append(obj_id)
         else:
             job_id_list.append(obj_id)
-    job_id_str = ','.join(str(e) for e in job_id_list)
+    job_id_str = tuple(job_id_list)
     if baseline_id_list:
         perf_base_detail = PerfBaselineDetail.objects.filter(baseline_id__in=baseline_id_list).values_list(
             'test_job_id', flat=True).distinct()
         if perf_base_detail.exists():
-            job_id_str = ','.join(str(e) for e in perf_base_detail)
+            job_id_str = tuple(perf_base_detail)
         func_base_detail = FuncBaselineDetail.objects.filter(baseline_id__in=baseline_id_list).values_list(
             'test_job_id', flat=True).distinct()
         if func_base_detail.exists():
-            job_id_str = ','.join(str(e) for e in func_base_detail)
+            job_id_str = tuple(func_base_detail)
     if job_id_str:
         raw_sql = 'SELECT ip,sm_name,distro,rpm_list,kernel_version,gcc,' \
                   'glibc,memory_info,disk,cpu_info,ether FROM test_server_snapshot ' \
                   'WHERE is_deleted=0  AND ' \
-                  'job_id IN (' + job_id_str + ') AND distro IS NOT NULL UNION ' \
+                  'job_id IN %s AND distro IS NOT NULL UNION ' \
                   'SELECT private_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
                   'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
                   'FROM cloud_server_snapshot ' \
                   'WHERE is_deleted=0 AND ' \
-                  'job_id IN (' + job_id_str + ') AND distro IS NOT null'
-        all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=None)
+                  'job_id IN %s AND distro IS NOT null'
+        all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=[job_id_str, job_id_str])
         for server_info in all_server_info:
             ip = server_info.get('ip')
             if not (server_info.get('distro') or server_info.get('rpm_list') or server_info.get('gcc')) or \
@@ -766,24 +770,24 @@ def get_group_server_info(base_group, compare_groups):
         'base_group': list(),
         'compare_groups': list()
     }
-    job_id_str = ','.join(str(e) for e in job_id_list)
+    job_id_str = tuple(job_id_list)
     baseline_server_info = None
     all_server_info = None
     if baseline_id_list:
-        baseline_id_str = ','.join(str(e) for e in baseline_id_list)
+        baseline_id_str = tuple(baseline_id_list)
         baseline_raw_sql = 'SELECT baseline_id,ip,sm_name,distro,rpm_list,kernel_version,gcc,' \
                            'glibc,memory_info,disk,cpu_info,ether FROM baseline_server_snapshot ' \
-                           'WHERE baseline_id IN (' + baseline_id_str + ') '
-        baseline_server_info = query_all_dict(baseline_raw_sql.replace('\'', ''), params=None)
+                           'WHERE baseline_id IN %s '
+        baseline_server_info = query_all_dict(baseline_raw_sql.replace('\'', ''), params=[baseline_id_str])
     if job_id_str:
         raw_sql = 'SELECT job_id,ip,sm_name,distro,rpm_list,kernel_version,gcc,' \
                   'glibc,memory_info,disk,cpu_info,ether FROM test_server_snapshot ' \
-                  'WHERE job_id IN (' + job_id_str + ') UNION ' \
-                  'SELECT job_id,pub_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
+                  'WHERE job_id IN %s UNION ' \
+                  'SELECT job_id,private_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
                   'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
                   'FROM cloud_server_snapshot ' \
-                  'WHERE job_id IN (' + job_id_str + ')'
-        all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=None)
+                  'WHERE job_id IN %s'
+        all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=[job_id_str, job_id_str])
     for group in groups:
         group_ip_list = list()
         server_li = list()

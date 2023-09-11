@@ -90,7 +90,7 @@ class TestTemplateDetailSerializer(CommonSerializer):
                   'build_pkg_info', 'update_user', 'enable', 'description', 'job_type', 'job_type_id', 'project_id',
                   'product_id', 'baseline_id', 'iclone_info', 'kernel_info', 'need_reboot', 'rpm_info', 'script_info',
                   'monitor_info', 'cleanup_info', 'notice_info', 'console', 'kernel_version', 'env_info', 'tags',
-                  'test_config', 'report_name', 'report_template_id', 'callback_api', 'baseline_job_id']
+                  'test_config', 'report_name', 'report_template_id', 'callback_api', 'baseline_job_id', 'creator']
 
     @staticmethod
     def get_kernel_info(obj):
