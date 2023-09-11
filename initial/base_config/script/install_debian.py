@@ -43,14 +43,6 @@ install_deb()
 }
 
 
-for pkg in $@;do
-    wget --spider --connect-timeout=5 --timeout=10 --tries=10 --retry-connrefused $pkg >/dev/null 2>&1
-    if [[ $? != 0 ]];then
-        echo "wget --spider $pkg failed"
-        exit 1
-    fi
-done
-
 # remove existing kernel-headers to avoid dependency error
 if echo $@ | grep -qE "kernel-headers|kernel-alinux-headers"; then
 	for x in `dpkg -l | grep -E "kernel-headers|kernel-alinux-headers"`; do
