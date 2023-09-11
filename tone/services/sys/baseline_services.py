@@ -160,13 +160,13 @@ class BaselineService(CommonService):
                 tar_file_name = '/%s.tar.gz' % baseline.name
                 target_file = file_path + tar_file_name
                 baseline_detail_list = list()
-                raw_sql = 'SELECT a.*,b.name AS test_suite_name, c.name AS test_case_name FROM ' \
-                          '%s a LEFT JOIN test_suite b ON a.test_suite_id=b.id LEFT JOIN test_case c ON ' \
+                detail_table = 'func_baseline_detail' if baseline.test_type == 'functional' else 'perf_baseline_detail'
+                raw_sql = 'SELECT a.*,b.name AS test_suite_name, c.name AS test_case_name FROM ' + detail_table + \
+                          ' a LEFT JOIN test_suite b ON a.test_suite_id=b.id LEFT JOIN test_case c ON ' \
                           'a.test_case_id=c.id WHERE a.is_deleted=0 and b.is_deleted=0 and c.is_deleted=0 and ' \
-                          'baseline_id=' + baseline_id
+                          'baseline_id=%s'
                 if baseline.test_type == 'functional':
-                    func_raw_sql = raw_sql % 'func_baseline_detail'
-                    baseline_detail = query_all_dict(func_raw_sql, params=None)
+                    baseline_detail = query_all_dict(raw_sql, params=[baseline_id])
                     if baseline_detail:
                         for detail in baseline_detail:
                             detail_dict = dict(
@@ -180,8 +180,7 @@ class BaselineService(CommonService):
                             )
                             baseline_detail_list.append(detail_dict)
                 else:
-                    perf_raw_sql = raw_sql % 'perf_baseline_detail'
-                    baseline_detail = query_all_dict(perf_raw_sql, params=None)
+                    baseline_detail = query_all_dict(raw_sql, params=[baseline_id])
                     if baseline_detail:
                         for detail in baseline_detail:
                             detail_dict = dict(
@@ -205,8 +204,12 @@ class BaselineService(CommonService):
                             )
                             baseline_detail_list.append(detail_dict)
                 baseline_server_list = list()
-                server_raw_sql = raw_sql % 'baseline_server_snapshot'
-                server_detail = query_all_dict(server_raw_sql, params=None)
+                raw_sql = 'SELECT a.*,b.name AS test_suite_name, c.name AS test_case_name FROM ' \
+                          'baseline_server_snapshot' \
+                          ' a LEFT JOIN test_suite b ON a.test_suite_id=b.id LEFT JOIN test_case c ON ' \
+                          'a.test_case_id=c.id WHERE a.is_deleted=0 and b.is_deleted=0 and c.is_deleted=0 and ' \
+                          'baseline_id=%s'
+                server_detail = query_all_dict(raw_sql, params=[baseline_id])
                 for server_info in server_detail:
                     server_dict = dict(
                         test_suite_name=server_info.get('test_suite_name'),
@@ -1044,38 +1047,50 @@ class PerfBaselineService(CommonService):
                     suite_id_list.remove(suite_data.get('suite_id'))
                 if suite_data.get('case_list'):
                     case_list.extend(suite_data.get('case_list'))
-            suite_id_list_str = ','.join(str(e) for e in suite_id_list)
-            case_id_list_str = ','.join(str(e) for e in case_list)
+            suite_id_list_str = tuple(suite_id_list)
+            case_id_list_str = tuple(case_list)
+            params = []
+            if suite_id_list_str:
+                raw_sql = pre_sql + '(a.test_suite_id IN %s OR ' \
+                                    'a.test_case_id IN %s ) ' + end_sql
+                params = [job_id, suite_id_list_str, case_id_list_str]
+            else:
+                raw_sql = pre_sql + '(a.test_case_id IN %s ) ' + end_sql
+                params = [job_id, case_id_list_str]
             if case_list and suite_id_list:
                 q &= (Q(test_suite_id__in=suite_id_list) | Q(test_case_id__in=case_list))
-                raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ') OR ' \
-                                    'a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
+                raw_sql = pre_sql + '(a.test_suite_id IN %s OR ' \
+                                    'a.test_case_id IN %s ) ' + end_sql
+                params = [job_id, suite_id_list_str, case_id_list_str]
             elif case_list:
                 q &= Q(test_suite_id__in=suite_id_list)
-                raw_sql = pre_sql + '(a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
+                raw_sql = pre_sql + '(a.test_case_id IN %s ) ' + end_sql
+                params = [job_id, case_id_list_str]
             elif suite_id_list:
                 q &= Q(test_suite_id__in=suite_id_list)
-                raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ')) ' + end_sql
+                raw_sql = pre_sql + '(a.test_suite_id IN %s) ' + end_sql
+                params = [job_id, suite_id_list_str]
             else:
                 return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
         elif suite_id_list:
-            suite_id_list_str = ','.join(str(e) for e in suite_id_list)
-            raw_sql = pre_sql + 'a.test_suite_id IN (' + suite_id_list_str + ') ' + end_sql
+            suite_id_list_str = tuple(suite_id_list)
+            raw_sql = pre_sql + 'a.test_suite_id IN %s ' + end_sql
+            params = [job_id, suite_id_list_str]
             q &= Q(test_suite_id__in=suite_id_list)
         else:
             return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
         # 加入基线和测试基线相同时，匹配基线
         add_perf_baseline_thread = ToneThread(self._add_perf_baseline_backend, (baseline_id, baseline_server_list,
                                                                                 job_id, perf_baseline_detail_list, q,
-                                                                                raw_sql, test_job, user_id))
+                                                                                raw_sql, test_job, user_id, params))
         add_perf_baseline_thread.start()
         return True, None
 
     def _add_perf_baseline_backend(self, baseline_id, baseline_server_list, job_id, perf_baseline_detail_list, q,
-                                   raw_sql, test_job, user_id):
+                                   raw_sql, test_job, user_id, params):
         if test_job.baseline_id == baseline_id:
             PerfResult.objects.filter(q).update(match_baseline=True)
-        all_perf_results = query_all_dict(raw_sql.replace('\'', ''), params=[job_id])
+        all_perf_results = query_all_dict(raw_sql.replace('\'', ''), params=params)
         for perf_result in all_perf_results:
             perf_baseline_detail_obj = self._add_perf_baseline(perf_result, job_id, baseline_id,
                                                                test_job.server_provider, user_id)
