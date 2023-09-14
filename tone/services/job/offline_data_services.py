@@ -27,6 +27,7 @@ from tone.models.sys.baseline_models import PerfBaselineDetail
 from tone.core.common.constant import OFFLINE_DATA_DIR, RESULTS_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.services.job.test_services import JobTestService
+from tone.core.common.expection_handler.custom_error import JobTestException
 
 
 class OfflineDataUploadService(object):
@@ -201,16 +202,17 @@ class OfflineDataUploadService(object):
         if code == 201:
             tar_file.close()
             return code, msg, None
-        job_data = self.build_job_data(args, req_data, test_config, original_file_name)
-        _timestamp = int(round(time.time() * 1000000))
-        test_job = JobTestService().create(job_data, operator)
-        if not test_job:
-            code = 201
-            msg = 'Job创建失败。'
-            tar_file.close()
-            return code, msg, None
-        test_job_id = test_job.id
+        test_job_id = 0
         try:
+            job_data = self.build_job_data(args, req_data, test_config, original_file_name)
+            _timestamp = int(round(time.time() * 1000000))
+            test_job = JobTestService().create(job_data, operator)
+            if not test_job:
+                code = 201
+                msg = 'Job创建失败。'
+                tar_file.close()
+                return code, msg, None
+            test_job_id = test_job.id
             code, msg, start_date, end_date = self.handle_result_file(baseline_id, tar_file, test_job_id, test_type, ip,
                                                                       args['test_config'], server_type, ws_id,
                                                                       _timestamp)
@@ -227,6 +229,10 @@ class OfflineDataUploadService(object):
                 OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id, state='success',
                                                                    state_desc='')
                 msg = 'upload success.'
+            tar_file.close()
+        except AssertionError as ex:
+            code = 201
+            msg = '上传失败:%s.' % ex.args[0].args[0].to_api
             tar_file.close()
         except Exception as ex:
             code = 201
