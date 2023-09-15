@@ -366,8 +366,7 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         A.test_suite_id,
         A.test_case_id,
         C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
+        D.name AS test_case_name
     FROM
         perf_result AS A,
         test_job AS B,
@@ -377,11 +376,8 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -389,52 +385,17 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         AND B.is_deleted = 0
         AND C.is_deleted = 0
         AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
     """,
-    'group_perf_tag': """
-    SELECT DISTINCT 
-        A.test_suite_id,
-        A.test_case_id,
-        C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
-    FROM
-        perf_result AS A,
-        test_job AS B,
-        test_suite AS C,
-        test_case AS D,
-        job_tag AS E,
-        job_tag_relation AS F 
-    WHERE
-        B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
-        AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = C.id 
-        AND A.test_case_id = D.id 
-        AND B.state IN ( 'success', 'fail' ) 
-        AND A.is_deleted = 0
-        AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
-        AND E.NAME = 'analytics' 
-        AND E.id = F.tag_id 
-        AND B.id = F.job_id
-        AND F.tag_id = {tag}
-   """,
     'group_func': """
         SELECT DISTINCT 
         A.test_suite_id,
         A.test_case_id,
         C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
+        D.name AS test_case_name
     FROM
         func_result AS A,
         test_job AS B,
@@ -442,11 +403,7 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         test_case AS D
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -454,41 +411,8 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         AND B.is_deleted = 0
         AND C.is_deleted = 0
         AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
     """,
-    'group_func_tag': """
-    SELECT DISTINCT 
-        A.test_suite_id,
-        A.test_case_id,
-        C.name AS test_suite_name,
-        D.name AS test_case_name,
-        B.start_time
-    FROM
-        func_result AS A,
-        test_job AS B,
-        test_suite AS C,
-        test_case AS D,
-        job_tag AS E,
-        job_tag_relation AS F 
-    WHERE
-        B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
-        AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = C.id 
-        AND A.test_case_id = D.id 
-        AND B.state IN ( 'success', 'fail' ) 
-        AND A.is_deleted = 0
-        AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
-        AND E.id = F.tag_id 
-        AND B.id = F.job_id
-        AND F.tag_id = {tag}
-   """,
 }
 
 ANALYSIS_METRIC_LIST_SQL_MAP = {
