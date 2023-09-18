@@ -26,4 +26,9 @@ class Migration(migrations.Migration):
             name='template_detail',
             field=django_extensions.db.fields.json.JSONField(default=dict),
         ),
+        migrations.AddField(
+            model_name='reportitem',
+            name='desc',
+            field=models.TextField(help_text='测试项说明', null=True),
+        ),
     ]
