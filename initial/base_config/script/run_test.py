@@ -98,7 +98,7 @@ function upload_file(){{
         return
     fi
 
-    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "${SFTP_PARAMS}" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
+    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "${{SFTP_PARAMS}}" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
     cd ${{TONE_STORAGE_BUCKET}}
     mkdir -pf $file_path
     cd $file_path
@@ -115,7 +115,7 @@ function upload_dir(){{
         exit 2
     fi
 
-    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "${SFTP_PARAMS}" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
+    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "${{SFTP_PARAMS}}" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
     cd ${{TONE_STORAGE_BUCKET}}
     mkdir -pf ${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER 
     mirror -R $dir ${{TONE_JOB_ID}}/$OSS_RESULT_FOLDER
