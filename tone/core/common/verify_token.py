@@ -28,10 +28,12 @@ def token_required(func):
             signature = request.POST.get('signature', None)
             username = request.POST.get('username', None)
         if not signature and request.body:
-            # print(request.body)
-            data = json.loads(request.body)
-            signature = data.get('signature', None)
-            username = data.get('username', None)
+            try:
+                data = json.loads(request.body)
+                signature = data.get('signature', None)
+                username = data.get('username', None)
+            except Exception:
+                assert None, ValueError(ErrorCode.JSON_FORMAT_ERROR)
         assert signature, ValueError(ErrorCode.TOKEN_NEED)
         assert username, ValueError(ErrorCode.USERNAME_NEED)
         return func(request, *args, **kwargs) if check_token(signature, username, request) else HttpResponse(
