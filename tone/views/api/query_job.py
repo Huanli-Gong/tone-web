@@ -49,6 +49,7 @@ def job_query(request):
     req_info = json.loads(request.body)
     job_id = req_info.get('job_id', None)
     assert job_id, ValueError(ErrorCode.JOB_NEED)
+    assert isinstance(job_id, int), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     job = TestJob.objects.get(id=job_id) if TestJob.objects.filter(id=job_id) else None
     assert job, ValueError(ErrorCode.TEST_JOB_NONEXISTENT)
     if not check_job_operator_permission(req_info.get('username', None), job):
