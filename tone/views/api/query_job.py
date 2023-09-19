@@ -276,10 +276,17 @@ def get_job_info_list(request):
     resp = CommResp()
     data = json.loads(request.body)
     product_name = data.get('product', None)
+    if product_name:
+        assert isinstance(product_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     project_name = data.get('project', None)
+    if project_name:
+        assert isinstance(project_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     tag_name = data.get('tag', None)
+    if tag_name:
+        assert isinstance(tag_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     ws_id = data.get('ws_id', None)
     assert ws_id, ValueError(ErrorCode.WS_NEED)
+    assert isinstance(ws_id, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type,A.test_result," \
               "B.name AS product_name,C.name AS project_name,F.username AS creator FROM " \
               "test_job A, product B, project C, job_tag D, job_tag_relation E, user F " \
