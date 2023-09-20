@@ -571,8 +571,6 @@ class TestSuiteService(CommonService):
                 case_list.append(case_name.strip(','))
         if not case_list:
             case_list = ['default']
-
-        # todo 获取 doc
         doc = ''
         if os.path.exists(doc_file1):
             doc_file = doc_file1
@@ -583,14 +581,11 @@ class TestSuiteService(CommonService):
         if doc_file:
             with open(doc_file) as f:
                 doc = f.read()
-
         # 获取 metric
         config_data = None
         if os.path.exists(config_file):
             with open(config_file) as f:
                 config_data = yaml.load(f.read(), Loader=yaml.FullLoader)
-            print(config_data)
-
         return case_list, doc, config_data
 
     @staticmethod
@@ -627,12 +622,10 @@ class TestSuiteService(CommonService):
                 domain_id = TestDomain.objects.get(name=domain_name).id
             else:
                 domain_id = DomainRelation.objects.get(object_type='suite', object_id=suite.id).domain_id
-            case_domain_mapping.update({case_name, domain_id})
-        if not case_obj_list:
-            # 说明数据库中数据与 gitee 数据已经同步
-            return
+            case_domain_mapping.update({case_name: domain_id})
         with transaction.atomic():
-            TestCase.objects.bulk_create(case_obj_list)
+            if case_obj_list:
+                TestCase.objects.bulk_create(case_obj_list)
             TestCase.objects.filter(test_suite_id=suite.id).exclude(name__in=case_name_list).delete()
             # 用例库conf用例被删除时，点击同步后，同步删除所有job模板中的用例和ws TestSuite管理里的用例
             TestTmplCase.objects.filter(test_suite_id=suite.id).exclude(
