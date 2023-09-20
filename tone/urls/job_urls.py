@@ -40,6 +40,7 @@ urlpatterns = [
     path('template/detail/', template_view.TestTemplateDetailView.as_view(), name='template_detail'),
     path('template/items/', template_view.TemplateItemsView.as_view(), name='template_items'),
     path('template/copy/', template_view.TemplateCopyView.as_view(), name='template_copy'),
+    path('template/check/', template_view.TemplateCheckRunningView.as_view(), name='template_check_running'),
     path('test/job-monitor-item/', test_view.JobMonitorItemView.as_view(), name='job_monitor_item'),
     path('yaml_data_verify/', test_view.YamlDataVerify.as_view(), name='yaml_data_verify'),
     path('data_conversion/', test_view.DataConversion.as_view(), name='data_conversion'),
@@ -47,6 +48,8 @@ urlpatterns = [
 
     # Analysis
     path('result/perf/analysis/', result_analysis.PerfAnalysisView.as_view(), name='perf_analysis'),
+    path('result/perf/suite/list/', result_analysis.PerfSuiteCaseListView.as_view(), name='suite_case_list'),
+    path('result/analysis/metric/list/', result_analysis.PerfMetricListView.as_view(), name='metric_list'),
     path('result/func/analysis/', result_analysis.FuncAnalysisView.as_view(), name='func_analysis'),
     path('result/compare/suite/', result_compare.CompareSuiteInfoView.as_view(), name='suite_info'),
     path('result/compare/conf/', result_compare.CompareConfInfoView.as_view(), name='conf_info'),

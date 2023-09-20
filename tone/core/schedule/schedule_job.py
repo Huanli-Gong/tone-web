@@ -6,7 +6,7 @@ from tone.core.utils.schedule_lock import lock_run_task
 from tone.core.common.redis_cache import redis_cache
 from tone.models import TestPlan, PlanInstance, PlanStageRelation, PlanStageTestRelation, PlanStagePrepareRelation, \
     PlanInstanceStageRelation, PlanInstanceTestRelation, PlanInstancePrepareRelation, BLOCKING_STATEGY_CHOICES, \
-    TestTemplate, JobType, datetime, Workspace, ReportObjectRelation
+    TestTemplate, JobType, datetime, Workspace
 from tone.models.job.job_models import TestJob
 from tone.core.handle.report_handle import ReportHandle
 from tone.services.plan.complete_plan_report import plan_create_report
@@ -170,6 +170,6 @@ def auto_plan_report():
             plan_create_report(plan_instance.id)
             logger.info(f'auto_plan_report finish. plan_instance.id:{plan_instance.id}')
         except Exception as ex:
-            logger.info(f'auto_plan_report error. ex is {ex}')
+            logger.error(f'auto_plan_report error. ex is {ex}')
             PlanInstance.objects.filter(id=plan_instance.id).update(report_is_saved=1)
     logger.info(f'auto_plan_report end now ...........')

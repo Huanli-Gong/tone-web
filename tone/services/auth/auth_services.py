@@ -129,6 +129,7 @@ class UserService(CommonService):
     def filter(queryset, data, cur_user_id):
         ws_id = data.get('ws_id')
         role_id = data.get('role_id')
+        last_name = data.get('last_name')
         q = Q()
         if ws_id:
             ws_q = Q(ws_id=ws_id)
@@ -138,6 +139,8 @@ class UserService(CommonService):
             role_member = RoleMember.objects.filter(role_id=role_id)
             user_id_list = role_member.values_list('user_id', flat=True)
             q &= Q(id__in=user_id_list)
+        if last_name:
+            q &= Q(last_name__icontains=last_name)
         return queryset.filter(q)
 
     @staticmethod

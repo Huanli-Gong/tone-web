@@ -301,23 +301,23 @@ class ReportService(CommonService):
             [ReportObjectRelation.objects.create(object_type='plan', object_id=plan_id, report_id=report.id) for plan_id
              in plan_li]
             report_id = report.id
-            report_save = ToneThread(self.create_report_back_task, (base_index, report, report_id, test_item))
+            report_save = ToneThread(self.create_report_back_task, (base_index, report, report_id, test_item, tmpl_id))
             report_save.start()
         return report
 
-    def create_report_back_task(self, base_index, report, report_id, test_item):
+    def create_report_back_task(self, base_index, report, report_id, test_item, tmpl_id):
         perf_data = test_item.get('perf_data', list())
         func_data = test_item.get('func_data', list())
         self.save_test_item_v1(perf_data, report_id, 'performance', base_index)
         self.save_test_item_v1(func_data, report_id, 'functional', base_index)
-        save_report_detail(report_id, base_index, get_old_report(report), report.is_automatic)
+        save_report_detail(report_id, base_index, get_old_report(report), report.is_automatic, tmpl_id)
 
     def save_test_item_v1(self, data, report_id, test_type, base_index):
         for item in data:
             name = item.get('name')
             suite_list = item.get('suite_list', list())
             assert name, ReportException(ErrorCode.ITEM_NAME_NEED)
-            report_item = ReportItem.objects.filter(report_id=report_id, test_type=test_type).first()
+            report_item = ReportItem.objects.filter(report_id=report_id, name=name, test_type=test_type).first()
             if not report_item:
                 report_item = ReportItem.objects.create(name=name, report_id=report_id, test_type=test_type)
             report_item_id = report_item.id
@@ -402,7 +402,7 @@ class ReportService(CommonService):
         else:
             func_results = FuncResult.objects. \
                 filter(test_job_id=base_job_id.get('job_id'), test_suite_id=test_suite_id, test_case_id=test_conf_id). \
-                values_list('sub_case_name', 'sub_case_result')
+                values_list('sub_case_name', 'sub_case_result', 'match_baseline')
         item_sub_case_list = list()
         for func_result in func_results:
             compare_data = get_func_compare_data(test_suite_id, test_conf_id, func_result[0], job_list)
@@ -412,6 +412,8 @@ class ReportService(CommonService):
             else:
                 func_case_name = func_result[0]
                 func_case_result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result[1])
+                if func_result[2]:
+                    func_case_result += '(匹配基线)'
             compare_data.insert(base_index, func_case_result)
             report_sub_case = ReportItemSubCase(
                 report_item_conf_id=item_conf_id,
@@ -531,7 +533,7 @@ class ReportService(CommonService):
                 self.save_test_item_v1(perf_data, report_id, 'performance', base_index)
                 self.save_test_item_v1(func_data, report_id, 'functional', base_index)
             report.save()
-        save_report_detail(report_id, base_index, get_old_report(report), report.is_automatic)
+        save_report_detail(report_id, base_index, get_old_report(report), report.is_automatic, report.tmpl_id)
 
     @staticmethod
     def delete(data, operator):
