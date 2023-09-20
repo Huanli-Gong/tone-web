@@ -526,12 +526,14 @@ class TestSuiteService(CommonService):
         try:
             cases, doc, configs_or_error = self.get_case_info_by_gitee(suite.name, suite.test_type)
         except Exception as e:
+            raise e
             return False, f'get case info from gitee failed:{e}'
         if not cases:
             return False, configs_or_error
         try:
             self._sync_case_to_db(suite, cases, doc, configs_or_error)
         except Exception as e:
+            raise e
             return False, f'sync case to db failed:{e}'
         return True, 'success'
 
@@ -633,11 +635,11 @@ class TestSuiteService(CommonService):
                 test_case_id__in=exist_test_case_id_list).delete()
             WorkspaceCaseRelation.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
-        for case_name, domain_id in case_domain_mapping:
+        for case_name, domain_id in case_domain_mapping.items():
             domain_relation_list.append(
                 DomainRelation(
                     object_type='case',
-                    object_id=TestCase.objects.get(name=case_name).id,
+                    object_id=TestCase.objects.get(test_suite_id=suite.id, name=case_name).id,
                     domain_id=domain_id
                 )
             )
