@@ -340,6 +340,7 @@ class JobDataHandle(BaseHandle):
                     'run_mode': case.run_mode,
                     'server_provider': self.provider,
                     'repeat': case.repeat,
+                    'timeout': case.timeout,
                     'server_object_id': self.get_server_obj(case),
                     'server_tag_id': case.server_tag_id,
                     'server_snapshot_id': self.create_server_snapshot() or self.create_new_snapshot(

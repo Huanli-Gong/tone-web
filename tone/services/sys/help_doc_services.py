@@ -160,7 +160,7 @@ class TestFarmService(CommonService):
         site_id = data.get('site_id')
         tmp_site = SiteConfig.objects.filter(id=site_id).first()
         if tmp_site is None:
-            return False, 'site not exist'
+            return False, ErrorCode.TO_TESTFARM_SITE_NEED.to_api
         create_data = {'site_id': site_id}
         allow_fields = ['ws_id', 'project_id', 'job_name_rule', 'sync_start_time']
         for field in allow_fields:

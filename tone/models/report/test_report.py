@@ -43,6 +43,7 @@ class ReportItem(BaseModel):
     name = models.CharField(max_length=128, db_index=True, help_text='测试项名称')
     report_id = models.IntegerField(help_text='关联报告ID')
     test_type = models.CharField(max_length=64, choices=TEST_TYPE_CHOICES, db_index=True, help_text='测试类型')
+    desc = models.TextField(null=True, help_text='测试项说明')
 
     class Meta:
         db_table = 'report_item'
@@ -187,5 +188,7 @@ class ReportDetail(BaseModel):
     report_id = models.IntegerField(help_text='关联报告ID')
     perf_data = json.JSONField()
     func_data = json.JSONField()
+    template_detail = json.JSONField()
+
     class Meta:
         db_table = 'report_detail'
