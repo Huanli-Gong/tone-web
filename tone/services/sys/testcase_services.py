@@ -1,7 +1,10 @@
+import base64
 import os
 import json
 import random
 import string
+
+import requests
 import yaml
 from django.db import transaction
 from django.db.models import Q
@@ -521,13 +524,17 @@ class TestSuiteService(CommonService):
     def sync_case_from_gitee(self, suite_id):
         suite = TestSuite.objects.filter(id=suite_id).first()
         try:
-            cases, doc, configs = self.get_case_info_by_gitee(suite.name, suite.test_type)
+            cases, doc, configs_or_error = self.get_case_info_by_gitee(suite.name, suite.test_type)
         except Exception as e:
-            return False, 'get case info from gitee failed'
+            raise e
+            return False, f'get case info from gitee failed:{e}'
+        if not cases:
+            return False, configs_or_error
         try:
-            self._sync_case_to_db(suite, cases, doc, configs)
+            self._sync_case_to_db(suite, cases, doc, configs_or_error)
         except Exception as e:
-            return False, 'sync case to db failed'
+            raise e
+            return False, f'sync case to db failed:{e}'
         return True, 'success'
 
     @staticmethod
@@ -543,23 +550,20 @@ class TestSuiteService(CommonService):
             'test=read2,ioengine=psync,time_based=1,direct=1,size=36G'
             ]
         """
-        tone_cli_path = os.path.join(os.curdir, '.tone-cli')
-        clone_cmd = f'git clone --single-branch --branch master {settings.TONE_CLI_REPO} {tone_cli_path}'
-        pull_cmd = f'cd {tone_cli_path} && git pull'
-        if os.path.exists(tone_cli_path):
-            os.system(pull_cmd)
-        else:
-            os.system(clone_cmd)
-
         case_list, title_list, metric_list = [], [], []
-        case_file = f'{tone_cli_path}/conf/{test_type}/{test_suite}.conf'
-        doc_file1 = f'{tone_cli_path}/tests/{test_suite}/Readme.md'
-        doc_file2 = f'{tone_cli_path}/tests/{test_suite}/readme.md'
-        config_file = f'{tone_cli_path}/tests/{test_suite}/config.yaml'
-
-        # 获取 cases
-        with open(case_file) as f:
-            for index, line in enumerate(f.readlines()):
+        case_file = f'conf/{test_type}/{test_suite}.conf'
+        doc_file1 = f'tests/{test_suite}/Readme.md'
+        doc_file2 = f'tests/{test_suite}/readme.md'
+        config_file = f'tests/{test_suite}/config.yaml'
+        case_file_req = requests.get(settings.TONE_MATRIX_URL.format(path=case_file))
+        if case_file_req.status_code != 200:
+            return None, None, f'请求{case_file}文件失败({case_file_req.text})'
+        if not case_file_req.json().get('content'):
+            case_list = ['default']
+        else:
+            case_file_content = base64.b64decode(case_file_req.json()['content']).decode()
+            # 获取 cases
+            for index, line in enumerate(case_file_content.split('\n')):
                 if not line.strip():
                     continue
                 if index == 0:
@@ -571,24 +575,20 @@ class TestSuiteService(CommonService):
                 case_list.append(case_name.strip(','))
         if not case_list:
             case_list = ['default']
-
-        # todo 获取 doc
-        doc = ''
-        if os.path.exists(doc_file1):
-            doc_file = doc_file1
-        elif os.path.exists(doc_file2):
-            doc_file = doc_file2
+        # 获取 doc
+        readme1 = requests.get(settings.TONE_MATRIX_URL.format(path=doc_file1))
+        if readme1.json() and readme1.json().get('content'):
+            doc = base64.b64decode(readme1.json()['content']).decode()
         else:
-            doc_file = None
-        if doc_file:
-            with open(doc_file) as f:
-                doc = f.read()
-
+            readme2 = requests.get(settings.TONE_MATRIX_URL.format(path=doc_file2))
+            doc = base64.b64decode(readme2.json()['content']).decode() if readme1.json() \
+                                                                          and readme1.json().get('content') else ''
         # 获取 metric
         config_data = None
-        if os.path.exists(config_file):
-            with open(config_file) as f:
-                config_data = yaml.load(f.read(), Loader=yaml.FullLoader)
+        config = requests.get(settings.TONE_MATRIX_URL.format(path=config_file))
+        if config.json() and config.json().get('content'):
+            config_content = base64.b64decode(config.json()['content']).decode()
+            config_data = yaml.load(config_content, Loader=yaml.FullLoader)
         return case_list, doc, config_data
 
     @staticmethod
@@ -626,24 +626,21 @@ class TestSuiteService(CommonService):
             else:
                 domain_id = DomainRelation.objects.get(object_type='suite', object_id=suite.id).domain_id
             case_domain_mapping.update({case_name: domain_id})
-        if not case_obj_list:
-            # 说明数据库中数据与 gitee 数据已经同步
-            return
         with transaction.atomic():
-            TestCase.objects.bulk_create(case_obj_list)
+            if case_obj_list:
+                TestCase.objects.bulk_create(case_obj_list)
             TestCase.objects.filter(test_suite_id=suite.id).exclude(name__in=case_name_list).delete()
             # 用例库conf用例被删除时，点击同步后，同步删除所有job模板中的用例和ws TestSuite管理里的用例
             TestTmplCase.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
             WorkspaceCaseRelation.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
-            for case_name, domain_id in case_domain_mapping.items():
-                domain_relation_list.append(
-                    DomainRelation(
-                        object_type='case',
-                        object_id=TestCase.objects.filter(name=case_name, test_suite_id=suite.id).last().id,
-                        domain_id=domain_id
-                    )
+        for case_name, domain_id in case_domain_mapping.items():
+            domain_relation_list.append(
+                DomainRelation(
+                    object_type='case',
+                    object_id=TestCase.objects.get(test_suite_id=suite.id, name=case_name).id,
+                    domain_id=domain_id
                 )
             DomainRelation.objects.bulk_create(domain_relation_list)
         # 保存性能case 默认指标
