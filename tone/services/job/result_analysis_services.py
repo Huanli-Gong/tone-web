@@ -190,7 +190,7 @@ class PerfAnalysisService(CommonService):
         return sql
 
     @staticmethod
-    def get_suite_list_sql(test_type, tag):
+    def get_suite_list_sql(test_type):
         if test_type == 'performance':
             sql = ANALYSIS_SUITE_LIST_SQL_MAP.get('group_perf')
         else:
