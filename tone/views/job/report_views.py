@@ -138,7 +138,6 @@ class ReportView(CommonAPIView):
 
 class ReportDetailView(CommonAPIView):
     serializer_class = ReportDetailSerializer
-    queryset = Report.objects.all()
     service_class = ReportDetailService
     permission_classes = []
 
@@ -147,8 +146,8 @@ class ReportDetailView(CommonAPIView):
         """
         查询测试报告详情
         """
-        queryset = self.service.filter(self.get_queryset(), request.GET)
-        response_data = self.get_response_data(queryset, page=True)
+        queryset = Report.objects.filter(id=request.GET.get('report_id')).first()
+        response_data = self.get_response_data(queryset, many=False)
         return Response(response_data)
 
 
