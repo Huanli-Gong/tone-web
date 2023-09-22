@@ -642,7 +642,8 @@ class TestSuiteService(CommonService):
                     object_id=TestCase.objects.get(test_suite_id=suite.id, name=case_name).id,
                     domain_id=domain_id
                 )
-            DomainRelation.objects.bulk_create(domain_relation_list)
+            )
+        DomainRelation.objects.bulk_create(domain_relation_list)
         # 保存性能case 默认指标
         if suite.test_type == TestType.PERFORMANCE and configs:
             metric_list = []
@@ -658,7 +659,7 @@ class TestSuiteService(CommonService):
                         cmp_threshold=v['avg'] / 100,
                         direction='increase' if v['direct'] == 'up' else 'decline',
                         object_type='case',
-                        object_id=TestCase.objects.filter(name=case_name, test_suite_id=suite.id).last().id
+                        object_id=TestCase.objects.get(name=case_name, test_suite_id=suite.id).id
                     ))
             if metric_list:
                 TestMetric.objects.bulk_create(metric_list)
@@ -765,16 +766,12 @@ class TestMetricService(CommonService):
     @staticmethod
     def filter(queryset, data):
         q = Q()
-        if data.get('suite_id') and not data.get('case_id'):
+        if data.get('suite_id'):
             q &= Q(object_type='suite')
             q &= Q(object_id=data.get('suite_id'))
-        if not data.get('suite_id') and data.get('case_id'):
+        if data.get('case_id'):
             case_id = data.get('case_id')
             q &= Q(object_type='case') & Q(object_id=case_id)
-        if data.get('suite_id') and data.get('case_id'):
-            case_id = data.get('case_id')
-            suite_id = data.get('suite_id')
-            q &= ((Q(object_type='case') & Q(object_id=case_id)) | (Q(object_type='suite') & Q(object_id=suite_id)))
         if data.get('run_mode'):
             q &= Q(run_mode=data.get('run_mode'))
         if data.get('owner'):
