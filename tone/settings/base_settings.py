@@ -148,5 +148,6 @@ SESSION_COOKIE_NAME = 'tonesessionid'
 ALLOW_ACCESS_ADMIN_URLS = cp.get('allow_access')
 ADMIN_URLS_TOKEN = cp.get('admin_urls_token')
 
+TONE_CLI_REPO = cp.get('tone_cli_repo', 'https://gitee.com/anolis/tone-cli')
 GITEE_ACCESS_TOKEN = cp.get('gitee_access_token')
 TONE_MATRIX_URL = cp.get('tone_matrix_url', 'https://gitee.com/api/v5/repos/anolis/tone-cli/contents/{path}?access_token=%s' % GITEE_ACCESS_TOKEN)

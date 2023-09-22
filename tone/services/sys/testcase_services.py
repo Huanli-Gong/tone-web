@@ -524,21 +524,77 @@ class TestSuiteService(CommonService):
     def sync_case_from_gitee(self, suite_id):
         suite = TestSuite.objects.filter(id=suite_id).first()
         try:
-            cases, doc, configs_or_error = self.get_case_info_by_gitee(suite.name, suite.test_type)
+            cases, doc, configs_or_error = self.get_case_info_by_git_clone(suite.name, suite.test_type)
         except Exception as e:
-            raise e
-            return False, f'get case info from gitee failed:{e}'
+            return False, f'get case info failed:{e}'
         if not cases:
             return False, configs_or_error
         try:
             self._sync_case_to_db(suite, cases, doc, configs_or_error)
         except Exception as e:
-            raise e
             return False, f'sync case to db failed:{e}'
         return True, 'success'
 
     @staticmethod
-    def get_case_info_by_gitee(test_suite, test_type):
+    def get_case_info_by_git_clone(test_suite, test_type):
+        """
+        gitee:
+            test	  ioengine    time_based  direct    size
+            read1	  psync       1           1         36G
+            read2	  psync       1           1         36G
+
+        return: [
+            'test=read1,ioengine=psync,time_based=1,direct=1,size=36G',
+            'test=read2,ioengine=psync,time_based=1,direct=1,size=36G'
+            ]
+        """
+        tone_cli_path = os.path.join(os.curdir, '.tone-cli')
+        clone_cmd = f'git clone --single-branch --branch master {settings.TONE_CLI_REPO} {tone_cli_path}'
+        pull_cmd = f'cd {tone_cli_path} && git pull'
+        if os.path.exists(tone_cli_path):
+            os.system(pull_cmd)
+        else:
+            os.system(clone_cmd)
+
+        case_list, title_list, metric_list = [], [], []
+        case_file = f'{tone_cli_path}/conf/{test_type}/{test_suite}.conf'
+        doc_file1 = f'{tone_cli_path}/tests/{test_suite}/Readme.md'
+        doc_file2 = f'{tone_cli_path}/tests/{test_suite}/readme.md'
+        config_file = f'{tone_cli_path}/tests/{test_suite}/config.yaml'
+
+        # 获取 cases
+        with open(case_file) as f:
+            for index, line in enumerate(f.readlines()):
+                if not line.strip():
+                    continue
+                if index == 0:
+                    title_list = line.split()
+                    continue
+                case_name = ''
+                for i, item in enumerate(line.split()):
+                    case_name += f'{title_list[i]}={item},'
+                case_list.append(case_name.strip(','))
+        if not case_list:
+            case_list = ['default']
+        doc = ''
+        if os.path.exists(doc_file1):
+            doc_file = doc_file1
+        elif os.path.exists(doc_file2):
+            doc_file = doc_file2
+        else:
+            doc_file = None
+        if doc_file:
+            with open(doc_file) as f:
+                doc = f.read()
+        # 获取 metric
+        config_data = None
+        if os.path.exists(config_file):
+            with open(config_file) as f:
+                config_data = yaml.load(f.read(), Loader=yaml.FullLoader)
+        return case_list, doc, config_data
+
+    @staticmethod
+    def get_case_info_by_gitee_api(test_suite, test_type):
         """
         gitee:
             test	  ioengine    time_based  direct    size
