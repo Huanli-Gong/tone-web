@@ -208,7 +208,7 @@ class ReportHandle(object):
                 ReportObjectRelation.objects.create(object_type='job', object_id=self.job_id, report_id=report.id)
             self.job_obj.report_is_saved = True
             self.job_obj.save()
-            save_report_detail(report.id, 0, 0, 1)
+            save_report_detail(report.id, 0, 0, 1, report.tmpl_id)
 
     def get_suite_env(self, test_suite_id):
         test_env = ''
@@ -370,16 +370,19 @@ class ReportHandle(object):
         return _change_rate, res
 
 
-def save_report_detail(report_id, base_index, is_old_report, is_automatic):
+def save_report_detail(report_id, base_index, is_old_report, is_automatic, template_id):
     detail_perf_data = get_perf_data(report_id, base_index, is_old_report, is_automatic)
     detail_func_data = get_func_data(report_id, base_index, is_old_report, is_automatic)
+    template_detail = get_report_template(template_id)
     report_detail = ReportDetail.objects.filter(report_id=report_id).first()
     if report_detail:
         report_detail.func_data = detail_func_data
         report_detail.perf_data = detail_perf_data
+        report_detail.template_detail = template_detail
         report_detail.save()
     else:
-        ReportDetail.objects.create(report_id=report_id, perf_data=detail_perf_data, func_data=detail_func_data)
+        ReportDetail.objects.create(report_id=report_id, perf_data=detail_perf_data, func_data=detail_func_data,
+                                    template_detail=template_detail)
 
 
 def get_perf_data(report_id, base_index, is_old_report, is_automatic):
