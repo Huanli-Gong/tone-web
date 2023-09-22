@@ -527,12 +527,16 @@ class ReportService(CommonService):
                 setattr(report, key, value)
         test_item = data.get('test_item', None)
         with transaction.atomic():
-            if test_item:
-                perf_data = test_item.get('perf_data', list())
-                func_data = test_item.get('func_data', list())
-                self.save_test_item_v1(perf_data, report_id, 'performance', base_index)
-                self.save_test_item_v1(func_data, report_id, 'functional', base_index)
-            report.save()
+            report_save = ToneThread(self.update_back_thread, (base_index, report, report_id, test_item))
+            report_save.start()
+
+    def update_back_thread(self, base_index, report, report_id, test_item):
+        if test_item:
+            perf_data = test_item.get('perf_data', list())
+            func_data = test_item.get('func_data', list())
+            self.save_test_item_v1(perf_data, report_id, 'performance', base_index)
+            self.save_test_item_v1(func_data, report_id, 'functional', base_index)
+        report.save()
         save_report_detail(report_id, base_index, get_old_report(report), report.is_automatic, report.tmpl_id)
 
     @staticmethod
@@ -572,25 +576,19 @@ class ReportService(CommonService):
         test_description = data.get('test_description')
         test_conclusion = data.get('test_conclusion')
         item_suite_id = data.get('item_suite_id')
+        report_id = data.get('report_id')
         report_item_suite = ReportItemSuite.objects.filter(id=item_suite_id).first()
         if report_item_suite:
-            if test_suite_description:
+            if 'test_suite_description' in data:
                 report_item_suite.test_suite_description = test_suite_description
-            if test_env:
+            if 'test_env' in data:
                 report_item_suite.test_env = test_env
-            if test_description:
+            if 'test_description' in data:
                 report_item_suite.test_description = test_description
-            if test_conclusion:
+            if 'test_conclusion' in data:
                 report_item_suite.test_conclusion = test_conclusion
             report_item_suite.save()
-            report_item = ReportItem.objects.filter(id=report_item_suite.report_item_id).first()
-            if report_item:
-                report = Report.objects.filter(id=report_item.report_id).first()
-                if report:
-                    base_index = 0
-                    if report.test_env:
-                        base_index = report.test_env.get('base_index', 0)
-                    save_report_detail(report.id, base_index, get_old_report(report), report.is_automatic)
+            save_report_detail_suite(report_id, report_item_suite.test_suite_id, data)
 
     @staticmethod
     def update_report_desc(data):
@@ -611,6 +609,48 @@ class ReportService(CommonService):
             if 'test_env' in data and 'text' in data.get('test_env'):
                 report.test_env['text'] = data.get('test_env').get('text')
             report.save()
+
+    @staticmethod
+    def update_report_item_desc(data):
+        desc = data.get('desc')
+        item_id = data.get('item_id')
+        report_id = data.get('report_id')
+        report = Report.objects.filter(id=report_id).first()
+        if report:
+            report_item = ReportItem.objects.filter(id=item_id).first()
+            if report_item:
+                report_item.desc = desc
+                report_item.save()
+
+
+def save_report_detail_suite(report_id, test_suite_id, data):
+    report_detail = ReportDetail.objects.filter(report_id=report_id).first()
+    if report_detail:
+        perf_data = report_detail.perf_data
+        func_data = report_detail.func_data
+        if func_data:
+            get_list_item(test_suite_id, data, func_data)
+            report_detail.func_data = func_data
+        if perf_data:
+            get_list_item(test_suite_id, data, perf_data)
+            report_detail.perf_data = perf_data
+        report_detail.save()
+
+
+def get_list_item(test_suite_id, data, detail_data):
+    for item in detail_data:
+        if detail_data[item]:
+            if isinstance(detail_data[item], list):
+                for suite_info in detail_data[item]:
+                    if suite_info['suite_id'] == test_suite_id:
+                        if 'test_description' in data:
+                            suite_info['test_description'] = data.get('test_description')
+                        if 'test_env' in data:
+                            suite_info['test_env'] = data.get('test_env')
+                        if 'test_conclusion' in data:
+                            suite_info['test_conclusion'] = data.get('test_conclusion')
+            else:
+                get_list_item(test_suite_id, data, detail_data[item])
 
 
 class ReportDetailService(CommonService):
