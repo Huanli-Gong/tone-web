@@ -1,8 +1,10 @@
 import base64
+import logging
 import os
 import json
 import random
 import string
+import subprocess
 
 import requests
 import yaml
@@ -10,7 +12,6 @@ from django.db import transaction
 from django.db.models import Q
 
 from tone import settings
-from tone.core.cloud import constant
 from tone.core.cloud.constant import TestType
 from tone.core.common.constant import TEST_SUITE_REDIS_KEY
 from tone.core.common.expection_handler.error_code import ErrorCode
@@ -23,7 +24,9 @@ from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, 
     TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite, Workspace
 from tone.serializers.sys.testcase_serializers import RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
-#from tone.tasks import sync_suite_case_toneagent
+
+
+error_logger = logging.getLogger('error')
 
 
 class TestCaseInfoService(CommonService):
@@ -552,10 +555,13 @@ class TestSuiteService(CommonService):
         clone_cmd = f'git clone --single-branch --branch master {settings.TONE_CLI_REPO} {tone_cli_path}'
         pull_cmd = f'cd {tone_cli_path} && git pull'
         if os.path.exists(tone_cli_path):
-            os.system(pull_cmd)
+            result = subprocess.run(pull_cmd, shell=True, capture_output=True, text=True)
         else:
-            os.system(clone_cmd)
-
+            result = subprocess.run(clone_cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            err = result.stderr
+            error_logger.error(f'clone tone-matrix error:{err}')
+            return None, None, err
         case_list, title_list, metric_list = [], [], []
         case_file = f'{tone_cli_path}/conf/{test_type}/{test_suite}.conf'
         doc_file1 = f'{tone_cli_path}/tests/{test_suite}/Readme.md'
