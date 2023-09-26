@@ -7,6 +7,8 @@ Author: Yfh
 import json
 import urllib.parse as urlparse
 from datetime import datetime
+from tone.core.common.enums.job_enums import JobState
+from tone.core.utils.common_utils import query_all_dict
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
@@ -47,6 +49,10 @@ def job_query(request):
     req_info = json.loads(request.body)
     job_id = req_info.get('job_id', None)
     assert job_id, ValueError(ErrorCode.JOB_NEED)
+    if isinstance(job_id, str):
+        assert job_id.isdigit(), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    else:
+        assert isinstance(job_id, int), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     job = TestJob.objects.get(id=job_id) if TestJob.objects.filter(id=job_id) else None
     assert job, ValueError(ErrorCode.TEST_JOB_NONEXISTENT)
     if not check_job_operator_permission(req_info.get('username', None), job):
@@ -264,4 +270,61 @@ def get_product_job_list(request):
         assert None, ValueError(ErrorCode.PRODUCT_PERMISSION_ERROR)
     job_id_list = list(TestJob.objects.filter(product_id=product.id).values_list('id', flat=True))
     resp.data = job_id_list
+    return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def get_job_info_list(request):
+    resp = CommResp()
+    data = json.loads(request.body)
+    product_name = data.get('product', None)
+    if product_name:
+        assert isinstance(product_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    project_name = data.get('project', None)
+    if project_name:
+        assert isinstance(project_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    tag_name = data.get('tag', None)
+    if tag_name:
+        assert isinstance(tag_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    ws_id = data.get('ws_id', None)
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    assert isinstance(ws_id, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type,A.test_result," \
+              "B.name AS product_name,C.name AS project_name,F.username AS creator FROM " \
+              "test_job A, product B, project C, job_tag D, job_tag_relation E, user F " \
+              "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND D.is_deleted=0 AND " \
+              "A.product_id=B.id  AND A.project_id=C.id AND A.id=E.job_id AND E.tag_id=D.id AND" \
+              " A.creator=F.id AND A.ws_id='" + ws_id + "'"
+    if not tag_name:
+        raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type," \
+                  "A.test_result, B.name AS product_name,C.name AS project_name,F.username AS creator FROM " \
+                  "test_job A, product B, project C, user F " \
+                  "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND " \
+                  "A.product_id=B.id  AND A.project_id=C.id AND " \
+                  " A.creator=F.id AND A.ws_id='" + ws_id + "'"
+    if product_name:
+        raw_sql += " AND B.name='{}'".format(product_name)
+    if project_name:
+        raw_sql += " AND C.name='{}'".format(project_name)
+    if tag_name:
+        tag_list = ','.join('\'' + e + '\'' for e in tag_name.split(','))
+        raw_sql += " AND D.name IN ({})".format(tag_list)
+    job_result_list = query_all_dict(raw_sql, params=None)
+    res_list = list()
+    for job_info in job_result_list:
+        job_dict = dict(
+            job_id=job_info['id'],
+            job_name=job_info['job_name'],
+            state=JobState.PENDING if job_info['state'] == JobState.PENDING_Q else job_info['state'],
+            start_time=job_info['start_time'],
+            end_time=job_info['end_time'],
+            test_type=job_info['test_type'],
+            test_result=job_info['test_result'],
+            product_name=job_info['product_name'],
+            project_name=job_info['project_name'],
+            creator=job_info['creator']
+        )
+        res_list.append(job_dict)
+    resp.data = res_list
     return resp.json_resp()

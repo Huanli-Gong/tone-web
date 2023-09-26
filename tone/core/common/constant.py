@@ -360,6 +360,162 @@ ANALYSIS_SQL_MAP = {
 
 }
 
+ANALYSIS_SUITE_LIST_SQL_MAP = {
+    'group_perf': """
+        SELECT DISTINCT 
+        A.test_suite_id,
+        A.test_case_id,
+        C.name AS test_suite_name,
+        D.name AS test_case_name
+    FROM
+        perf_result AS A,
+        test_job AS B,
+        test_suite AS C,
+        test_case AS D,
+        job_tag AS E,
+        job_tag_relation AS F 
+    WHERE
+        B.id = A.test_job_id 
+        AND B.server_provider = %s
+        AND B.test_type = 'performance' 
+        AND A.test_suite_id = C.id 
+        AND A.test_case_id = D.id 
+        AND B.state IN ( 'success', 'fail' ) 
+        AND A.is_deleted = 0
+        AND B.is_deleted = 0
+        AND C.is_deleted = 0
+        AND D.is_deleted = 0
+        AND B.ws_id = %s 
+        AND E.NAME = 'analytics' 
+        AND E.id = F.tag_id 
+        AND B.id = F.job_id
+    """,
+    'group_func': """
+        SELECT DISTINCT 
+        A.test_suite_id,
+        A.test_case_id,
+        C.name AS test_suite_name,
+        D.name AS test_case_name
+    FROM
+        func_result AS A,
+        test_job AS B,
+        test_suite AS C,
+        test_case AS D
+    WHERE
+        B.id = A.test_job_id 
+        AND B.test_type = 'functional' 
+        AND A.test_suite_id = C.id 
+        AND A.test_case_id = D.id 
+        AND B.state IN ( 'success', 'fail' ) 
+        AND A.is_deleted = 0
+        AND B.is_deleted = 0
+        AND C.is_deleted = 0
+        AND D.is_deleted = 0
+        AND B.ws_id = %s 
+    """,
+}
+
+ANALYSIS_METRIC_LIST_SQL_MAP = {
+    'group_perf': """
+        SELECT DISTINCT 
+        A.metric
+    FROM
+        perf_result AS A,
+        test_job AS B,
+        job_tag AS E,
+        job_tag_relation AS F 
+    WHERE
+        B.id = A.test_job_id 
+        AND B.start_time >= '{start_time}'
+        AND B.end_time <= '{end_time}'
+        AND B.server_provider = '{provider_env}'
+        AND B.test_type = 'performance' 
+        AND B.project_id = {project} 
+        AND A.test_suite_id = {test_suite_id} 
+        AND A.test_case_id = {test_case_id} 
+        AND B.state IN ( 'success', 'fail' ) 
+        AND A.is_deleted = 0
+        AND B.is_deleted = 0
+        AND B.ws_id = '{ws_id}' 
+        AND E.NAME = 'analytics' 
+        AND E.id = F.tag_id 
+        AND B.id = F.job_id
+    """,
+    'group_perf_tag': """
+    SELECT DISTINCT 
+        A.metric
+    FROM
+        perf_result AS A,
+        test_job AS B,
+        job_tag AS E,
+        job_tag_relation AS F 
+    WHERE
+        B.id = A.test_job_id 
+        AND B.start_time >= '{start_time}'
+        AND B.end_time <= '{end_time}'
+        AND B.server_provider = '{provider_env}'
+        AND B.test_type = 'performance' 
+        AND B.project_id = {project} 
+        AND A.test_suite_id = {test_suite_id} 
+        AND A.test_case_id = {test_case_id}
+        AND B.state IN ( 'success', 'fail' ) 
+        AND A.is_deleted = 0
+        AND B.is_deleted = 0
+        AND C.is_deleted = 0
+        AND D.is_deleted = 0
+        AND B.ws_id = '{ws_id}' 
+        AND E.NAME = 'analytics' 
+        AND E.id = F.tag_id 
+        AND B.id = F.job_id
+        AND F.tag_id = {tag}
+   """,
+    'group_func': """
+        SELECT DISTINCT 
+        A.sub_case_name as metric
+    FROM
+        func_result AS A,
+        test_job AS B
+    WHERE
+        B.id = A.test_job_id 
+        AND B.start_time >= '{start_time}'
+        AND B.end_time <= '{end_time}'
+        AND B.server_provider = '{provider_env}'
+        AND B.test_type = 'functional' 
+        AND B.project_id = {project} 
+        AND A.test_suite_id = {test_suite_id} 
+        AND A.test_case_id = {test_case_id} 
+        AND B.state IN ( 'success', 'fail' ) 
+        AND A.is_deleted = 0
+        AND B.is_deleted = 0
+        AND B.ws_id = '{ws_id}' 
+    """,
+    'group_func_tag': """
+    SELECT DISTINCT 
+        A.sub_case_name as metric
+    FROM
+        func_result AS A,
+        test_job AS B,
+        job_tag AS E,
+        job_tag_relation AS F 
+    WHERE
+        B.id = A.test_job_id 
+        AND B.start_time >= '{start_time}'
+        AND B.end_time <= '{end_time}'
+        AND B.server_provider = '{provider_env}'
+        AND B.test_type = 'functional' 
+        AND B.project_id = {project} 
+        AND A.test_suite_id = {test_suite_id} 
+        AND A.test_case_id = {test_case_id}
+        AND B.state IN ( 'success', 'fail' ) 
+        AND A.is_deleted = 0
+        AND B.is_deleted = 0
+        AND B.ws_id = '{ws_id}' 
+        AND E.id = F.tag_id 
+        AND B.id = F.job_id
+        AND F.tag_id = {tag}
+   """,
+}
+
 FILTER_JOB_TAG_SQL = """
     SELECT DISTINCT
         A.id 

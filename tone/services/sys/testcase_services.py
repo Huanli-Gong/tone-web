@@ -1,13 +1,17 @@
+import base64
+import logging
 import os
 import json
 import random
 import string
+import subprocess
+
+import requests
 import yaml
 from django.db import transaction
 from django.db.models import Q
 
 from tone import settings
-from tone.core.cloud import constant
 from tone.core.cloud.constant import TestType
 from tone.core.common.constant import TEST_SUITE_REDIS_KEY
 from tone.core.common.expection_handler.error_code import ErrorCode
@@ -20,7 +24,9 @@ from tone.models import TestCase, TestSuite, TestMetric, WorkspaceCaseRelation, 
     TestTmplCase, TestTemplate, TestBusiness, BusinessSuiteRelation, AccessCaseConf, User, TestJobSuite, Workspace
 from tone.serializers.sys.testcase_serializers import RetrieveStatisticsSerializer, \
     SimpleCaseSerializer
-#from tone.tasks import sync_suite_case_toneagent
+
+
+error_logger = logging.getLogger('error')
 
 
 class TestCaseInfoService(CommonService):
@@ -521,17 +527,19 @@ class TestSuiteService(CommonService):
     def sync_case_from_gitee(self, suite_id):
         suite = TestSuite.objects.filter(id=suite_id).first()
         try:
-            cases, doc, configs = self.get_case_info_by_gitee(suite.name, suite.test_type)
+            cases, doc, configs_or_error = self.get_case_info_by_git_clone(suite.name, suite.test_type)
         except Exception as e:
-            return False, 'get case info from gitee failed'
+            return False, f'get case info failed:{e}'
+        if not cases:
+            return False, configs_or_error
         try:
-            self._sync_case_to_db(suite, cases, doc, configs)
+            self._sync_case_to_db(suite, cases, doc, configs_or_error)
         except Exception as e:
-            return False, 'sync case to db failed'
+            return False, f'sync case to db failed:{e}'
         return True, 'success'
 
     @staticmethod
-    def get_case_info_by_gitee(test_suite, test_type):
+    def get_case_info_by_git_clone(test_suite, test_type):
         """
         gitee:
             test	  ioengine    time_based  direct    size
@@ -547,10 +555,13 @@ class TestSuiteService(CommonService):
         clone_cmd = f'git clone --single-branch --branch master {settings.TONE_CLI_REPO} {tone_cli_path}'
         pull_cmd = f'cd {tone_cli_path} && git pull'
         if os.path.exists(tone_cli_path):
-            os.system(pull_cmd)
+            result = subprocess.run(pull_cmd, shell=True, capture_output=True, text=True)
         else:
-            os.system(clone_cmd)
-
+            result = subprocess.run(clone_cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            err = result.stderr
+            error_logger.error(f'clone tone-matrix error:{err}')
+            return None, None, err
         case_list, title_list, metric_list = [], [], []
         case_file = f'{tone_cli_path}/conf/{test_type}/{test_suite}.conf'
         doc_file1 = f'{tone_cli_path}/tests/{test_suite}/Readme.md'
@@ -571,8 +582,6 @@ class TestSuiteService(CommonService):
                 case_list.append(case_name.strip(','))
         if not case_list:
             case_list = ['default']
-
-        # todo 获取 doc
         doc = ''
         if os.path.exists(doc_file1):
             doc_file = doc_file1
@@ -583,14 +592,65 @@ class TestSuiteService(CommonService):
         if doc_file:
             with open(doc_file) as f:
                 doc = f.read()
-
         # 获取 metric
         config_data = None
         if os.path.exists(config_file):
             with open(config_file) as f:
                 config_data = yaml.load(f.read(), Loader=yaml.FullLoader)
-            print(config_data)
+        return case_list, doc, config_data
 
+    @staticmethod
+    def get_case_info_by_gitee_api(test_suite, test_type):
+        """
+        gitee:
+            test	  ioengine    time_based  direct    size
+            read1	  psync       1           1         36G
+            read2	  psync       1           1         36G
+
+        return: [
+            'test=read1,ioengine=psync,time_based=1,direct=1,size=36G',
+            'test=read2,ioengine=psync,time_based=1,direct=1,size=36G'
+            ]
+        """
+        case_list, title_list, metric_list = [], [], []
+        case_file = f'conf/{test_type}/{test_suite}.conf'
+        doc_file1 = f'tests/{test_suite}/Readme.md'
+        doc_file2 = f'tests/{test_suite}/readme.md'
+        config_file = f'tests/{test_suite}/config.yaml'
+        case_file_req = requests.get(settings.TONE_MATRIX_URL.format(path=case_file))
+        if case_file_req.status_code != 200:
+            return None, None, f'请求{case_file}文件失败({case_file_req.text})'
+        if not case_file_req.json().get('content'):
+            case_list = ['default']
+        else:
+            case_file_content = base64.b64decode(case_file_req.json()['content']).decode()
+            # 获取 cases
+            for index, line in enumerate(case_file_content.split('\n')):
+                if not line.strip():
+                    continue
+                if index == 0:
+                    title_list = line.split()
+                    continue
+                case_name = ''
+                for i, item in enumerate(line.split()):
+                    case_name += f'{title_list[i]}={item},'
+                case_list.append(case_name.strip(','))
+        if not case_list:
+            case_list = ['default']
+        # 获取 doc
+        readme1 = requests.get(settings.TONE_MATRIX_URL.format(path=doc_file1))
+        if readme1.json() and readme1.json().get('content'):
+            doc = base64.b64decode(readme1.json()['content']).decode()
+        else:
+            readme2 = requests.get(settings.TONE_MATRIX_URL.format(path=doc_file2))
+            doc = base64.b64decode(readme2.json()['content']).decode() if readme1.json() \
+                                                                          and readme1.json().get('content') else ''
+        # 获取 metric
+        config_data = None
+        config = requests.get(settings.TONE_MATRIX_URL.format(path=config_file))
+        if config.json() and config.json().get('content'):
+            config_content = base64.b64decode(config.json()['content']).decode()
+            config_data = yaml.load(config_content, Loader=yaml.FullLoader)
         return case_list, doc, config_data
 
     @staticmethod
@@ -627,23 +687,21 @@ class TestSuiteService(CommonService):
                 domain_id = TestDomain.objects.get(name=domain_name).id
             else:
                 domain_id = DomainRelation.objects.get(object_type='suite', object_id=suite.id).domain_id
-            case_domain_mapping.update({case_name, domain_id})
-        if not case_obj_list:
-            # 说明数据库中数据与 gitee 数据已经同步
-            return
+            case_domain_mapping.update({case_name: domain_id})
         with transaction.atomic():
-            TestCase.objects.bulk_create(case_obj_list)
+            if case_obj_list:
+                TestCase.objects.bulk_create(case_obj_list)
             TestCase.objects.filter(test_suite_id=suite.id).exclude(name__in=case_name_list).delete()
             # 用例库conf用例被删除时，点击同步后，同步删除所有job模板中的用例和ws TestSuite管理里的用例
             TestTmplCase.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
             WorkspaceCaseRelation.objects.filter(test_suite_id=suite.id).exclude(
                 test_case_id__in=exist_test_case_id_list).delete()
-        for case_name, domain_id in case_domain_mapping:
+        for case_name, domain_id in case_domain_mapping.items():
             domain_relation_list.append(
                 DomainRelation(
                     object_type='case',
-                    object_id=TestCase.objects.get(name=case_name).id,
+                    object_id=TestCase.objects.get(test_suite_id=suite.id, name=case_name).id,
                     domain_id=domain_id
                 )
             )

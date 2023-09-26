@@ -41,10 +41,10 @@ class TestTemplateHandle(BaseHandle):
             name_obj = TestTemplate.objects.filter(name=self.data.get('template_name'), ws_id=self.ws_id)
             if self.obj:
                 if name_obj.exists() and self.obj.name != self.data.get('template_name'):
-                    raise JobTestException(ErrorCode.TEMPLATE_NAME_EXIST)
+                    assert None, ValueError(ErrorCode.TEMPLATE_NAME_EXISTS)
             else:
                 if name_obj.exists():
-                    raise JobTestException(ErrorCode.TEMPLATE_NAME_EXIST)
+                    assert None, ValueError(ErrorCode.TEMPLATE_NAME_EXISTS)
             self.data_dic['name'] = self.data.get('template_name')
         else:
             self.data_dic['name'] = random.sample(string.ascii_letters + string.digits, 18)
