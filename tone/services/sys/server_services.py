@@ -575,10 +575,16 @@ class CloudServerService(CommonService):
                 is_instance = False
             q &= Q(is_instance=is_instance)
         if data.get('server_conf'):
-            if data.get('is_instance') == "true":
-                q &= Q(instance_name__icontains=data.get('server_conf'))
+            if data.get('query_size') and data.get('query_size') == '1':
+                if data.get('is_instance') == "true":
+                    q &= Q(instance_name=data.get('server_conf'))
+                else:
+                    q &= Q(template_name=data.get('server_conf'))
             else:
-                q &= Q(template_name__icontains=data.get('server_conf'))
+                if data.get('is_instance') == "true":
+                    q &= Q(instance_name__icontains=data.get('server_conf'))
+                else:
+                    q &= Q(template_name__icontains=data.get('server_conf'))
         if data.get('description'):
             q &= Q(description__icontains=data.get('description'))
         if data.get('ws_id'):
