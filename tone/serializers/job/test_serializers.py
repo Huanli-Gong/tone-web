@@ -801,6 +801,7 @@ class JobTestCasePerResultSerializer(CommonSerializer):
                 if perf_detail is not None and obj.match_baseline:
                     return {'server_provider': baseline_obj.server_provider,
                             'test_type': baseline_obj.test_type,
+                            'baseline_name': baseline_obj.name,
                             'test_suite_id': perf_detail.test_suite_id,
                             'test_case_id': perf_detail.test_case_id,
                             'baseline_id': perf_detail.baseline_id,
