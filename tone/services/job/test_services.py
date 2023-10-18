@@ -97,6 +97,10 @@ class JobTestService(CommonService):
         data = self.check_data_param(data)
         page_num = data.get('page_num', '1')
         page_size = data.get('page_size', '20')
+        if not page_num.isdigit() or not page_size.isdigit():
+            raise ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+        page_num = int(page_num)
+        page_size = int(page_size)
         res = []
         create_name_map = {}
         project_name_map = {}
