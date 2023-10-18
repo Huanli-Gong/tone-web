@@ -127,54 +127,18 @@ class PerfAnalysisService(CommonService):
     @staticmethod
     def get_metric_data(rows, provider_env):
         metric_data = list()
-        if provider_env == 'aligroup':
-            for row in rows:
-                server = get_job_case_run_server(row['job_case_id']) if row['run_mode'] == 'cluster' else row['ip']
-                metric_data.append(
-                    {
-                        'job_id': row['id'],
-                        'job_name': row['name'],
-                        'start_time': datetime.strftime(row['start_time'], "%Y-%m-%d %H:%M:%S")
-                        if row['start_time'] else None,
-                        'end_time': datetime.strftime(row['end_time'], "%Y-%m-%d %H:%M:%S")
-                        if row['end_time'] else None,
-                        'commit_id': json.loads(row['build_pkg_info']).get('commit_id', None),
-                        'creator': row['first_name'] or row['last_name'],
-                        'server': server,
-                        'value': row['test_value'],
-                        'cv_value': row['cv_value'],
-                        'note': row['note'],
-                        'result_obj_id': row['result_obj_id'],
-                        # C.id和C.run_mode未取值，所以跳过
-                        'creator_id': row['creator_id']
-                    }
-                )
-        else:
-            for row in rows:
-                server = get_job_case_run_server(row['job_case_id']) if row['run_mode'] == 'cluster' \
-                    else row['private_ip']
-                metric_data.append(
-                    {
-                        'job_id': row['id'],
-                        'job_name': row['name'],
-                        'start_time': datetime.strftime(row['start_time'], "%Y-%m-%d %H:%M:%S")
-                        if row['start_time'] else None,
-                        'end_time': datetime.strftime(row['end_time'], "%Y-%m-%d %H:%M:%S")
-                        if row['end_time'] else None,
-                        'commit_id': json.loads(row['build_pkg_info']).get('commit_id', None),
-                        'creator': row['first_name'] or row['last_name'],
-                        'server': server,
-                        'value': row['test_value'],
-                        'cv_value': row['cv_value'],
-                        'note': row['note'],
-                        'result_obj_id': row['result_obj_id'],
-                        'instance_type': row['instance_type'],
-                        'image': row['image'],
-                        'bandwidth': row['bandwidth'],
-                        'run_mode': row['run_mode'],
-                        'creator_id': row['creator_id']
-                    }
-                )
+        for row in rows:
+            if provider_env == 'aligroup':
+                metric_obj = _package_metric(row, 'ip')
+            else:
+                metric_obj = _package_metric(row, 'private_ip')
+                metric_obj.update({
+                    'instance_type': row['instance_type'],
+                    'image': row['image'],
+                    'bandwidth': row['bandwidth'],
+                    'run_mode': row['run_mode']
+                })
+            metric_data.append(metric_obj)
         return metric_data
 
     @staticmethod
@@ -201,47 +165,12 @@ class PerfAnalysisService(CommonService):
     def get_job_list(result_data, provider_env):
         job_id_list = list()
         job_list = list()
-        if provider_env == 'aligroup':
-            for value in result_data.values():
+        for value in result_data.values():
+            if provider_env == 'aligroup':
                 for _value in value.values():
-                    if _value and _value.get('job_id') not in job_id_list:
-                        job_list.append({
-                            'job_id': _value.get('job_id'),
-                            'job_name': _value.get('job_name'),
-                            'start_time': _value.get('start_time'),
-                            'end_time': _value.get('end_time'),
-                            'commit_id': _value.get('commit_id'),
-                            'creator': _value.get('creator'),
-                            'server': _value.get('server'),
-                            'server_id': _value.get('server_id'),
-                            'server_provider': provider_env,
-                            'value': _value.get('value'),
-                            'cv_value': _value.get('cv_value'),
-                            'note': _value.get('note'),
-                            'result_obj_id': _value.get('result_obj_id'),
-                            'creator_id': _value.get('creator_id')
-                        })
-                        job_id_list.append(_value.get('job_id'))
-        else:
-            for value in result_data.values():
-                if value and value.get('job_id') not in job_id_list:
-                    job_list.append({
-                        'job_id': value.get('job_id'),
-                        'job_name': value.get('job_name'),
-                        'start_time': value.get('start_time'),
-                        'end_time': value.get('end_time'),
-                        'commit_id': value.get('commit_id'),
-                        'creator': value.get('creator'),
-                        'server': value.get('server'),
-                        'server_id': value.get('server_id'),
-                        'server_provider': provider_env,
-                        'value': value.get('value'),
-                        'cv_value': value.get('cv_value'),
-                        'note': value.get('note'),
-                        'result_obj_id': value.get('result_obj_id'),
-                        'creator_id': value.get('creator_id')
-                    })
-                    job_id_list.append(value.get('job_id'))
+                    package_job_info(_value, job_id_list, job_list)
+            else:
+                package_job_info(value, job_id_list, job_list)
         return list(sorted(job_list, key=lambda x: x.get('job_id'), reverse=True))
 
     def get_suite_case_list(self, data):
@@ -314,6 +243,48 @@ class PerfAnalysisService(CommonService):
         else:
             sql = ANALYSIS_METRIC_LIST_SQL_MAP.get('group_func')
         return sql
+
+
+def package_job_info(job_value, job_id_list, job_list):
+    if job_value and job_value.get('job_id') not in job_id_list:
+        job_list.append({
+                    'job_id': job_value.get('job_id'),
+                    'job_name': job_value.get('job_name'),
+                    'start_time': job_value.get('start_time'),
+                    'end_time': job_value.get('end_time'),
+                    'commit_id': job_value.get('commit_id'),
+                    'creator': job_value.get('creator'),
+                    'server': job_value.get('server'),
+                    'value': job_value.get('value'),
+                    'cv_value': job_value.get('cv_value'),
+                    'note': job_value.get('note'),
+                    'result_obj_id': job_value.get('result_obj_id'),
+                    'creator_id': job_value.get('creator_id')
+                })
+        job_id_list.append(job_value.get('job_id'))
+
+
+def _package_metric(row, column_ip):
+    server = get_job_case_run_server(row['job_case_id']) if row['run_mode'] == 'cluster' else row[column_ip]
+    return dict(
+        {
+            'job_id': row['id'],
+            'job_name': row['name'],
+            'start_time': datetime.strftime(row['start_time'], "%Y-%m-%d %H:%M:%S")
+            if row['start_time'] else None,
+            'end_time': datetime.strftime(row['end_time'], "%Y-%m-%d %H:%M:%S")
+            if row['end_time'] else None,
+            'commit_id': json.loads(row['build_pkg_info']).get('commit_id', None),
+            'creator': row['first_name'] or row['last_name'],
+            'server': server,
+            'value': row['test_value'],
+            'cv_value': row['cv_value'],
+            'note': row['note'],
+            'result_obj_id': row['result_obj_id'],
+            'creator_id': row['creator_id']
+        }
+    )
+
 
 
 class FuncAnalysisService(CommonService):
