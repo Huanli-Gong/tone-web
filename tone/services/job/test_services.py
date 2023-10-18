@@ -95,8 +95,8 @@ class JobTestService(CommonService):
 
     def db_filter_job(self, data, operator):  # noqa: C901
         data = self.check_data_param(data)
-        page_num = int(data.get('page_num', 1))
-        page_size = int(data.get('page_size', 20))
+        page_num = data.get('page_num', '1')
+        page_size = data.get('page_size', '20')
         res = []
         create_name_map = {}
         project_name_map = {}
