@@ -378,6 +378,7 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
         B.id = A.test_job_id 
         AND B.server_provider = %s
         AND B.test_type = 'performance' 
+        AND B.project_id = %s
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
@@ -404,6 +405,7 @@ ANALYSIS_SUITE_LIST_SQL_MAP = {
     WHERE
         B.id = A.test_job_id 
         AND B.test_type = 'functional' 
+        AND B.project_id = %s
         AND A.test_suite_id = C.id 
         AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
