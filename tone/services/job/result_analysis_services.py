@@ -131,7 +131,7 @@ class PerfAnalysisService(CommonService):
             if provider_env == 'aligroup':
                 metric_obj = _package_metric(row, 'ip')
             else:
-                metric_obj = _package_metric(row, 'pub_ip')
+                metric_obj = _package_metric(row, 'private_ip')
                 metric_obj.update({
                     'instance_type': row['instance_type'],
                     'image': row['image'],
