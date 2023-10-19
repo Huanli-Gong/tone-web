@@ -574,7 +574,7 @@ class JobTestService(CommonService):
                     self.del_dir(job_path)
                     JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url=oss_link)
                 else:
-                    JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url='ftp upload fail.')
+                    JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='fail', job_url='ftp upload fail.')
             else:
                 JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='fail', job_url='job not exists')
         except Exception as e:
