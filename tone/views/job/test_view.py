@@ -587,7 +587,10 @@ class JobDownloadRecordView(CommonAPIView):
         test_job_id = request.GET.get('job_id')
         record = JobDownloadRecord.objects.filter(job_id=test_job_id).first()
         if record:
-            response_data = self.get_response_only_for_data(record.to_dict())
+            record_dict = record.to_dict().copy()
+            if record.state == 'fail':
+                record_dict['job_url'] = ''
+            response_data = self.get_response_only_for_data(record_dict)
         else:
             response_data = self.get_response_only_for_data(None)
         return Response(response_data)
