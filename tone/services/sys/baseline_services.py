@@ -14,6 +14,7 @@ import stat
 import uuid
 from django.db import transaction
 from django_q.tasks import async_task
+from tone import settings
 
 from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
@@ -245,7 +246,7 @@ class BaselineService(CommonService):
                 ftp_path = oss_file.replace(MEDIA_ROOT.strip('/'), '')
                 res = sftp_client.upload_file(target_file, ftp_path)
                 if res:
-                    oss_link = 'http://' + sftp_client.host + ':' + str(sftp_client.proxy_port) + ftp_path
+                    oss_link = f'http://{settings.TONE_STORAGE_DOMAIN}:' + str(sftp_client.proxy_port) + ftp_path
                     self.del_dir(file_path)
                     BaselineDownloadRecord.objects.filter(baseline_id=baseline_id).\
                         update(state='success', target_url=oss_link)

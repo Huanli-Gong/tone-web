@@ -676,7 +676,7 @@ class OfflineDataUploadService(object):
         # os.remove(local_dir)
         if ret:
             file_link = 'http://{}:{}{}/{}'.format(
-                settings.TONE_STORAGE_HOST,
+                settings.TONE_STORAGE_DOMAIN,
                 settings.TONE_STORAGE_PROXY_PORT,
                 OFFLINE_DATA_DIR,
                 file_name
