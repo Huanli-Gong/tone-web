@@ -18,6 +18,7 @@ from django.db.models import Q
 from django.db import transaction, connection
 from itertools import chain
 from threading import Thread
+from tone import settings
 
 from tone.core.common.callback import CallBackType, JobCallBack
 from tone.core.utils.common_utils import query_all_dict
@@ -570,7 +571,7 @@ class JobTestService(CommonService):
                 ftp_path = oss_file.replace(MEDIA_ROOT.strip('/'), '')
                 res = sftp_client.upload_file(target_file, ftp_path)
                 if res:
-                    oss_link = 'http://' + sftp_client.host + ':' + str(sftp_client.proxy_port) + ftp_path
+                    oss_link = f'http://{settings.TONE_STORAGE_DOMAIN}:' + str(sftp_client.proxy_port) + ftp_path
                     self.del_dir(job_path)
                     JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url=oss_link)
                 else:
