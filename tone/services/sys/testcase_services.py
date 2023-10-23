@@ -578,7 +578,8 @@ class TestSuiteService(CommonService):
                     continue
                 case_name = ''
                 for i, item in enumerate(line.split()):
-                    case_name += f'{title_list[i]}={item},'
+                    if item.lower() != 'na':
+                        case_name += f'{title_list[i]}={item},'
                 case_list.append(case_name.strip(','))
         if not case_list:
             case_list = ['default']
@@ -633,7 +634,8 @@ class TestSuiteService(CommonService):
                     continue
                 case_name = ''
                 for i, item in enumerate(line.split()):
-                    case_name += f'{title_list[i]}={item},'
+                    if item.lower() != 'na':
+                        case_name += f'{title_list[i]}={item},'
                 case_list.append(case_name.strip(','))
         if not case_list:
             case_list = ['default']
