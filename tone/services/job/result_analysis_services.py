@@ -177,12 +177,14 @@ class PerfAnalysisService(CommonService):
         ws_id = data.get('ws_id')
         test_type = data.get('test_type')
         provider_env = data.get('provider_env', 'aligroup')
+        project_id = data.get('project_id')
         assert test_type, AnalysisException(ErrorCode.TEST_TYPE_LACK)
         assert ws_id, AnalysisException(ErrorCode.WS_NEED)
+        assert project_id, AnalysisException(ErrorCode.PROJECT_ID_NEED)
         raw_sql = self.get_suite_list_sql(test_type)
-        params = [provider_env, ws_id]
+        params = [provider_env, project_id, ws_id]
         if test_type == 'functional':
-            params = [ws_id]
+            params = [project_id, ws_id]
         suite_res_list = query_all_dict(raw_sql, params=params)
         suite_case_list = sorted(suite_res_list, key=lambda x: x['test_suite_id'], reverse=True)
         suite_list = list()
