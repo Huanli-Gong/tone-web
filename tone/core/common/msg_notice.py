@@ -896,7 +896,7 @@ class OutSiteMsgHandle(object):
                                job_summary.get('warn'))
                 else:
                     content += '\nStatistics：上升:{};下降:{};正常:{};无效:{};NA:{}'. \
-                        format(job_summary.get('increase'), job_summary.get('decline'), job_summary.get('invalid'),
+                        format(job_summary.get('increase'), job_summary.get('decline'), job_summary.get('normal'),
                                job_summary.get('invalid'), job_summary.get('na'))
             OutSiteMsg.objects.create(
                 subject=subject if not ding_subject else ding_subject,
