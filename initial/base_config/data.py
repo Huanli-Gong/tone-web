@@ -94,7 +94,7 @@ BASE_CONFIG_DATA = [
         'config_type': 'script',
         'config_key': 'RUN_TEST',
         'config_value': RUN_TEST.format(
-            tone_storage_host=cp.get('tone_storage_host'),
+            tone_storage_host=cp.get('tone_storage_domain'),
             tone_storage_sftp_port=cp.get('tone_storage_sftp_port'),
             tone_storage_proxy_port=cp.get('tone_storage_proxy_port'),
             tone_storage_user=cp.get('tone_storage_user'),
@@ -107,7 +107,7 @@ BASE_CONFIG_DATA = [
         'config_type': 'script',
         'config_key': 'UPLOAD',
         'config_value': UPLOAD.format(
-            tone_storage_host=cp.get('tone_storage_host'),
+            tone_storage_host=cp.get('tone_storage_domain'),
             tone_storage_sftp_port=cp.get('tone_storage_sftp_port'),
             tone_storage_proxy_port=cp.get('tone_storage_proxy_port'),
             tone_storage_user=cp.get('tone_storage_user'),
@@ -162,7 +162,7 @@ BASE_CONFIG_DATA = [
         'config_type': 'script',
         'config_key': 'RUN_TEST_DEBIAN',
         'config_value': RUN_TEST_DEBIAN.format(
-            tone_storage_host=cp.get('tone_storage_host'),
+            tone_storage_host=cp.get('tone_storage_domain'),
             tone_storage_sftp_port=cp.get('tone_storage_sftp_port'),
             tone_storage_proxy_port=cp.get('tone_storage_proxy_port'),
             tone_storage_user=cp.get('tone_storage_user'),
@@ -175,7 +175,7 @@ BASE_CONFIG_DATA = [
         'config_type': 'script',
         'config_key': 'UPLOAD_FILE',
         'config_value': UPLOAD_FILE.format(
-            tone_storage_host=cp.get('tone_storage_host'),
+            tone_storage_host=cp.get('tone_storage_domain'),
             tone_storage_sftp_port=cp.get('tone_storage_sftp_port'),
             tone_storage_proxy_port=cp.get('tone_storage_proxy_port'),
             tone_storage_user=cp.get('tone_storage_user'),
