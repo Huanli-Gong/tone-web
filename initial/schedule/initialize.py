@@ -22,7 +22,7 @@ def init_schedule():
     )
     Schedule.objects.create(
         name='auto_job_report',
-        func='from tone.core.schedule.schedule_job.auto_job_report',
+        func='tone.core.schedule.schedule_job.auto_job_report',
         schedule_type=Schedule.MINUTES,
         minutes=5
     )
