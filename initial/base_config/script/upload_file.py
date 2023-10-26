@@ -24,7 +24,7 @@ install_utils()
 
 
 function upload_file(){{
-    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "set ftp:ssl-allow no" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} <<EOF
+    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "set sftp:auto-confirm yes" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} <<EOF
     cd ${{TONE_STORAGE_BUCKET}}
     mkdir -p $TONE_JOB_ID
     cd $TONE_JOB_ID
