@@ -24,7 +24,7 @@ LOG=/tmp/tone_${{TEST_SUITE}}_${{CONF_SHORT_NAME}}.log
 ALL_LOG=/tmp/tone.log
 TONE_RESULT_PATH=$TONE_PATH/result/$TEST_SUITE/$CONF_SHORT_NAME
 TONE_RESULT_PATH_LEN=$((${{#TONE_RESULT_PATH}}+1))
-
+SFTP_PARAMS="set sftp:auto-confirm yes; set net:timeout 60; set net:reconnect-interval-base 10; set net:max-retries 2"
 
 install_utils()
 {{
@@ -56,7 +56,7 @@ function upload_file(){{
         return
     fi
 
-    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
+    lftp -u ${{TONE_STORAGE_USER}},${{TONE_STORAGE_PASSWORD}} -e "${{SFTP_PARAMS}}" sftp://${{TONE_STORAGE_HOST}}:${{TONE_STORAGE_SFTP_PORT}} >> $ALL_LOG 2>&1 <<EOF
     cd ${{TONE_STORAGE_BUCKET}}
     mkdir -p $file_path
     cd $file_path
