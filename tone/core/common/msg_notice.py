@@ -522,6 +522,8 @@ class OutSiteMsgHandle(object):
         test_obj = obj_model.objects.filter(id=job_id).first()
         if test_obj is None:
             return config_dic
+        if not test_obj.notice_info or test_obj.notice_info == '[]':
+            return config_dic
         for config in test_obj.notice_info:
             if config['type'] == 'email':
                 config_dic['email'] = config
