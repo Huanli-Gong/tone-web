@@ -41,6 +41,8 @@ def send_ding_message(message_id):
 # @app.task
 def send_email_message(message_id):
     message = OutSiteMsg.objects.get(id=message_id)
+    if len(message.send_to.strip()) <= 1:
+        return
     send_to = message.send_to.strip().split(',')
     cc_to = message.cc_to.strip().split(',')
     bcc_to = message.bcc_to.strip().split(',')
