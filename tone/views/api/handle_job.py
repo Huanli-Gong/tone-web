@@ -27,6 +27,5 @@ def stop_job(request):
             id=job_id,
             state__in=['running', 'pending', 'pending_q']
         ).update(state='stop', end_time=datetime.now())
-
         operation_after_stop_job(job_obj, 'The job stop by ' + request.GET.get('username', None))
     return resp.json_resp()
