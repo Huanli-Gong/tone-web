@@ -28,4 +28,5 @@ def stop_job(request):
             state__in=['running', 'pending', 'pending_q']
         ).update(state='stop', end_time=datetime.now())
         operation_after_stop_job(job_obj, 'The job stop by ' + request.GET.get('username', None))
+    # v2需单独调用额外接口
     return resp.json_resp()
