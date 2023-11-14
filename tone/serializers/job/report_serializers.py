@@ -141,8 +141,11 @@ class ReportDetailSerializer(CommonSerializer):
     @staticmethod
     def get_template_detail(obj):
         report_detail = ReportDetail.objects.filter(report_id=obj.id).first()
-        if report_detail:
+        if report_detail and report_detail.template_detail:
             template_detail = report_detail.template_detail
+            if 'server_info_config' not in template_detail or not template_detail['server_info_config']:
+                template_detail['server_info_config'] = ["ip/sn", "distro", "cpu_info", "memory_info", "disk",
+                                                         "ether", "os", "kernel", "gcc", "glibc"]
         else:
             template_detail = get_report_template(obj.id)
         return template_detail
