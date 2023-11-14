@@ -809,16 +809,17 @@ class PerfBaselineService(CommonService):
     def get_conf_info(queryset):
         """展开conf"""
         conf_list = []
-        case_id_list = queryset.values_list("test_case_id", flat=True)
+        case_id_list = queryset.values_list("test_case_id", "description")
         # 根据case_id返回 case_name
         for case_id in set(case_id_list):
             # 被删除case的基线不再展示
-            if not TestCase.objects.filter(id=case_id).exists():
+            if not TestCase.objects.filter(id=case_id[0]).exists():
                 continue
             case_name_data = {}
-            case_name = TestCase.objects.get(id=case_id).name
+            case_name = TestCase.objects.get(id=case_id[0]).name
             case_name_data["test_case_name"] = case_name
-            case_name_data["test_case_id"] = case_id
+            case_name_data["test_case_id"] = case_id[0]
+            case_name_data["desc"] = case_id[1]
             conf_list.append(case_name_data)
         return conf_list
 
@@ -849,6 +850,7 @@ class PerfBaselineService(CommonService):
         job_id = data.get('job_id')
         suite_id = data.get('suite_id')
         case_id = data.get('case_id')
+        desc = data.get('desc', None)
         if not TestSuite.objects.filter(id=suite_id).exists() or not TestCase.objects.filter(id=case_id).exists():
             return False, ErrorCode.ADD_BASELINE_ERROR.to_api
         if not all([baseline_id, case_id, job_id, suite_id]):
@@ -857,21 +859,19 @@ class PerfBaselineService(CommonService):
         if not test_job:
             return False, ErrorCode.ADD_BASELINE_JOB_MISSING.to_api
         add_baseline_thread = ToneThread(self.add_one_perf_back,
-                                         (baseline_id, case_id, job_id, suite_id, test_job, user_id))
+                                         (baseline_id, case_id, job_id, suite_id, test_job, user_id, desc))
         add_baseline_thread.start()
         return True, None
 
-    def add_one_perf_back(self, baseline_id, case_id, job_id, suite_id, test_job, user_id):
-        machine = None
+    def add_one_perf_back(self, baseline_id, case_id, job_id, suite_id, test_job, user_id, desc):
         sm_name = ''
         instance_type = ''
         image = ''
         bandwidth = 10
         machine_ip = ''
         test_job_case = TestJobCase.objects.filter(job_id=job_id, test_suite_id=suite_id, test_case_id=case_id).first()
-        test_step_case = TestStep.objects.filter(job_id=job_id, job_case_id=test_job_case.id).first()
-        if test_step_case and test_step_case.server:
-            server_provider, machine = get_job_baseline_server(job_id, case_id)
+        server_provider, machine = get_job_baseline_server(job_id, case_id)
+        if machine:
             if server_provider == 'aliyun':
                 if machine is not None:
                     instance_type = machine.instance_type
@@ -889,12 +889,13 @@ class PerfBaselineService(CommonService):
         for perf_res in perf_res_list:
             self._get_add_perf_baseline_detail(bandwidth, baseline_id, case_id, create_list, image, instance_type,
                                                job_id, machine, machine_ip, perf_res, sm_name, suite_id, test_job_case,
-                                               update_dict, user_id)
-            self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id)
+                                               update_dict, user_id, desc)
+            self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
+                                           desc)
 
     def _get_add_perf_baseline_detail(self, bandwidth, baseline_id, case_id, create_list, image, instance_type, job_id,
                                       machine, machine_ip, perf_res, sm_name, suite_id, test_job_case, update_dict,
-                                      user_id):
+                                      user_id, desc):
         perf_detail = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
                                                         test_case_id=case_id, metric=perf_res.metric)
         create_data = PerfBaselineDetail(
@@ -917,7 +918,8 @@ class PerfBaselineService(CommonService):
             min_value=perf_res.min_value,
             value_list=perf_res.value_list,
             note=test_job_case.note,
-            update_user=user_id
+            update_user=user_id,
+            description=desc
         )
         if not perf_detail.exists():
             create_data.creator = user_id
@@ -925,7 +927,8 @@ class PerfBaselineService(CommonService):
         else:
             update_dict.setdefault(str(perf_detail[0].id), create_data)
 
-    def _add_perf_baseline_detail(self, job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id):
+    def _add_perf_baseline_detail(self, job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
+                                  desc):
         if create_list:
             PerfBaselineDetail.objects.bulk_create(create_list)
             if test_job.baseline_id == baseline_id:
@@ -957,11 +960,12 @@ class PerfBaselineService(CommonService):
                     perf_obj.min_value = update_data.min_value
                     perf_obj.value_list = update_data.value_list
                     perf_obj.note = update_data.note
+                    perf_obj.description = desc
 
             update_fields = ['baseline_id', 'test_job_id', 'test_suite_id', 'test_case_id', 'server_ip', 'server_sn',
                              'server_sm_name', 'server_instance_type', 'server_image', 'server_bandwidth', 'run_mode',
                              'source_job_id', 'metric', 'test_value', 'cv_value', 'max_value', 'min_value',
-                             'value_list', 'note']
+                             'value_list', 'note', 'description']
             PerfBaselineDetail.objects.bulk_update(perf_detail, update_fields)
 
     @staticmethod
@@ -1010,6 +1014,7 @@ class PerfBaselineService(CommonService):
         }
         """
         job_id = data.get('job_id')
+        desc = data.get('desc', None)
         baseline_id = self.get_baseline_id(data)
         if not all([baseline_id, job_id]):
             return False, "Required request parameters: 1.baseline_id, 2.job_id, 3.suite_list, 4.suite_data"
@@ -1068,18 +1073,18 @@ class PerfBaselineService(CommonService):
         # 加入基线和测试基线相同时，匹配基线
         add_perf_baseline_thread = ToneThread(self._add_perf_baseline_backend, (baseline_id, baseline_server_list,
                                                                                 job_id, perf_baseline_detail_list, q,
-                                                                                raw_sql, test_job, user_id))
+                                                                                raw_sql, test_job, user_id, desc))
         add_perf_baseline_thread.start()
         return True, None
 
     def _add_perf_baseline_backend(self, baseline_id, baseline_server_list, job_id, perf_baseline_detail_list, q,
-                                   raw_sql, test_job, user_id):
+                                   raw_sql, test_job, user_id, desc):
         if test_job.baseline_id == baseline_id:
             PerfResult.objects.filter(q).update(match_baseline=True)
         all_perf_results = query_all_dict(raw_sql.replace('\'', ''), params=[job_id])
         for perf_result in all_perf_results:
             perf_baseline_detail_obj = self._add_perf_baseline(perf_result, job_id, baseline_id,
-                                                               test_job.server_provider, user_id)
+                                                               test_job.server_provider, user_id, desc)
             if perf_baseline_detail_obj:
                 perf_baseline_detail_list.append(perf_baseline_detail_obj)
             server_provider, machine = get_job_baseline_server(job_id, perf_result['test_case_id'])
@@ -1089,7 +1094,7 @@ class PerfBaselineService(CommonService):
             BaselineServerSnapshot.objects.bulk_create(baseline_server_list)
         PerfBaselineDetail.objects.bulk_create(perf_baseline_detail_list)
 
-    def _add_perf_baseline(self, perf_result, job_id, baseline_id, server_provider, user_id):
+    def _add_perf_baseline(self, perf_result, job_id, baseline_id, server_provider, user_id, desc):
         suite_id = perf_result['test_suite_id']
         case_id = perf_result['test_case_id']
         perf_detail = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
@@ -1117,7 +1122,8 @@ class PerfBaselineService(CommonService):
                 value_list=perf_result['value_list'],
                 note=perf_result['note'],
                 creator=user_id,
-                update_user=user_id
+                update_user=user_id,
+                description=desc
             )
             return perf_baseline_detail_obj
         else:
@@ -1141,7 +1147,8 @@ class PerfBaselineService(CommonService):
                 min_value=perf_result['min_value'],
                 value_list=perf_result['value_list'],
                 note=perf_result['note'],
-                update_user=user_id
+                update_user=user_id,
+                description=desc
             )
             return None
 
