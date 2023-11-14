@@ -281,6 +281,7 @@ def _package_metric(row, column_ip):
             'server': server,
             'value': row['test_value'],
             'cv_value': row['cv_value'],
+            'compare_result': '{0:.2f}%'.format(float(row['compare_result']) * 100) if row['compare_result'] else '',
             'note': row['note'],
             'result_obj_id': row['result_obj_id'],
             'creator_id': row['creator_id']
