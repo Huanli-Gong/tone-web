@@ -190,6 +190,17 @@ class JobTestService(CommonService):
                 query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
             else:
                 query_sql.append('AND id=0')
+        if data.get('test_conf'):
+            test_conf = data.get('test_conf')
+            test_case_ids = TestCase.objects.filter(name=test_conf).values('id').distinct()
+            job_ids = list()
+            if len(test_case_ids) > 0:
+                test_cases = TestJobCase.objects.filter(test_case_id__in=test_case_ids).values('job_id').distinct()
+                job_ids = [test_case['job_id'] for test_case in test_cases]
+            if job_ids:
+                query_sql.append('AND id IN ({})').format(','.join(str(job_id) for job_id in job_ids))
+            else:
+                query_sql.append('AND id=0')
         if data.get('creation_time'):
             creation_time = data.get('creation_time')
             creation_time = json.loads(creation_time)
@@ -480,11 +491,14 @@ class JobTestService(CommonService):
             release_server(job_id)
 
     @staticmethod
-    def create(data, operator):
+    def create(data, operator, is_patch=False, test_job_id=0):
         handler = JobDataHandle(data, operator)
         with transaction.atomic():
             data_dic, case_list, suite_list, tag_list = handler.return_result()
-            test_job = TestJob.objects.create(**data_dic)
+            if is_patch:
+                test_job = TestJob.objects.filter(id=test_job_id).first()
+            else:
+                test_job = TestJob.objects.create(**data_dic)
             suite_obj_list = list()
             for suite in suite_list:
                 suite['job_id'] = test_job.id
@@ -496,11 +510,11 @@ class JobTestService(CommonService):
             tag_obj_list = list()
             for tag in tag_list:
                 tag_obj_list.append(JobTagRelation(tag_id=tag, job_id=test_job.id))
-            if suite_obj_list:
+            if suite_obj_list and not is_patch:
                 TestJobSuite.objects.bulk_create(suite_obj_list)
-            if case_obj_list:
+            if case_obj_list and not is_patch:
                 TestJobCase.objects.bulk_create(case_obj_list)
-            if tag_obj_list:
+            if tag_obj_list and not is_patch:
                 JobTagRelation.objects.bulk_create(tag_obj_list)
             return test_job
 
