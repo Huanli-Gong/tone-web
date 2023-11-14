@@ -142,6 +142,7 @@ ANALYSIS_SQL_MAP = {
         B.note,
         B.id as result_obj_id,
         B.metric,
+        B.compare_result,
         C.id as job_case_id,
         C.run_mode,
         E.id as creator_id
@@ -196,6 +197,7 @@ ANALYSIS_SQL_MAP = {
         B.note,
         B.id as result_obj_id,
         B.metric,
+        B.compare_result,
         C.id as job_case_id,
         C.run_mode,
         E.id as creator_id
@@ -254,6 +256,7 @@ ANALYSIS_SQL_MAP = {
         B.note,
         B.id as result_obj_id,
         B.metric,
+        B.compare_result,
         D.instance_type,
         D.image,
         D.bandwidth,
@@ -311,6 +314,7 @@ ANALYSIS_SQL_MAP = {
         B.note,
         B.id as result_obj_id,
         B.metric,
+        B.compare_result,
         D.instance_type,
         D.image,
         D.bandwidth,
