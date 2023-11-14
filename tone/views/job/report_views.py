@@ -12,7 +12,6 @@ from django.views import View
 from rest_framework.response import Response
 from django.utils.decorators import method_decorator
 
-from tone import settings
 from tone.core.common.constant import EnvType
 from tone.core.common.views import CommonAPIView
 from tone.models import PlanInstance, TestPlan
@@ -55,6 +54,9 @@ class ReportTemplateDetailView(CommonAPIView):
     def get(self, request):
         """查询报告模板详情"""
         queryset = self.get_queryset().filter(id=request.GET.get('id')).first()
+        if queryset and not queryset.server_info_config:
+            queryset.server_info_config = ["ip/sn", "distro", "cpu_info", "memory_info", "disk",
+                                           "ether", "os", "kernel", "gcc", "glibc"]
         response_data = self.get_response_data(queryset, many=False, page=False)
         return Response(response_data)
 
