@@ -27,7 +27,7 @@ from tone.models.sys.baseline_models import PerfBaselineDetail
 from tone.core.common.constant import OFFLINE_DATA_DIR, RESULTS_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.services.job.test_services import JobTestService
-from tone.core.common.expection_handler.custom_error import JobTestException
+from tone.core.common.job_result_helper import calc_job, patch_job_state
 
 
 class OfflineDataUploadService(object):
@@ -109,7 +109,7 @@ class OfflineDataUploadService(object):
             tmp_tar.close()
             os.remove(file_name)
             return code, msg, offline_upload.id
-        if 'test_config' not in tmp_yaml:
+        if 'test_config' not in tmp_yaml or len(tmp_yaml['test_config']) == 0:
             code = 201
             msg = 'job.yaml需要test_config节点数据。'
             tmp_tar.close()
@@ -165,8 +165,20 @@ class OfflineDataUploadService(object):
                     return code, msg, 0
         return code, msg, 0
 
-    def _post_background(self, req_data, file_bytes, operator, original_file_name):
-        code, msg, offline_upload_id = self._valid_params(req_data, file_bytes, original_file_name, operator)
+    def _post_background(self, data, file_bytes, operator, original_file_name):
+        data = data.copy()
+        patch_job = False
+        if 'job_id' in data:
+            test_job = TestJob.objects.filter(id=data.get('job_id')).first()
+            if test_job:
+                patch_job = True
+                data['project_id'] = test_job.project_id
+                data['baseline_id'] = test_job.baseline_id if test_job.baseline_id else 0
+                data['test_type'] = test_job.test_type
+                data['ws_id'] = test_job.ws_id
+                data['server_type'] = test_job.server_provider
+                data['job_type_id'] = test_job.job_type_id
+        code, msg, offline_upload_id = self._valid_params(data, file_bytes, original_file_name, operator)
         if code == 201:
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
             return
@@ -182,15 +194,15 @@ class OfflineDataUploadService(object):
             msg = '上传文件 %s 不存在。' % local_file
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
             return
-        code, msg, test_job_id = self._upload_tar(local_file, req_data, offline_upload_id, operator,
-                                                  original_file_name)
+        code, msg, test_job_id = self._upload_tar(local_file, data, offline_upload_id, operator,
+                                                  original_file_name, patch_job)
         os.remove(local_file)
         if code == 201:
             OfflineUpload.objects.filter(id=offline_upload_id).update(state='fail', state_desc=msg)
-            if test_job_id:
+            if test_job_id and not patch_job:
                 TestJob.objects.filter(id=test_job_id).delete()
 
-    def _upload_tar(self, filename, req_data, offline_id, operator, original_file_name):
+    def _upload_tar(self, filename, data, offline_id, operator, original_file_name, patch_job):
         ws_id = req_data.get('ws_id')
         baseline_id = req_data.get('baseline_id', 0)
         server_type = req_data.get('server_type')
@@ -203,10 +215,12 @@ class OfflineDataUploadService(object):
             tar_file.close()
             return code, msg, None
         test_job_id = 0
+        if patch_job:
+            test_job_id = int(data['job_id'])
         try:
-            job_data = self.build_job_data(args, req_data, test_config, original_file_name)
+            job_data = self.build_job_data(args, data, test_config, original_file_name)
             _timestamp = int(round(time.time() * 1000000))
-            test_job = JobTestService().create(job_data, operator)
+            test_job = JobTestService().create(job_data, operator, is_patch=patch_job, test_job_id=test_job_id)
             if not test_job:
                 code = 201
                 msg = 'Job创建失败。'
@@ -215,12 +229,29 @@ class OfflineDataUploadService(object):
             test_job_id = test_job.id
             code, msg, start_date, end_date = self.handle_result_file(baseline_id, tar_file, test_job_id, test_type, ip,
                                                                       args['test_config'], server_type, ws_id,
-                                                                      _timestamp)
+                                                                      _timestamp, patch_job)
             if code == 201:
                 tar_file.close()
                 return code, msg, test_job_id
-            TestJob.objects.filter(id=test_job_id).update(start_time=start_date, end_time=end_date)
-            self._create_test_step(test_job_id)
+            if not patch_job:
+                TestJob.objects.filter(id=test_job_id).update(start_time=start_date, end_time=end_date)
+                self._create_test_step(test_job_id)
+            else:
+                suite_id_list = [suite['test_suite'] for suite in test_config]
+                for suite_id in suite_id_list:
+                    job_case_states = {job_case for job_case in
+                                       TestJobCase.objects.filter(job_id=test_job_id, test_suite_id=suite_id).
+                                       values_list('state', flat=True)}
+                    suite_state = patch_job_state(job_case_states)
+                    TestJobSuite.objects.filter(job_id=test_job_id, test_suite_id=suite_id).update(state=suite_state)
+                job_suite_states = {job_suite for job_suite in TestJobSuite.objects.filter(job_id=test_job_id).
+                                    values_list('state', flat=True)}
+                job_state = patch_job_state(job_suite_states)
+                calc_result = calc_job(test_job.id)
+                test_result = '{"total": ' + str(calc_result["count"]) + ', "pass": ' + str(calc_result["success"]) \
+                              + ', "fail": ' + str(calc_result["fail"]) + '}'
+                TestJob.objects.filter(id=test_job_id).update(test_result=test_result, state=job_state,
+                                                              state_second=job_state)
             if code == 200:
                 OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id,
                                                                    state_desc='begin upload file to ftp.')
@@ -332,7 +363,7 @@ class OfflineDataUploadService(object):
         return code, msg, test_config
 
     def handle_result_file(self, baseline_id, tar_file, test_job_id, test_type, req_ip, test_config, server_type,
-                           ws_id, _timestamp):
+                           ws_id, _timestamp, patch_job):
         msg = ''
         code = 200
         result_file_list = []
@@ -381,16 +412,16 @@ class OfflineDataUploadService(object):
                             server_snapshot_id = self._save_server(server, req_ip, server_type, test_job_id, ws_id)
                             TestJobCase.objects.filter(job_id=test_job_id, test_suite_id=test_suite.id,
                                                        test_case_id=test_case.id).update(
-                                state='success', server_snapshot_id=server_snapshot_id, start_time=tmp_start,
+                                state=avg_file['status'], server_snapshot_id=server_snapshot_id, start_time=tmp_start,
                                 end_time=tmp_end)
                             TestJobSuite.objects.filter(job_id=test_job_id, test_suite_id=test_suite.id).\
                                 update(state='success', start_time=tmp_start, end_time=tmp_end)
                     if test_type == 'performance':
                         code, msg = self.import_perf_avg(test_job_id, avg_file['results'], test_suite.id,
-                                                         test_case.id, start_date, end_date, baseline_id)
+                                                         test_case.id, start_date, end_date, baseline_id, patch_job)
                     else:
                         code, msg = self.import_func_avg(test_job_id, avg_file['results'], test_suite.id,
-                                                         test_case.id, start_date, end_date)
+                                                         test_case.id, start_date, end_date, patch_job)
         ResultFile.objects.bulk_create(result_file_list)
         return code, msg, start_date, end_date
 
@@ -527,13 +558,17 @@ class OfflineDataUploadService(object):
             msg = 'miss statistic.json file'
         return msg
 
-    def import_func_avg(self, test_job_id, results, test_suite_id, test_case_id, start_date, end_date):
-        func_obj_list = []
+    def import_func_avg(self, test_job_id, results, test_suite_id, test_case_id, start_date, end_date, patch_job):
+        func_obj_list = list()
         for item in results:
             func_history = FuncResult.objects.filter(test_job_id=test_job_id, test_suite_id=test_suite_id,
                                                      test_case_id=test_case_id, sub_case_name=item['testcase']).first()
             if func_history:
-                return 201, 'sub_case_name [%s] data is existed' % item['testcase']
+                if patch_job:
+                    FuncResult.objects.filter(test_job_id=test_job_id, test_suite_id=test_suite_id,
+                                              test_case_id=test_case_id, sub_case_name=item['testcase']).delete()
+                else:
+                    return 201, 'sub_case_name [%s] data is existed' % item['testcase']
             case_result = 5
             if 'Fail' not in item['matrix'] and 'Pass' in item['matrix']:
                 case_result = 1
@@ -598,13 +633,18 @@ class OfflineDataUploadService(object):
                 success_count += 1
         return '{"total": %d, "pass": %d, "fail": %d}' % (len(test_config), success_count, fail_count)
 
-    def import_perf_avg(self, test_job_id, results, test_suite_id, test_case_id, start_date, end_date, baseline_id):
+    def import_perf_avg(self, test_job_id, results, test_suite_id, test_case_id, start_date, end_date, baseline_id,
+                        patch_job):
         perf_obj_list = []
         for item in results:
             perf_history = PerfResult.objects.filter(test_job_id=test_job_id, test_suite_id=test_suite_id,
                                                      test_case_id=test_case_id, metric=item['metric']).first()
             if perf_history:
-                return 201, 'metric [%s] 已存在，导入数据失败。' % item['metric']
+                if patch_job:
+                    PerfResult.objects.filter(test_job_id=test_job_id, test_suite_id=test_suite_id,
+                                              test_case_id=test_case_id, metric=item['metric']).delete()
+                else:
+                    return 201, 'metric [%s] 已存在，导入数据失败。' % item['metric']
             baseline_value = '0'
             baseline_cv_value = ''
             baseline = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_job_id=test_job_id,
