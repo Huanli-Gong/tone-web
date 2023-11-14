@@ -518,3 +518,12 @@ class JobDownloadRecord(BaseModel):
         job_dict['gmt_modified'] = datetime.strftime(self.gmt_modified, "%Y-%m-%d %H:%M:%S")
         job_dict['gmt_created'] = datetime.strftime(self.gmt_created, "%Y-%m-%d %H:%M:%S")
         return job_dict
+
+
+class BatchJobRelation(BaseModel):
+
+    job_id = models.IntegerField(help_text='job id', db_index=True)
+    tmp_job_id = models.CharField(primary_key=True, max_length=8, help_text='临时job_id')
+
+    class Meta:
+        db_table = 'batch_job_relation'
