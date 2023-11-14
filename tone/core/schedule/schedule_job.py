@@ -6,8 +6,7 @@ from tone.core.utils.schedule_lock import lock_run_task
 from tone.core.common.redis_cache import redis_cache
 from tone.models import TestPlan, PlanInstance, PlanStageRelation, PlanStageTestRelation, PlanStagePrepareRelation, \
     PlanInstanceStageRelation, PlanInstanceTestRelation, PlanInstancePrepareRelation, BLOCKING_STATEGY_CHOICES, \
-    TestTemplate, JobType, datetime, Workspace
-from tone.models.job.job_models import TestJob
+    TestTemplate, JobType, datetime, Workspace, TestJobSuite, TestJobCase, JobTagRelation, TestJob, BatchJobRelation
 from tone.core.handle.report_handle import ReportHandle
 from tone.services.plan.complete_plan_report import plan_create_report
 
@@ -173,3 +172,27 @@ def auto_plan_report():
             logger.error(f'auto_plan_report error. ex is {ex}')
             PlanInstance.objects.filter(id=plan_instance.id).update(report_is_saved=1)
     logger.info(f'auto_plan_report end now ...........')
+
+
+def batch_create_job():
+    i = 0
+    while i < 10:
+        try:
+            job_data_str = redis_cache.rpop('batch_create_job')
+            if not job_data_str:
+                break
+            job_data = json.loads(job_data_str)
+            with transaction.atomic():
+                test_job = TestJob.objects.create(**job_data['data_dic'])
+                for suite in job_data['suite_list']:
+                    suite['job_id'] = test_job.id
+                    TestJobSuite.objects.create(**suite)
+                for case in job_data['case_list']:
+                    case['job_id'] = test_job.id
+                    TestJobCase.objects.create(**case)
+                for tag in job_data['tag_list']:
+                    JobTagRelation.objects.create(tag_id=tag, job_id=test_job.id)
+                BatchJobRelation.objects.create(job_id=test_job.id, tmp_job_id=job_data['tmp_job_id'])
+        except Exception as ex:
+            logger.info(f'batch_create_job error. ex is {ex}')
+        i += 1

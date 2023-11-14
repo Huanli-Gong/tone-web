@@ -12,7 +12,7 @@ from tone.core.utils.common_utils import query_all_dict
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -48,7 +48,14 @@ def job_query(request):
     """
     resp = CommResp()
     req_info = json.loads(request.body)
-    job_id = req_info.get('job_id', None)
+    tmp_job_id = req_info.get('tmp_job_id', None)
+    job_id = None
+    if tmp_job_id:
+        tmp_relation = BatchJobRelation.objects.filter(tmp_job_id=tmp_job_id).first()
+        if tmp_relation:
+            job_id = tmp_relation.job_id
+    if not job_id:
+        job_id = req_info.get('job_id', None)
     assert job_id, ValueError(ErrorCode.JOB_NEED)
     if isinstance(job_id, str):
         assert job_id.isdigit(), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
