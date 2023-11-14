@@ -563,7 +563,7 @@ def _get_server_is_deleted(server_provider, server_snapshot_object, obj):
                                            'sn': server_obj.sn}]
 
 
-def get_job_case_run_server(job_case_id, return_field='ip'):
+def get_job_case_run_server(job_case_id, return_field='ip', runner_version=1):
     job_case = TestJobCase.objects.get(id=job_case_id)
     run_mode = job_case.run_mode
     server_provider = job_case.server_provider
@@ -577,22 +577,31 @@ def get_job_case_run_server(job_case_id, return_field='ip'):
         if server.exists():
             return __get_server_value(server, server_provider, return_field)
     elif run_mode == 'cluster' and server_provider == 'aligroup':
-        test_step = TestStep.objects.filter(job_case_id=job_case_id, stage='run_case')
-        if test_step.exists():
-            server_snapshot_id = TestStep.objects.filter(job_case_id=job_case_id, stage='run_case').first().server
+        server_snapshot_id = get_cluster_snapshot(job_case_id, runner_version)
+        if server_snapshot_id:
             server = TestServerSnapshot.objects.filter(id=server_snapshot_id)
             if server.exists():
                 return __get_server_value(server, server_provider, return_field)
     elif run_mode == 'cluster' and server_provider == 'aliyun':
-        test_step = TestStep.objects.filter(job_case_id=job_case_id, stage='run_case')
-        if test_step.exists():
-            server_snapshot_id = TestStep.objects.filter(job_case_id=job_case_id, stage='run_case').first().server
+        server_snapshot_id = get_cluster_snapshot(job_case_id, runner_version)
+        if server_snapshot_id:
             server = CloudServerSnapshot.objects.filter(id=server_snapshot_id)
             if server.exists():
                 return __get_server_value(server, server_provider, return_field)
     if not server:
         server = None
     return server
+
+
+def get_cluster_snapshot(job_case_id, runner_version):
+    server_snapshot_id = None
+    if runner_version == 1:
+        test_step = TestStep.objects.filter(job_case_id=job_case_id, stage='run_case').first()
+        if test_step:
+            server_snapshot_id = test_step.server
+    else:
+        pass
+    return server_snapshot_id
 
 
 def get_test_config(test_job_id, detail_server=False):
@@ -1105,7 +1114,7 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
                   'test_track_metric b ON a.metric = b.name AND ((b.object_type = "case" AND ' \
                   'b.object_id = a.test_case_id) or (b.object_type = "suite" AND ' \
                   'b.object_id = a.test_suite_id )) LEFT JOIN test_case c ON a.test_case_id=c.id WHERE ' \
-                  'a.baseline_id IN %s AND a.test_suite_id=%s' + case_id_sql + \
+                  'b.is_deleted=0 AND a.baseline_id IN %s AND a.test_suite_id=%s' + case_id_sql + \
                   ' AND b.cv_threshold > 0 ORDER BY b.object_type,b.id desc'
         params = [baseline_id_str, suite_id] if is_all else [baseline_id_str, suite_id, case_id_str]
         baseline_result_list = query_all_dict(raw_sql.replace('\'', ''), params=params)
@@ -1117,7 +1126,7 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
                   'LEFT JOIN test_track_metric b ON a.metric = b.name AND ((b.object_type = "case" AND ' \
                   'b.object_id = a.test_case_id) or (b.object_type = "suite" AND ' \
                   'b.object_id = a.test_suite_id )) LEFT JOIN test_case c ON a.test_case_id=c.id' \
-                  ' WHERE a.test_job_id IN %s AND a.test_suite_id=%s' + case_id_sql + \
+                  ' WHERE b.is_deleted=0 AND a.test_job_id IN %s AND a.test_suite_id=%s' + case_id_sql + \
                   ' AND b.cv_threshold > 0 ORDER BY b.object_type,b.id desc'
         params = [job_id_str, suite_id] if is_all else [job_id_str, suite_id, case_id_str]
         job_result_list = query_all_dict(raw_sql.replace('\'', ''), params=params)
@@ -1382,7 +1391,7 @@ def get_suite_conf_sub_case_v1(suite_id, suite_name, base_index, group_job_list,
                     values_list('sub_case_name', flat=True).distinct()
             else:
                 func_results = FuncResult.objects.filter(Q(test_job_id=duplicate_job_id) & Q(test_case_id=conf_id)). \
-                    values_list('sub_case_name', 'sub_case_result', 'match_baseline').distinct()
+                    values_list('sub_case_name', 'sub_case_result', 'match_baseline', 'description').distinct()
             exist_conf = [conf for conf in conf_list if conf['conf_id'] == conf_id]
             if exist_conf and len(exist_conf) > 0:
                 continue
@@ -1433,11 +1442,13 @@ def get_sub_case_list_v1(func_results, suite, conf, compare_job_li, base_index):
 
 
 def concurrent_calc_v1(func_result, suite, conf, compare_job_li, base_index, q):
+    baseline_desc = ''
     if isinstance(func_result, tuple):
         sub_case_name = func_result[0]
         result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result[1])
         if func_result[2]:
             result += '(匹配基线)'
+            baseline_desc = func_result[3]
     else:
         sub_case_name = func_result
         result = FUNC_CASE_RESULT_TYPE_MAP.get(2)
@@ -1447,6 +1458,7 @@ def concurrent_calc_v1(func_result, suite, conf, compare_job_li, base_index, q):
         {
             'sub_case_name': sub_case_name,
             'compare_data': compare_data,
+            'baseline_desc': baseline_desc
         }
     )
 
@@ -1548,6 +1560,18 @@ def get_conf_compare_data_v1(compare_objs, suite_id, conf_id, compare_count):
             group_data['obj_id'] = obj_id
             compare_data.append(group_data)
     return compare_data
+
+
+def patch_job_state(job_suite_states):
+    if 'success' in job_suite_states and 'fail' not in job_suite_states:
+        state = 'success'
+    elif 'fail' in job_suite_states:
+        state = 'fail'
+    elif not (job_suite_states - {'stop'}):
+        state = 'stop'
+    else:
+        state = 'skip'
+    return state
 
 
 class ServerData:
