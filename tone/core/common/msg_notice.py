@@ -18,6 +18,7 @@ from tone.models import RoleMember, WorkspaceMember, Role, ApproveInfo, InSiteWo
 
 from tone.serializers.job.test_serializers import JobTestResultSerializer, JobTestSummarySerializer
 from tone.services.portal.sync_portal_task_servers import save_report
+from tone.core.common.job_result_helper import calc_job
 
 
 logger = logging.getLogger('message')
@@ -342,7 +343,7 @@ class SimpleMsgHandle(object):
             simple_msg_list.append(simple_msg_obj)
         InSiteSimpleMsg.objects.bulk_create(simple_msg_list)
         # 创建站外消息
-        OutSiteMsgHandle().job_handle(job_obj, receiver_list, message_obj.job_state)
+        OutSiteMsgHandle().job_handle(job_obj, message_obj.job_state)
         if job_obj.callback_api:
             JobCallBack(job_id=job_id, callback_type=CallBackType.JOB_COMPLETED).callback()
         return True
@@ -521,6 +522,8 @@ class OutSiteMsgHandle(object):
         test_obj = obj_model.objects.filter(id=job_id).first()
         if test_obj is None:
             return config_dic
+        if not test_obj.notice_info or test_obj.notice_info == '[]':
+            return config_dic
         for config in test_obj.notice_info:
             if config['type'] == 'email':
                 config_dic['email'] = config
@@ -531,8 +534,8 @@ class OutSiteMsgHandle(object):
     @staticmethod
     def get_job_content(job_obj):
         """获取job信息"""
-        content = '''Tone平台\nID: {task_id}\nTask: {task}\nAuthor: {author}\nDuration: {duration} (hour)'''
-        content = content.format(task_id=job_obj.id, task=job_obj.name, author=get_user_name(job_obj.creator),
+        content = '''JobID: {task_id}; Author: {author}\nDuration: {duration} (hour)'''
+        content = content.format(task_id=job_obj.id, author=get_user_name(job_obj.creator),
                                  duration=round(
                                      (job_obj.gmt_modified - job_obj.gmt_created).total_seconds() / 60 / 60, 2))
         return content
@@ -845,7 +848,7 @@ class OutSiteMsgHandle(object):
                 msg_pic=msg_pic,
             )
 
-    def job_handle(self, job_obj, receiver_list, job_state):
+    def job_handle(self, job_obj, job_state):
         """Job站外消息处理"""
         creator_email = ','.join(self.get_email_list([job_obj.creator]))
         job_state = get_job_state(job_state, job_obj)
@@ -887,6 +890,16 @@ class OutSiteMsgHandle(object):
         else:
             msg_pic = 'https://www.iconsdb.com/icons/preview/soylent-red/x-mark-3-xxl.png'
         if ding_to and settings.MSG_SWITCH_ON:
+            job_summary = calc_job(job_obj.id)
+            if job_summary:
+                if job_obj.test_type == 'functional':
+                    content += '\nStatistics：通过:{};失败:{};跳过:{};警告:{}'. \
+                        format(job_summary.get('success'), job_summary.get('fail'), job_summary.get('skip'),
+                               job_summary.get('warn'))
+                else:
+                    content += '\nStatistics：上升:{};下降:{};正常:{};无效:{};NA:{}'. \
+                        format(job_summary.get('increase'), job_summary.get('decline'), job_summary.get('normal'),
+                               job_summary.get('invalid'), job_summary.get('na'))
             OutSiteMsg.objects.create(
                 subject=subject if not ding_subject else ding_subject,
                 content=content,

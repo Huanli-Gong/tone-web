@@ -746,7 +746,8 @@ def get_server_info(tag, objs):  # nq  c901
 
 def get_group_server_info(base_group, compare_groups):
     baseline_id_list = list()
-    job_id_list = list()
+    aligroup_job_id_list = list()
+    cloud_job_id_list = list()
     base_group['is_base'] = 1
     groups = list()
     groups.append(base_group)
@@ -760,16 +761,21 @@ def get_group_server_info(base_group, compare_groups):
             is_baseline = obj.get('is_baseline', 0)
             group['is_baseline'] = is_baseline
             obj_id = obj.get('obj_id')
+            provider_env = obj.get('server_provider')
             group['job_id'].append(obj_id)
             if is_baseline:
                 baseline_id_list.append(obj_id)
             else:
-                job_id_list.append(obj_id)
+                if provider_env == 'aligroup':
+                    aligroup_job_id_list.append(obj_id)
+                else:
+                    cloud_job_id_list.append(obj_id)
     env_info = {
         'base_group': list(),
         'compare_groups': list()
     }
-    job_id_str = ','.join(str(e) for e in job_id_list)
+    aligroup_job_id_str = tuple(aligroup_job_id_list)
+    cloud_job_id_str = tuple(cloud_job_id_list)
     baseline_server_info = None
     all_server_info = None
     if baseline_id_list:
@@ -778,15 +784,26 @@ def get_group_server_info(base_group, compare_groups):
                            'glibc,memory_info,disk,cpu_info,ether FROM baseline_server_snapshot ' \
                            'WHERE baseline_id IN (' + baseline_id_str + ') '
         baseline_server_info = query_all_dict(baseline_raw_sql.replace('\'', ''), params=None)
-    if job_id_str:
-        raw_sql = 'SELECT job_id,ip,sm_name,distro,rpm_list,kernel_version,gcc,' \
-                  'glibc,memory_info,disk,cpu_info,ether FROM test_server_snapshot ' \
-                  'WHERE job_id IN (' + job_id_str + ') UNION ' \
-                  'SELECT job_id,pub_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
-                  'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
-                  'FROM cloud_server_snapshot ' \
-                  'WHERE job_id IN (' + job_id_str + ')'
-        all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=None)
+    aligroup_raw_sql = ''
+    cloud_raw_sql = ''
+    raw_sql = ''
+    params = list()
+    if aligroup_job_id_str:
+        aligroup_raw_sql = 'SELECT job_id,ip,sm_name,distro,rpm_list,kernel_version,gcc,' \
+                           'glibc,memory_info,disk,cpu_info,ether FROM test_server_snapshot ' \
+                           'WHERE job_id IN %s '
+        raw_sql = aligroup_raw_sql
+        params.append(aligroup_job_id_str)
+    if cloud_job_id_str:
+        cloud_raw_sql = 'SELECT job_id,pub_ip AS ip,instance_type AS sm_name,distro,rpm_list,' \
+                        'kernel_version,gcc,glibc,memory_info,disk,cpu_info,ether ' \
+                        'FROM cloud_server_snapshot WHERE job_id IN %s'
+        raw_sql = cloud_raw_sql
+        params.append(cloud_job_id_str)
+    if cloud_job_id_str and aligroup_job_id_str:
+        raw_sql = aligroup_raw_sql + ' UNION ' + cloud_raw_sql
+    if raw_sql:
+        all_server_info = query_all_dict(raw_sql.replace('\'', ''), params=params)
     for group in groups:
         group_ip_list = list()
         server_li = list()

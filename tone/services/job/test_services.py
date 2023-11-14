@@ -18,6 +18,7 @@ from django.db.models import Q
 from django.db import transaction, connection
 from itertools import chain
 from threading import Thread
+from tone import settings
 
 from tone.core.common.callback import CallBackType, JobCallBack
 from tone.core.utils.common_utils import query_all_dict
@@ -95,8 +96,12 @@ class JobTestService(CommonService):
 
     def db_filter_job(self, data, operator):  # noqa: C901
         data = self.check_data_param(data)
-        page_num = int(data.get('page_num', 1))
-        page_size = int(data.get('page_size', 20))
+        page_num = data.get('page_num', '1')
+        page_size = data.get('page_size', '20')
+        if not page_num.isdigit() or not page_size.isdigit():
+            raise ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+        page_num = int(page_num)
+        page_size = int(page_size)
         res = []
         create_name_map = {}
         project_name_map = {}
@@ -566,11 +571,11 @@ class JobTestService(CommonService):
                 ftp_path = oss_file.replace(MEDIA_ROOT.strip('/'), '')
                 res = sftp_client.upload_file(target_file, ftp_path)
                 if res:
-                    oss_link = 'http://' + sftp_client.host + ':' + str(sftp_client.proxy_port) + ftp_path
+                    oss_link = f'http://{settings.TONE_STORAGE_DOMAIN}:' + str(sftp_client.proxy_port) + ftp_path
                     self.del_dir(job_path)
                     JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url=oss_link)
                 else:
-                    JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='success', job_url='ftp upload fail.')
+                    JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='fail', job_url='ftp upload fail.')
             else:
                 JobDownloadRecord.objects.filter(job_id=test_job_id).update(state='fail', job_url='job not exists')
         except Exception as e:

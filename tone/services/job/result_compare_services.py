@@ -43,20 +43,16 @@ class CompareSuiteInfoService(CommonService):
         if not base_obj_li or len(base_obj_li) == 0:
             return
         is_baseline = data.get('is_baseline', 0)
-        base_id_list = ','.join(str(e) for e in base_obj_li)
+        base_id_list = tuple(base_obj_li)
         uniq_id = 'baseline_id' if is_baseline else 'job_id'
         if is_baseline:
             detail_table = 'func_baseline_detail' if is_func else 'perf_baseline_detail'
-            raw_sql = 'SELECT a.test_suite_id,a.baseline_id, b.name AS test_suite_name ' \
-                      'FROM ' + detail_table + ' a LEFT JOIN test_suite b ON a.test_suite_id = b.id ' \
-                      'WHERE a.baseline_id IN (' + \
-                      base_id_list + ')'
         else:
-            raw_sql = 'SELECT a.test_suite_id,a.job_id, b.name AS test_suite_name ' \
-                      'FROM test_job_case a LEFT JOIN test_suite b ON a.test_suite_id = b.id ' \
-                      'WHERE a.job_id IN (' + \
-                      base_id_list + ')'
-        all_test_suites = query_all_dict(raw_sql.replace('\'', ''), params=None)
+            detail_table = 'test_job_case'
+        raw_sql = 'SELECT a.test_suite_id,a.{}, b.name AS test_suite_name ' \
+                  'FROM {} a LEFT JOIN test_suite b ON a.test_suite_id = b.id ' \
+                  'WHERE a.{} IN %s '.format(uniq_id, detail_table, uniq_id)
+        all_test_suites = query_all_dict(raw_sql.replace('\'', ''), params=[base_id_list])
         for test_suite in all_test_suites:
             if test_suite['test_suite_id'] not in data_dic:
                 data_dic[test_suite['test_suite_id']] = {
@@ -69,53 +65,25 @@ class CompareSuiteInfoService(CommonService):
                 if test_suite[uniq_id] not in data_dic[test_suite['test_suite_id']]['test_job_id']:
                     data_dic[test_suite['test_suite_id']]['test_job_id'].append(test_suite[uniq_id])
 
-    def get_red_dot_count(self, func_suite_dic, perf_suite_dic, group_num):
-        count_li = [0 for _ in range(group_num)]
-        self.calc_red_dot(func_suite_dic, count_li)
-        self.calc_red_dot(perf_suite_dic, count_li)
-        return {'base_group': count_li[0], 'compare_groups': count_li[1:]}
-
-    @staticmethod
-    def calc_red_dot(data, count_li):
-        for suite_key, suite_value in data.items():
-            for conf_key, conf_value in suite_value.get('conf_dic').items():
-                if len(conf_value.get('base_obj_li')) > 1:
-                    count_li[0] += 1
-                compare_groups = conf_value.get('compare_groups', list())
-                for i in range(len(compare_groups)):
-                    if len(compare_groups[i]) > 1:
-                        count_li[i + 1] += 1
-
-    @staticmethod
-    def get_obj(obj_id, is_job):
-        obj_data = {'obj_id': obj_id, 'is_job': is_job}
-        if is_job:
-            test_job = TestJob.objects.get(id=obj_id)
-            name = test_job.name
-            obj_data['name'] = name
-        return obj_data
-
 
 class CompareConfInfoService(CommonService):
+
     def filter(self, data):
         suite_id = data.get('suite_id')
         test_job_list = data.get('test_job_id')
+        test_type = data.get('test_type')
         is_baseline = data.get('is_baseline', 0)
-        job_id_list = ','.join(str(e) for e in test_job_list)
+        job_id_list = tuple(test_job_list)
         test_case_data = dict()
+        uniq_id = 'baseline_id' if is_baseline else 'job_id'
         if is_baseline:
-            raw_sql = 'SELECT distinct a.test_case_id,b.name AS conf_name FROM func_baseline_detail a ' \
-                      'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE a.test_suite_id=%s AND ' \
-                      'a.baseline_id IN (' + job_id_list + ') UNION ' \
-                      'SELECT distinct a.test_case_id,b.name AS conf_name FROM perf_baseline_detail a ' \
-                      'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE a.test_suite_id=%s AND ' \
-                                                           'a.baseline_id IN (' + job_id_list + ')'
-            all_test_cases = query_all_dict(raw_sql.replace('\'', ''), [suite_id, suite_id])
+            detail_table = 'func_baseline_detail' if test_type == 'functional' else 'perf_baseline_detail'
         else:
-            raw_sql = 'SELECT distinct a.test_case_id,b.name AS conf_name FROM test_job_case a ' \
-                      'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE a.test_suite_id=%s AND' \
-                      ' a.job_id IN (' + job_id_list + ')'
-            all_test_cases = query_all_dict(raw_sql.replace('\'', ''), [suite_id])
+            detail_table = 'test_job_case'
+        raw_sql = 'SELECT distinct a.test_case_id,b.name AS conf_name FROM {} a ' \
+                  'LEFT JOIN test_case b ON a.test_case_id= b.id WHERE ' \
+                  'a.test_suite_id=%s AND a.{} IN %s'.format(detail_table, uniq_id)
+        all_test_cases = query_all_dict(raw_sql.replace('\'', ''), [suite_id, job_id_list])
         for job_case in all_test_cases:
             case_id = job_case['test_case_id']
             test_case_data[case_id] = {

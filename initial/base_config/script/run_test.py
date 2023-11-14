@@ -25,7 +25,7 @@ TONE_STORAGE_PROXY_PORT={tone_storage_proxy_port}
 TONE_STORAGE_USER={tone_storage_user}
 TONE_STORAGE_PASSWORD={tone_storage_password}
 TONE_STORAGE_BUCKET=${{7:-results}}
-SFTP_PARAMS="set ftp:ssl-allow no; set net:timeoit 60; set net:reconnect-interval-base 10; set net:max-retries 2"
+SFTP_PARAMS="set sftp:auto-confirm yes; set net:timeout 60; set net:reconnect-interval-base 10; set net:max-retries 2"
 
 TONE_RESULT_PATH=$TONE_PATH/result/$TEST_SUITE/$CONF_SHORT_NAME
 TONE_RESULT_PATH_LEN=$((${{#TONE_RESULT_PATH}}+1))

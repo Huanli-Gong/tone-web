@@ -21,7 +21,8 @@ from tone.core.common.job_result_helper import calc_job, get_job_case_server, ge
     splice_job_link
 from tone.services.sys.testcase_services import TestCaseInfoService
 from tone.services.job.test_services import package_server_list
-from tone.core.utils.permission_manage import check_job_operator_permission, check_ws_operator_permission
+from tone.core.utils.permission_manage import check_job_operator_permission, check_ws_operator_permission, \
+    check_admin_operator_permission
 
 
 def _replace_statics_key(case_statics):
@@ -176,6 +177,8 @@ def get_job_case(request):
     resp = CommResp()
     case_data_list = []
     test_job = TestJob.objects.filter(id=request.GET.get('job_id')).first()
+    if not check_job_operator_permission(request.GET.get('username', None), test_job):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     if test_job and test_job.test_type == 'functional':
         queryset = TestCaseInfoService.filter(FuncResult.objects.all(), request.GET)
         test_case_list = TestCase.objects.filter(id__in=[case_info.test_case_id for case_info in queryset]).values_list(
@@ -210,6 +213,12 @@ def get_job_case(request):
 @api_catch_error
 @token_required
 def get_job_type(request):
+    ws_id = request.GET.get('ws_id', None)
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    test_type = request.GET.get('test_type', None)
+    assert test_type, ValueError(ErrorCode.TEST_TYPE_LACK)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     resp = CommResp()
     queryset = JobType.objects.filter(ws_id=request.GET.get('ws_id'), test_type=request.GET.get('test_type'),
                                       enable=True)
@@ -221,6 +230,10 @@ def get_job_type(request):
 @api_catch_error
 @token_required
 def get_project(request):
+    ws_id = request.GET.get('ws_id', None)
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     resp = CommResp()
     queryset = Project.objects.filter(ws_id=request.GET.get('ws_id'))
     project_list = [{'id': project.id, 'name': project.name, 'is_default': project.is_default} for project in queryset]
@@ -231,6 +244,8 @@ def get_project(request):
 @api_catch_error
 @token_required
 def get_workspace(request):
+    if not check_admin_operator_permission(request.GET.get('username', None)):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     resp = CommResp()
     queryset = Workspace.objects.all()
     ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
@@ -279,40 +294,31 @@ def get_job_info_list(request):
     resp = CommResp()
     data = json.loads(request.body)
     product_name = data.get('product', None)
-    if product_name:
-        assert isinstance(product_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     project_name = data.get('project', None)
-    if project_name:
-        assert isinstance(project_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     tag_name = data.get('tag', None)
-    if tag_name:
-        assert isinstance(tag_name, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
     ws_id = data.get('ws_id', None)
     assert ws_id, ValueError(ErrorCode.WS_NEED)
-    assert isinstance(ws_id, str), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
-    raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type,A.test_result," \
-              "B.name AS product_name,C.name AS project_name,F.username AS creator FROM " \
-              "test_job A, product B, project C, job_tag D, job_tag_relation E, user F " \
-              "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND D.is_deleted=0 AND " \
-              "A.product_id=B.id  AND A.project_id=C.id AND A.id=E.job_id AND E.tag_id=D.id AND" \
-              " A.creator=F.id AND A.ws_id='" + ws_id + "'"
-    if not tag_name:
-        raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type," \
-                  "A.test_result, B.name AS product_name,C.name AS project_name,F.username AS creator FROM " \
-                  "test_job A, product B, project C, user F " \
-                  "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND " \
-                  "A.product_id=B.id  AND A.project_id=C.id AND " \
-                  " A.creator=F.id AND A.ws_id='" + ws_id + "'"
+    if not check_ws_operator_permission(data.get('username'), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    params = [ws_id]
+    raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type," \
+              "A.test_result, B.name AS product_name,C.name AS project_name,A.project_id," \
+              "F.username AS creator FROM " \
+              "test_job A, product B, project C, user F " \
+              "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND " \
+              "A.product_id=B.id  AND A.project_id=C.id AND " \
+              " A.creator=F.id AND A.ws_id=%s"
     if product_name:
-        raw_sql += " AND B.name='{}'".format(product_name)
+        raw_sql += " AND B.name=%s "
+        params.append(product_name)
     if project_name:
-        raw_sql += " AND C.name='{}'".format(project_name)
-    if tag_name:
-        tag_list = ','.join('\'' + e + '\'' for e in tag_name.split(','))
-        raw_sql += " AND D.name IN ({})".format(tag_list)
-    job_result_list = query_all_dict(raw_sql, params=None)
+        raw_sql += " AND C.name=%s "
+        params.append(project_name)
+    job_result_list = query_all_dict(raw_sql, params=params)
     res_list = list()
+    job_id_list = list()
     for job_info in job_result_list:
+        job_id_list.append(job_info['id'])
         job_dict = dict(
             job_id=job_info['id'],
             job_name=job_info['job_name'],
@@ -323,8 +329,24 @@ def get_job_info_list(request):
             test_result=job_info['test_result'],
             product_name=job_info['product_name'],
             project_name=job_info['project_name'],
+            project_id=job_info['project_id'],
             creator=job_info['creator']
         )
         res_list.append(job_dict)
-    resp.data = res_list
+    tag_sql = "SELECT a.id,a.name,c.id AS tag_id,C.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
+              "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where A.is_deleted=0 AND B.is_deleted=0 " \
+              "AND C.is_deleted=0 AND a.id IN %s"
+    tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
+    job_filter_tag_list = list()
+    for res_job_info in res_list:
+        tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
+        tag_info = dict()
+        tag_name_list = list()
+        for job_tag in tags:
+            tag_info[job_tag['tag_id']] = job_tag['tag_name']
+            tag_name_list.append(job_tag['tag_name'])
+        if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
+            job_filter_tag_list.append(res_job_info)
+        res_job_info['tags'] = tag_info
+    resp.data = job_filter_tag_list if tag_name else res_list
     return resp.json_resp()
