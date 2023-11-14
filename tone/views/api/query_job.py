@@ -69,14 +69,16 @@ def job_query(request):
     machine_result = ResultFile.objects.filter(test_job_id=job_id, result_file='1/machine_info.json').first()
     if machine_result:
         machine_file = machine_result.result_path + machine_result.result_file
+    has_server_info = req_info.get('has_server_info', 0)
     resp_data = {
         'job_id': job_id,
         'job_link': splice_job_link(job),
         'job_state': 'pending' if job.state == 'pending_q' else job.state,
         'test_type': job.test_type,
-        'server_info': package_server_list(job),
         'machine_file': machine_file
     }
+    if has_server_info:
+        resp_data['server_info'] = package_server_list(job)
     statics = calc_job(job_id)
     statics['total'] = statics.pop('count')
     result_data = list()
