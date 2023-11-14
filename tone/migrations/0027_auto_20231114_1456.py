@@ -25,4 +25,17 @@ class Migration(migrations.Migration):
             name='server_info_config',
             field=models.TextField(blank=True, help_text='机器信息显示配置', null=True),
         ),
+        migrations.CreateModel(
+            name='BatchJobRelation',
+            fields=[
+                ('gmt_created', models.DateTimeField(auto_now_add=True, help_text='创建时间', verbose_name='create_at')),
+                ('gmt_modified', models.DateTimeField(auto_now=True, help_text='修改时间', verbose_name='modify_at')),
+                ('is_deleted', models.BooleanField(db_index=True, default=False, help_text='是否被删除')),
+                ('job_id', models.IntegerField(db_index=True, help_text='job id')),
+                ('tmp_job_id', models.CharField(help_text='临时job_id', max_length=8, primary_key=True, serialize=False)),
+            ],
+            options={
+                'db_table': 'batch_job_relation',
+            },
+        ),
     ]
