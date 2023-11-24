@@ -342,20 +342,21 @@ def get_job_info_list(request):
             creator=job_info['creator']
         )
         res_list.append(job_dict)
-    tag_sql = "SELECT a.id,a.name,c.id AS tag_id,C.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
-              "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where A.is_deleted=0 AND B.is_deleted=0 " \
-              "AND C.is_deleted=0 AND a.id IN %s"
-    tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
     job_filter_tag_list = list()
-    for res_job_info in res_list:
-        tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
-        tag_info = dict()
-        tag_name_list = list()
-        for job_tag in tags:
-            tag_info[job_tag['tag_id']] = job_tag['tag_name']
-            tag_name_list.append(job_tag['tag_name'])
-        if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
-            job_filter_tag_list.append(res_job_info)
-        res_job_info['tags'] = tag_info
+    if job_id_list:
+        tag_sql = "SELECT a.id,a.name,c.id AS tag_id,c.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
+                  "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where A.is_deleted=0 AND B.is_deleted=0 " \
+                  "AND C.is_deleted=0 AND a.id IN %s"
+        tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
+        for res_job_info in res_list:
+            tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
+            tag_info = dict()
+            tag_name_list = list()
+            for job_tag in tags:
+                tag_info[job_tag['tag_id']] = job_tag['tag_name']
+                tag_name_list.append(job_tag['tag_name'])
+            if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
+                job_filter_tag_list.append(res_job_info)
+            res_job_info['tags'] = tag_info
     resp.data = job_filter_tag_list if tag_name else res_list
     return resp.json_resp()
