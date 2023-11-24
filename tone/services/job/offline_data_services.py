@@ -203,12 +203,12 @@ class OfflineDataUploadService(object):
                 TestJob.objects.filter(id=test_job_id).delete()
 
     def _upload_tar(self, filename, data, offline_id, operator, original_file_name, patch_job):
-        ws_id = req_data.get('ws_id')
-        baseline_id = req_data.get('baseline_id', 0)
-        server_type = req_data.get('server_type')
+        ws_id = data.get('ws_id')
+        baseline_id = data.get('baseline_id', 0)
+        server_type = data.get('server_type')
         tar_file = tarfile.open(filename, 'r')
-        test_type = req_data.get('test_type')
-        ip = req_data.get('ip', '')
+        test_type = data.get('test_type')
+        ip = data.get('ip', '')
         args = yaml.load(tar_file.extractfile('job.yaml').read(), Loader=yaml.FullLoader)
         code, msg, test_config = self.handle_test_config(args['test_config'], test_type)
         if code == 201:
