@@ -169,12 +169,15 @@ class TestCaseService(CommonService):
         case_list = data.get('case_id_list').split(',') or [data.get('case_id')]
         timeout = data.get('timeout', None)
         repeat = data.get('repeat', None)
+        var = data.get('var', None)
         if domain_list:
             self.create_domain_relation(case_list, domain_list, is_delete=True)
         if timeout:
             TestCase.objects.filter(id__in=case_list).update(timeout=timeout)
         if repeat:
             TestCase.objects.filter(id__in=case_list).update(repeat=repeat)
+        if var:
+            TestCase.objects.filter(id__in=case_list).update(var=var)
 
     @staticmethod
     def remove_case(data, operator):
