@@ -345,8 +345,8 @@ def get_job_info_list(request):
     job_filter_tag_list = list()
     if job_id_list:
         tag_sql = "SELECT a.id,a.name,c.id AS tag_id,c.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
-                  "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where A.is_deleted=0 AND B.is_deleted=0 " \
-                  "AND C.is_deleted=0 AND a.id IN %s"
+                  "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where a.is_deleted=0 AND b.is_deleted=0 " \
+                  "AND c.is_deleted=0 AND a.id IN %s"
         tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
         for res_job_info in res_list:
             tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
