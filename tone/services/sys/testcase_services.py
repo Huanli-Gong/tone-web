@@ -167,9 +167,9 @@ class TestCaseService(CommonService):
         # domain兼容多选
         domain_list = self.get_domain_list(data)
         case_list = data.get('case_id_list').split(',') or [data.get('case_id')]
-        timeout = data.get('timeout', None)
-        repeat = data.get('repeat', None)
-        var = data.get('var', None)
+        timeout = data.get('timeout')
+        repeat = data.get('repeat')
+        var = data.get('var')
         if domain_list:
             self.create_domain_relation(case_list, domain_list, is_delete=True)
         if timeout:
