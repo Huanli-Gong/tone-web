@@ -412,7 +412,7 @@ class OfflineDataUploadService(object):
                             server_snapshot_id = self._save_server(server, req_ip, server_type, test_job_id, ws_id)
                             TestJobCase.objects.filter(job_id=test_job_id, test_suite_id=test_suite.id,
                                                        test_case_id=test_case.id).update(
-                                state=avg_file['status'], server_snapshot_id=server_snapshot_id, start_time=tmp_start,
+                                state='success', server_snapshot_id=server_snapshot_id, start_time=tmp_start,
                                 end_time=tmp_end)
                             TestJobSuite.objects.filter(job_id=test_job_id, test_suite_id=test_suite.id).\
                                 update(state='success', start_time=tmp_start, end_time=tmp_end)
