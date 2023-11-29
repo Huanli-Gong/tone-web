@@ -808,6 +808,7 @@ class JobTestCasePerResultSerializer(CommonSerializer):
                             'server_sm_name': perf_detail.server_sm_name,
                             'server_instance_type': perf_detail.server_instance_type,
                             'server_sn': perf_detail.server_sn,
+                            'desc': perf_detail.description
                             }
 
     @staticmethod

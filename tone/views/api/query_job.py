@@ -12,7 +12,7 @@ from tone.core.utils.common_utils import query_all_dict
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -48,7 +48,14 @@ def job_query(request):
     """
     resp = CommResp()
     req_info = json.loads(request.body)
-    job_id = req_info.get('job_id', None)
+    tmp_job_id = req_info.get('tmp_job_id', None)
+    job_id = None
+    if tmp_job_id:
+        tmp_relation = BatchJobRelation.objects.filter(tmp_job_id=tmp_job_id).first()
+        if tmp_relation:
+            job_id = tmp_relation.job_id
+    if not job_id:
+        job_id = req_info.get('job_id', None)
     assert job_id, ValueError(ErrorCode.JOB_NEED)
     if isinstance(job_id, str):
         assert job_id.isdigit(), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
@@ -62,14 +69,16 @@ def job_query(request):
     machine_result = ResultFile.objects.filter(test_job_id=job_id, result_file='1/machine_info.json').first()
     if machine_result:
         machine_file = machine_result.result_path + machine_result.result_file
+    has_server_info = req_info.get('has_server_info', 0)
     resp_data = {
         'job_id': job_id,
         'job_link': splice_job_link(job),
         'job_state': 'pending' if job.state == 'pending_q' else job.state,
         'test_type': job.test_type,
-        'server_info': package_server_list(job),
         'machine_file': machine_file
     }
+    if has_server_info:
+        resp_data['server_info'] = package_server_list(job)
     statics = calc_job(job_id)
     statics['total'] = statics.pop('count')
     result_data = list()
@@ -333,20 +342,21 @@ def get_job_info_list(request):
             creator=job_info['creator']
         )
         res_list.append(job_dict)
-    tag_sql = "SELECT a.id,a.name,c.id AS tag_id,C.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
-              "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where A.is_deleted=0 AND B.is_deleted=0 " \
-              "AND C.is_deleted=0 AND a.id IN %s"
-    tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
     job_filter_tag_list = list()
-    for res_job_info in res_list:
-        tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
-        tag_info = dict()
-        tag_name_list = list()
-        for job_tag in tags:
-            tag_info[job_tag['tag_id']] = job_tag['tag_name']
-            tag_name_list.append(job_tag['tag_name'])
-        if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
-            job_filter_tag_list.append(res_job_info)
-        res_job_info['tags'] = tag_info
+    if job_id_list:
+        tag_sql = "SELECT a.id,a.name,c.id AS tag_id,c.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
+                  "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where a.is_deleted=0 AND b.is_deleted=0 " \
+                  "AND c.is_deleted=0 AND a.id IN %s"
+        tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
+        for res_job_info in res_list:
+            tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
+            tag_info = dict()
+            tag_name_list = list()
+            for job_tag in tags:
+                tag_info[job_tag['tag_id']] = job_tag['tag_name']
+                tag_name_list.append(job_tag['tag_name'])
+            if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
+                job_filter_tag_list.append(res_job_info)
+            res_job_info['tags'] = tag_info
     resp.data = job_filter_tag_list if tag_name else res_list
     return resp.json_resp()

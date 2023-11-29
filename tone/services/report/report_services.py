@@ -48,7 +48,8 @@ class ReportTemplateService(CommonService):
         update_fields = ['ws_id', 'name', 'description', 'need_test_background', 'need_test_method',
                          'need_test_summary', 'need_test_conclusion', 'need_test_env', 'need_func_data',
                          'need_env_description', 'need_perf_data', 'background_desc', 'test_method_desc',
-                         'test_summary_desc', 'test_conclusion_desc', 'test_env_desc', 'env_description_desc']
+                         'test_summary_desc', 'test_conclusion_desc', 'test_env_desc', 'env_description_desc',
+                         'server_info_config']
 
         for write_field in update_fields:
             create_data[write_field] = data.get(write_field)
@@ -85,7 +86,9 @@ class ReportTemplateService(CommonService):
                                       need_func_data=True,
                                       need_perf_data=True,
                                       description='系统默认报告模板',
-                                      creator=0
+                                      creator=0,
+                                      server_info_config=["ip/sn", "distro", "cpu_info", "memory_info", "disk",
+                                                         "ether", "os", "kernel", "gcc", "glibc"]
                                       )
 
     @staticmethod
@@ -165,7 +168,8 @@ class ReportTemplateService(CommonService):
         allow_update_fields = ['name', 'description', 'need_test_background', 'need_test_method',
                                'need_test_summary', 'need_test_conclusion', 'need_test_env', 'need_env_description',
                                'need_func_data', 'need_perf_data', 'background_desc', 'test_method_desc',
-                               'test_summary_desc', 'test_conclusion_desc', 'test_env_desc', 'env_description_desc']
+                               'test_summary_desc', 'test_conclusion_desc', 'test_env_desc',
+                               'env_description_desc', 'server_info_config']
         for update_field in allow_update_fields:
             update_data[update_field] = data.get(update_field)
 
@@ -402,10 +406,11 @@ class ReportService(CommonService):
         else:
             func_results = FuncResult.objects. \
                 filter(test_job_id=base_job_id.get('job_id'), test_suite_id=test_suite_id, test_case_id=test_conf_id). \
-                values_list('sub_case_name', 'sub_case_result', 'match_baseline')
+                values_list('sub_case_name', 'sub_case_result', 'match_baseline', 'description')
         item_sub_case_list = list()
         for func_result in func_results:
             compare_data = get_func_compare_data(test_suite_id, test_conf_id, func_result[0], job_list)
+            baseline_desc = ''
             if base_is_baseline:
                 func_case_result = FUNC_CASE_RESULT_TYPE_MAP.get(2)
                 func_case_name = func_result
@@ -413,12 +418,14 @@ class ReportService(CommonService):
                 func_case_name = func_result[0]
                 func_case_result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result[1])
                 if func_result[2]:
-                    func_case_result += '(匹配基线)'
+                    func_case_result += '（匹配基线）'
+                    baseline_desc = func_result[3]
             compare_data.insert(base_index, func_case_result)
             report_sub_case = ReportItemSubCase(
                 report_item_conf_id=item_conf_id,
                 sub_case_name=func_case_name,
                 result=func_case_result,
+                baseline_desc=baseline_desc,
                 compare_data=compare_data)
             item_sub_case_list.append(report_sub_case)
         ReportItemSubCase.objects.filter(report_item_conf_id=item_conf_id).delete()

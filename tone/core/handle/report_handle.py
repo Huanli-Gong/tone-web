@@ -16,7 +16,7 @@ from django.db import transaction
 from tone.models import TestJob, ReportTemplate, Report, TestServerSnapshot, CloudServerSnapshot, ReportItemConf, \
     ReportItemSuite, ReportItem, ReportItemMetric, ReportItemSubCase, ReportObjectRelation, ReportTmplItem, \
     ReportTmplItemSuite, TestJobCase, TestJobSuite, TestCase, FuncResult, PerfResult, TestSuite, TestMetric, \
-    PerfBaselineDetail, Baseline, ReportDetail, FuncBaselineDetail, BaselineServerSnapshot
+    PerfBaselineDetail, Baseline, ReportDetail, FuncBaselineDetail
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
 from tone.views.api.get_domain_group import get_domain_group
 
@@ -34,14 +34,6 @@ class ReportHandle(object):
 
     def get_report_template_obj(self):
         return ReportTemplate.objects.filter(id=self.job_obj.report_template_id).first()
-
-    def get_baseline_name(self):
-        baseline_name = ''
-        if self.job_obj.baseline_id:
-            baseline = Baseline.objects.filter(id=self.job_obj.baseline_id).first()
-            if baseline:
-                baseline_name = baseline.name
-        return baseline_name
 
     def save_report(self):  # noqa: C901
         logging.info(f'report: job_id {self.job_id}, report_template_id: {self.job_obj.report_template_id}')
@@ -280,10 +272,11 @@ class ReportHandle(object):
         compare_data = list()
         result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result)
         if func_result.match_baseline:
-            result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result) + '(匹配基线)'
+            result = FUNC_CASE_RESULT_TYPE_MAP.get(func_result.sub_case_result) + '（匹配基线）'
         compare_data.append(result)
         ReportItemSubCase.objects.create(report_item_conf_id=report_item_conf.id,
                                          sub_case_name=func_result.sub_case_name,
+                                         baseline_desc=func_result.description,
                                          result=result,
                                          compare_data=compare_data)
 
@@ -478,8 +471,8 @@ def get_func_suite_list_v1(report_item_id):
     suite_list = list()
     raw_sql = 'SELECT a.id AS item_suite_id, a.test_suite_id AS suite_id, a.test_suite_name AS suite_name, ' \
               'b.id AS item_conf_id, b.test_conf_id AS conf_id,b.test_conf_name AS conf_name, b.conf_source,' \
-              'b.compare_conf_list, c.sub_case_name, c.compare_data,c.result FROM report_item_suite a ' \
-              'LEFT JOIN report_item_conf b ON b.report_item_suite_id=a.id ' \
+              'b.compare_conf_list, c.sub_case_name, c.compare_data,c.result,c.baseline_desc FROM ' \
+              'report_item_suite a LEFT JOIN report_item_conf b ON b.report_item_suite_id=a.id ' \
               'LEFT JOIN report_item_sub_case c ON c.report_item_conf_id=b.id ' \
               'WHERE a.report_item_id=%s AND a.is_deleted=0 AND b.is_deleted=0 AND c.is_deleted=0'
     test_suite_objs = query_all_dict(raw_sql, [report_item_id])
@@ -518,6 +511,7 @@ def get_func_suite_list_v1(report_item_id):
             compare_data = json.loads(test_suite_obj['compare_data'])
         sub_case_data = dict()
         sub_case_data['sub_case_name'] = test_suite_obj['sub_case_name']
+        sub_case_data['baseline_desc'] = test_suite_obj['baseline_desc']
         sub_case_data['compare_data'] = compare_data
         sub_case_list.append(sub_case_data)
         conf_data['sub_case_list'] = sub_case_list
@@ -849,6 +843,9 @@ def get_report_template(template_id):
     template = ReportTemplate.objects.filter(id=template_id).first()
     if template:
         template_info = model_to_dict(template)
+        if not template_info['server_info_config']:
+            template_info['server_info_config'] = ["ip/sn", "distro", "cpu_info", "memory_info", "disk",
+                                                   "ether", "os", "kernel", "gcc", "glibc"]
         template_info['func_item'] = get_template_func_item(template.is_default, template_id)
         template_info['perf_item'] = get_template_perf_item(template.is_default, template_id)
         template_info['func_conf'] = get_template_conf(template_id, test_type='functional')

@@ -32,4 +32,5 @@ urlpatterns = [
     path('job/product/list/', query_job.get_product_job_list, name='job_product_list'),
     path('job/list/', query_job.get_job_info_list, name='job_list'),
     path('job/stop/', handle_job.stop_job, name='job_stop'),
+    path('job/batch/create/', create_job.job_batch_create, name='job_batch_create'),
 ]

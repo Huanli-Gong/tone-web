@@ -105,6 +105,7 @@ class ReportItemSubCase(BaseModel):
     sub_case_name = models.CharField(max_length=256, help_text='sub_case名字')
     result = models.CharField(null=True, max_length=64, help_text='sub_case结果')
     compare_data = json.JSONField(default=list(), help_text='sub_case对比数据')
+    baseline_desc = models.TextField(null=True, blank=True, help_text='基线问题描述')
 
     class Meta:
         db_table = 'report_item_sub_case'
@@ -144,6 +145,7 @@ class ReportTemplate(BaseModel):
     creator = models.IntegerField(help_text='创建者')
     update_user = models.IntegerField(null=True, help_text='修改者')
     ws_id = models.CharField(null=True, blank=True, max_length=8, db_index=True, help_text='所属Workspace')
+    server_info_config = models.TextField(null=True, blank=True, help_text='机器信息显示配置')
 
     class Meta:
         db_table = 'report_tmpl'
