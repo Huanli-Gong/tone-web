@@ -28,6 +28,7 @@ class TestTemplateService(CommonService):
         q &= Q(update_user=data.get('update_user')) if data.get('update_user') else q
         q &= Q(job_type_id__in=data.getlist('job_type_id')) if data.get('job_type_id') else q
         q &= Q(description__icontains=data.get('description')) if data.get('description') else q
+        q &= Q(enable=data.get('enable')) if data.get('enable') else q
         return queryset.filter(q)
 
     def check_template_plan_running(self, data):
