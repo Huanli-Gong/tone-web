@@ -228,7 +228,7 @@ def calc_job_suite(job_id, test_suite_id, ws_id, test_type, test_result=None):
                     # 如果conf在FuncResult表中没有测试结果，则该suite状态也是fail
                     result = 'fail'
             else:
-                result = '-'
+                result = 'fail'
     return result, count_data
 
 

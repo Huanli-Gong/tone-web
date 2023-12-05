@@ -57,7 +57,7 @@ class ErrorCode(Enum):
     STOP_SUITE_ERROR = ("1-05-017", "只允许停止running状态SUITE", "", "", "")
     STOP_CASE_ERROR = ("1-05-018", "只允许停止running状态CASE", "", "", "")
     SKIP_CASE_ERROR = ("1-05-019", "只允许跳过pending状态case", "", "", "")
-    SUPPORT_POST = ("1-05-020", "job create only support POST request !", "", "", "")
+    SUPPORT_POST = ("1-05-020", "只允许使用POST请求!", "", "", "")
     TEMPLATE_DUPLICATION = ("1-05-021", "template duplication", "", "", "")
     NO_PRODUCT = ("1-05-022", "product 不存在", "", "", "")
     PROJECT_NOT_EXISTS = ("1-05-023", "项目不存在", "", "", "")
