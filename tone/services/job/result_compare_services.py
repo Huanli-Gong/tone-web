@@ -16,7 +16,7 @@ from tone.models import TestJob, PerfResult, TestJobCase, TestSuite, TestCase, F
     CompareForm, FuncResult, Project, BaseConfig, Product, \
     TestJobSuite, User, Baseline
 from tone.core.common.job_result_helper import get_suite_conf_metric, get_suite_conf_sub_case, \
-    get_metric_list, get_suite_conf_metric_v1, get_suite_conf_sub_case_v1
+    get_metric_list, get_suite_conf_metric_v1, get_suite_conf_sub_case_v1, get_job_state
 from tone.core.common.services import CommonService
 from tone.services.job.test_services import JobTestService
 from tone.core.common.expection_handler.error_code import ErrorCode
@@ -413,7 +413,7 @@ class CompareFormService(CommonService):
                                                          config_key='FUNC_RESULT_VIEW_TYPE').first()
             if job_type == 'job':
                 job_data.update({
-                    'state': JobTestService().get_job_state(job.id, job.test_type, job.state, func_view_config),
+                    'state': get_job_state(job.id, job.test_type, job.state, func_view_config, '', 1),
                     'test_type': test_type_map.get(job.test_type),
                     'creator_name': create_name_map[job.creator],
                     'start_time': datetime.strftime(job.start_time, "%Y-%m-%d %H:%M:%S") if job.start_time else None,

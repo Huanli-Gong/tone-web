@@ -43,7 +43,7 @@ from tone.settings import cp
 from tone.core.common.redis_cache import runner_redis_cache
 from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
-from tone.core.common.job_result_helper import get_test_config, perse_func_result
+from tone.core.common.job_result_helper import get_test_config, get_job_state
 from tone.core.utils.sftp_client import sftp_client
 
 
@@ -292,7 +292,7 @@ class JobTestService(CommonService):
             'id': job_id,
             'name': row_data[1],
             'ws_id': row_data[2],
-            'state': self.get_job_state(job_id, row_data[5], row_data[3], func_view_config),
+            'state': get_job_state(job_id, row_data[5], row_data[3], func_view_config, '', 1),
             'state_desc': row_data[4],
             'test_type': test_type_map.get(row_data[5]),
             'test_result': row_data[6],
@@ -315,27 +315,6 @@ class JobTestService(CommonService):
             'collection': True if job_id in collect_job_set else False,
             'report_li': self.get_report_li(job_id, create_name_map)
         })
-
-    def get_job_state(self, test_job_id, test_type, state, func_view_config):
-        if state == 'pending_q':
-            state = 'pending'
-        if test_type == 'functional' and (state == 'fail' or state == 'success'):
-            if func_view_config and func_view_config.config_value == '2':
-                count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(test_job_id, 2, 0)
-                if count_total == 0:
-                    state = 'fail'
-                    return state
-                if count_case_fail > 0:
-                    state = 'fail'
-                else:
-                    if count_fail == 0:
-                        state = 'pass'
-                    else:
-                        if count_no_match_baseline > 0:
-                            state = 'fail'
-                        else:
-                            state = 'pass'
-        return state
 
     @staticmethod
     def get_job_server(server_provider, job_id):
