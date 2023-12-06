@@ -15,7 +15,7 @@ from django.db.models import Q, When, Case
 from initial.job_type.initialize import JobTypeDataInitialize
 from tone.core.common.constant import RANDOM_THEME_COLOR_LIST, WS_LOGO_DIR, DOC_IMG_DIR
 from tone.core.common.exceptions.exception_class import DataExistsException
-from tone.core.common.job_result_helper import perse_func_result
+from tone.core.common.job_result_helper import get_job_state
 from tone.core.common.msg_notice import InSiteMsgHandle
 from tone.core.common.permission_config_info import WS_ROLE_MAP, WS_SHOW_MEMBER_CONFIG
 from tone.core.common.services import CommonService
@@ -955,7 +955,7 @@ def _get_today_query_list(day_querys, func_view_config):
                     'today_job_id': day_query.id,
                     'today_query_name': day_query.name,
                     'today_query_state':
-                        get_job_state(day_query.id, day_query.test_type, day_query.state, func_view_config),
+                        get_job_state(day_query.id, day_query.test_type, day_query.state, func_view_config, '', 1),
                     'today_query_pass': json.loads(day_query.test_result)['pass'],
                     'today_query_fail': json.loads(day_query.test_result)['fail'],
                     'today_query_job_start_time': processing_time(str(day_query.start_time)),
@@ -979,28 +979,6 @@ def _get_today_query_list(day_querys, func_view_config):
                     'today_query_fail': 0,
                 })
     return today_query_list
-
-
-def get_job_state(test_job_id, test_type, state, func_view_config):
-    if state == 'pending_q':
-        state = 'pending'
-    if test_type == 'functional' and (state == 'fail' or state == 'success'):
-        if func_view_config and func_view_config.config_value == '2':
-            count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(test_job_id, 2, 0)
-            if count_total == 0:
-                state = 'fail'
-                return state
-            if count_case_fail > 0:
-                state = 'fail'
-            else:
-                if count_fail == 0:
-                    state = 'pass'
-                else:
-                    if count_no_match_baseline > 0:
-                        state = 'fail'
-                    else:
-                        state = 'pass'
-    return state
 
 
 def get_day_querys(data, now, product_id, project_id, hours_24_ago):
