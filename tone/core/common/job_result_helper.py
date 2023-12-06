@@ -15,7 +15,7 @@ from tone.core.common.expection_handler.custom_error import JobTestException
 import requests
 from django.db.models import Count, Case, When, Q
 from django.db import connection
-from tone.core.utils.common_utils import query_all_dict
+from tone.core.utils.common_utils import query_all_dict, execute_sql
 
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
@@ -214,7 +214,7 @@ def parse_func_result_v1(job_id, sub_case_result, match_baseline):
         UNION ALL
         SELECT COUNT(1) FROM func_result  WHERE test_job_id=%s AND sub_case_result=%s AND match_baseline=%s AND {}
     """.format(id_sql, id_sql, id_sql)
-    result = query_all_dict(search_sql, [job_id, job_id, job_id, job_id, sub_case_result, job_id, sub_case_result,
+    result = execute_sql(search_sql, [job_id, job_id, job_id, job_id, sub_case_result, job_id, sub_case_result,
                                          match_baseline])
     if result and len(result) == 5:
         job_case_count, result_case_count, count_total, count_fail, count_no_match_baseline = \
