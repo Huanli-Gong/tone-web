@@ -46,6 +46,8 @@ def job_query(request):
         example:
         curl -H 'Content-Type: application/json' -X POST -d '{"task_id": 215}' http://localhost:8000/api/task_query/
     """
+    if request.method == 'GET':
+        assert None, ValueError(ErrorCode.SUPPORT_POST)
     resp = CommResp()
     req_info = json.loads(request.body)
     tmp_job_id = req_info.get('tmp_job_id', None)
@@ -54,6 +56,8 @@ def job_query(request):
         tmp_relation = BatchJobRelation.objects.filter(tmp_job_id=tmp_job_id).first()
         if tmp_relation:
             job_id = tmp_relation.job_id
+        else:
+            assert None, ValueError(ErrorCode.TEST_JOB_NONEXISTENT)
     if not job_id:
         job_id = req_info.get('job_id', None)
     assert job_id, ValueError(ErrorCode.JOB_NEED)
