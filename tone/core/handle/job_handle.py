@@ -87,7 +87,7 @@ class JobDataHandle(BaseHandle):
             template_id = self.data.get('template_id')
             assert template_id, JobTestException(ErrorCode.TEMPLATE_NEED)
             if not TestTemplate.objects.filter(id=template_id).exists():
-                raise JobTestException(ErrorCode.TEMPLATE_DUPLICATION)
+                raise JobTestException(ErrorCode.TEST_TEMPLATE_NONEXISTENT)
             template_obj = TestTemplate.objects.get(id=template_id)
             self.template_obj = template_obj
             self.data_dic['tmpl_id'] = template_obj.id
