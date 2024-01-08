@@ -32,3 +32,9 @@ def init_schedule():
         schedule_type=Schedule.MINUTES,
         minutes=10
     )
+    Schedule.objects.create(
+        name='batch_create_job',
+        func='tone.core.schedule.schedule_job.batch_create_job',
+        schedule_type=Schedule.MINUTES,
+        minutes=1
+    )

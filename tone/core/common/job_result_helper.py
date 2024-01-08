@@ -15,7 +15,7 @@ from tone.core.common.expection_handler.custom_error import JobTestException
 import requests
 from django.db.models import Count, Case, When, Q
 from django.db import connection
-from tone.core.utils.common_utils import query_all_dict
+from tone.core.utils.common_utils import query_all_dict, execute_sql
 
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
@@ -175,6 +175,53 @@ def perse_func_result(job_id, sub_case_result, match_baseline):
     return count_case_fail, count_total, count_fail, count_no_match_baseline
 
 
+def parse_func_result_v1(job_id, sub_case_result, match_baseline):
+    job_case_count, result_case_count, count_total, count_fail, count_no_match_baseline = 0, 0, 0, 0, 0
+    id_sql = """
+        id >= (
+            SELECT
+                id
+            FROM
+                func_result
+            WHERE
+               is_deleted is False
+            AND test_job_id = {}
+            ORDER BY
+                id asc
+            limit 0, 1
+        )
+        AND
+        id <= (
+            SELECT
+                id
+            FROM
+                func_result
+            WHERE
+                is_deleted is False
+                AND test_job_id = {}
+            ORDER BY
+                id desc
+            limit 0, 1
+        ) """.format(job_id, job_id)
+    search_sql = """
+        SELECT COUNT(1) FROM test_job_case WHERE job_id=%s
+        UNION ALL
+        SELECT COUNT( DISTINCT(test_case_id))  FROM func_result WHERE test_job_id=%s
+        UNION ALL
+        SELECT COUNT(1) FROM func_result WHERE test_job_id=%s AND {}
+        UNION ALL
+        SELECT COUNT(1) FROM func_result  WHERE test_job_id=%s AND sub_case_result=%s AND {}
+        UNION ALL
+        SELECT COUNT(1) FROM func_result  WHERE test_job_id=%s AND sub_case_result=%s AND match_baseline=%s AND {}
+    """.format(id_sql, id_sql, id_sql)
+    result = execute_sql(search_sql, [job_id, job_id, job_id, job_id, sub_case_result, job_id, sub_case_result,
+                                         match_baseline])
+    if result and len(result) == 5:
+        job_case_count, result_case_count, count_total, count_fail, count_no_match_baseline = \
+            result[0][0], result[1][0], result[2][0], result[3][0], result[4][0]
+    return job_case_count, result_case_count, count_total, count_fail, count_no_match_baseline
+
+
 def calc_job_suite(job_id, test_suite_id, ws_id, test_type, test_result=None):
     """
     统计JobSuite结果及数据
@@ -228,7 +275,7 @@ def calc_job_suite(job_id, test_suite_id, ws_id, test_type, test_result=None):
                     # 如果conf在FuncResult表中没有测试结果，则该suite状态也是fail
                     result = 'fail'
             else:
-                result = '-'
+                result = 'fail'
     return result, count_data
 
 
@@ -1571,6 +1618,29 @@ def patch_job_state(job_suite_states):
         state = 'stop'
     else:
         state = 'skip'
+    return state
+
+
+def get_job_state(test_job_id, test_type, state, func_view_config, state_second, runner_version):
+    if state == 'pending_q':
+        state = 'pending'
+    if test_type == 'functional' and (state == 'fail' or state == 'success'):
+        if func_view_config and func_view_config.config_value == '2':
+            if runner_version == 2:
+                state = state_second
+            else:
+                job_case_count, result_case_count, count_total, count_fail, \
+                 count_no_match_baseline = parse_func_result_v1(test_job_id, 2, 0)
+                if count_total == 0 or job_case_count != result_case_count:
+                    state = 'fail'
+                    return state
+                if count_fail == 0:
+                    state = 'pass'
+                else:
+                    if count_no_match_baseline > 0:
+                        state = 'fail'
+                    else:
+                        state = 'pass'
     return state
 
 
