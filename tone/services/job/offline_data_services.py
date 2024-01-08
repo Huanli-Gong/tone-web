@@ -157,9 +157,10 @@ class OfflineDataUploadService(object):
                     tmp_tar.close()
                     os.remove(file_name)
                     return code, msg, 0
-                if data.get('server_type') == 'aliyun' and 'instance' not in test_case['server']:
+                if data.get('server_type') == 'aliyun' and 'instance' not in test_case['server'] or \
+                        not data.get('ip'):
                     code = 201
-                    msg = '云上测试需要cases下instance节点数据。'
+                    msg = '云上测试需要cases下instance节点数据或者录入测试机ip。'
                     tmp_tar.close()
                     os.remove(file_name)
                     return code, msg, 0
