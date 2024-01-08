@@ -27,7 +27,7 @@ from tone.models.sys.baseline_models import PerfBaselineDetail
 from tone.core.common.constant import OFFLINE_DATA_DIR, RESULTS_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.services.job.test_services import JobTestService
-from tone.core.common.job_result_helper import calc_job, patch_job_state
+from tone.core.common.job_result_helper import get_test_config, patch_job_state
 
 
 class OfflineDataUploadService(object):
@@ -248,11 +248,9 @@ class OfflineDataUploadService(object):
                 job_suite_states = {job_suite for job_suite in TestJobSuite.objects.filter(job_id=test_job_id).
                                     values_list('state', flat=True)}
                 job_state = patch_job_state(job_suite_states)
-                calc_result = calc_job(test_job.id)
-                test_result = '{"total": ' + str(calc_result["count"]) + ', "pass": ' + str(calc_result["success"]) \
-                              + ', "fail": ' + str(calc_result["fail"]) + '}'
-                TestJob.objects.filter(id=test_job_id).update(test_result=test_result, state=job_state,
-                                                              state_second=job_state)
+                job_test_config = get_test_config(test_job_id)
+                TestJob.objects.filter(id=test_job_id).update(test_result=self.get_suite_summary(job_test_config),
+                                                              state=job_state, state_second=job_state)
             if code == 200:
                 OfflineUpload.objects.filter(id=offline_id).update(test_job_id=test_job_id,
                                                                    state_desc='begin upload file to ftp.')
