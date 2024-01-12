@@ -24,7 +24,7 @@ from tone.models import TestJob, JobType, Project, Product, TestJobCase, TestJob
     JobTagRelation, JobTag, TestStep, FuncResult, PerfResult, ResultFile, User, TestMetric, FuncBaselineDetail, \
     TestServerSnapshot, CloudServerSnapshot, PlanInstanceTestRelation, PlanInstance, ReportObjectRelation, Report, \
     BusinessSuiteRelation, TestBusiness, JobMonitorItem, MonitorInfo, BaseConfig, TestClusterSnapshot, TestCluster,\
-    CloudServer
+    CloudServer, TestServer
 from tone.models.sys.baseline_models import Baseline, PerfBaselineDetail
 
 
@@ -343,12 +343,13 @@ class JobTestProcessCaseSerializer(CommonSerializer):
     log_file = serializers.SerializerMethodField()
     start_time = serializers.SerializerMethodField()
     end_time = serializers.SerializerMethodField()
+    exists = serializers.SerializerMethodField()
 
     class Meta:
         model = TestJobCase
         fields = ['id', 'state', 'test_case_name', 'need_reboot', 'setup_info', 'cleanup_info', 'start_time',
                   'console', 'monitor_info', 'note', 'end_time', 'tid', 'result', 'step', 'server',
-                  'log_file', 'server_id', 'server_description']
+                  'log_file', 'server_id', 'server_description', 'exists']
 
     @staticmethod
     def get_start_time(obj):
@@ -385,6 +386,10 @@ class JobTestProcessCaseSerializer(CommonSerializer):
     @staticmethod
     def get_server_description(obj):
         return get_job_case_run_server(obj.id, return_field='description')
+
+    @staticmethod
+    def get_exists(obj):
+        return get_job_case_run_server(obj.id, return_field='exists')
 
     @staticmethod
     def get_tid(obj):
@@ -585,11 +590,12 @@ class JobTestConfResultSerializer(CommonSerializer):
     start_time = serializers.SerializerMethodField()
     end_time = serializers.SerializerMethodField()
     baseline_job_id = serializers.SerializerMethodField()
+    exists = serializers.SerializerMethodField()
 
     class Meta:
         model = TestJobCase
         fields = ['id', 'conf_name', 'test_case_id', 'server_ip', 'result_data', 'start_time', 'end_time', 'note',
-                  'baseline', 'baseline_job_id', 'server_id', 'server_description']
+                  'baseline', 'baseline_job_id', 'server_id', 'server_description', 'exists']
 
     @staticmethod
     def get_start_time(obj):
@@ -616,6 +622,7 @@ class JobTestConfResultSerializer(CommonSerializer):
 
     def get_baseline_job_id(self, obj):
         test_job_obj = self.context.get('view').test_job_obj
+        return test_job_obj.baseline_job_id
 
     @staticmethod
     def get_conf_name(obj):
@@ -628,6 +635,10 @@ class JobTestConfResultSerializer(CommonSerializer):
     @staticmethod
     def get_server_id(obj):
         return get_job_case_run_server(obj.id, return_field='id')
+
+    @staticmethod
+    def get_exists(obj):
+        return get_job_case_run_server(obj.id, return_field='exists')
 
     @staticmethod
     def get_server_description(obj):
@@ -753,14 +764,14 @@ class JobTestCasePerResultSerializer(CommonSerializer):
 
     @staticmethod
     def get_skip_baseline_info(obj):
-        if obj.compare_baseline is not None:
+        if obj.compare_baseline:
             baseline_obj = Baseline.objects.filter(id=obj.compare_baseline).first()
             if baseline_obj is not None:
                 perf_detail = PerfBaselineDetail.objects.filter(baseline_id=obj.compare_baseline,
                                                                 test_suite_id=obj.test_suite_id,
                                                                 test_case_id=obj.test_case_id,
                                                                 metric=obj.metric).first()
-                if perf_detail is not None and obj.match_baseline:
+                if perf_detail:
                     return {'server_provider': baseline_obj.server_provider,
                             'test_type': baseline_obj.test_type,
                             'baseline_name': baseline_obj.name,
@@ -902,15 +913,23 @@ def insert_standalone(step, server_step, provider):
 
 def get_check_server_ip(server_id, provider, return_field='ip'):
     server = None
+    if not server_id:
+        return server
     if provider == 'aligroup' and TestServerSnapshot.objects.filter(id=server_id).exists():
         server_snapshot = TestServerSnapshot.objects.get(id=server_id)
+        source_server = server_snapshot.source_server_id
         if return_field == 'description':
             return server_snapshot.description
+        if return_field == 'exists':
+            return 1 if TestServer.objects.filter(id=source_server).exists() else 0
         server = server_snapshot.ip if server_snapshot.ip else server_snapshot.sn
     if provider == 'aliyun' and CloudServerSnapshot.objects.filter(id=server_id).exists():
         server_snapshot = CloudServerSnapshot.objects.get(id=server_id)
+        source_server = server_snapshot.source_server_id
         if return_field == 'description':
             return server_snapshot.description
+        if return_field == 'exists':
+            return 1 if CloudServer.objects.filter(id=source_server).exists() else 0
         server = server_snapshot.private_ip if server_snapshot.private_ip else server_snapshot.sn
     return server
 

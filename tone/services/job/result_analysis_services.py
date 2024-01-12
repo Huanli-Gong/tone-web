@@ -89,12 +89,13 @@ class PerfAnalysisService(CommonService):
         if job_list:
             job = job_list[0]
             perf_results = PerfResult.objects.filter(test_job_id=job.get('job_id'), test_suite_id=test_suite,
-                                                     test_case_id=test_case, metric=metric)
-            if perf_results.exists():
-                perf_result = perf_results.first()
-                baseline_data['value'] = '%.2f' % float(perf_result.baseline_value) \
-                    if perf_result.baseline_value else None
-                baseline_data['cv_value'] = perf_result.baseline_cv_value
+                                                     test_case_id=test_case, metric=metric). \
+                values_list('baseline_value', 'baseline_cv_value')
+            if perf_results:
+                perf_result = perf_results[0]
+                baseline_data['value'] = '%.2f' % float(perf_result[0]) \
+                    if perf_result[0] else None
+                baseline_data['cv_value'] = perf_result[1]
         return baseline_data
 
     @staticmethod
