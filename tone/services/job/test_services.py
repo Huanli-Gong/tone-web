@@ -1559,7 +1559,7 @@ class JobPrepareInfo:
         server_id_list = cluster_steps.values_list('server', flat=True).distinct()
         for server_id in server_id_list:
             server_steps = cluster_steps.filter(server=server_id)
-            server = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+            server, _ = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
             server_dict[server] = []
             for step in server_steps:
                 server_dict[server].append(JobPrepareInfo.get_server_step_info(provider, step))
