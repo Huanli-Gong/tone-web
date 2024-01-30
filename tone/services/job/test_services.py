@@ -705,7 +705,7 @@ class JobTestPrepareService(CommonService):
                 for server_id in server_id_list:
                     server_steps = cluster_steps.filter(server=server_id)
                     final_state = JobTestPrepareService.get_final_state(server_steps)
-                    server = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+                    server, exists = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
                     step_server_order = server_steps.order_by('gmt_created')
                     last_step = step_server_order.last()
                     step_end = server_steps.filter(state__in=['success', 'fail', 'stop']).order_by(
@@ -713,6 +713,7 @@ class JobTestPrepareService(CommonService):
                     final_stage = JobTestPrepareService.get_final_stage(final_state, last_step)
                     date = {'server_type': 'standalone',
                             'server': server,
+                            'exists': exists,
                             'server_id': int(server_id),
                             'stage': final_stage,
                             'state': final_state,
@@ -1509,11 +1510,18 @@ def package_server_list(job):
 class JobPrepareInfo:
     @staticmethod
     def get_server_ip_for_snapshot_id(provider, server_id):
+        exists = 1
         if provider == 'aligroup':
-            server = TestServerSnapshot.objects.get(id=server_id).ip
+            server_snapshot = TestServerSnapshot.objects.get(id=server_id)
+            server = server_snapshot.ip
+            if server_snapshot.source_server_id:
+                exists = 1 if TestServer.objects.filter(id=server_snapshot.source_server_id).exists() else 0
         else:
-            server = CloudServerSnapshot.objects.get(id=server_id).private_ip
-        return server
+            server_snapshot = CloudServerSnapshot.objects.get(id=server_id)
+            server = server_snapshot.private_ip
+            if server_snapshot.source_server_id:
+                exists = 1 if CloudServer.objects.filter(id=server_snapshot.source_server_id).exists() else 0
+        return server, exists
 
     @staticmethod
     def get_server_step_info(provider, step):
@@ -1551,7 +1559,7 @@ class JobPrepareInfo:
         server_id_list = cluster_steps.values_list('server', flat=True).distinct()
         for server_id in server_id_list:
             server_steps = cluster_steps.filter(server=server_id)
-            server = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+            server, _ = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
             server_dict[server] = []
             for step in server_steps:
                 server_dict[server].append(JobPrepareInfo.get_server_step_info(provider, step))

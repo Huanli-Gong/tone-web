@@ -752,6 +752,12 @@ def __get_server_value(server, server_provider, return_field):
         return server.first().id
     elif return_field == 'description':
         return server.first().description
+    elif return_field == 'exists':
+        source_server = server.first().source_server_id
+        if server_provider == 'aligroup':
+            return 1 if TestServer.objects.filter(id=source_server).exists() else 0
+        elif server_provider == 'aliyun':
+            return 1 if CloudServer.objects.filter(id=source_server).exists() else 0
     else:
         return server.first()
 

@@ -850,7 +850,6 @@ class PerfBaselineService(CommonService):
         job_id = data.get('job_id')
         suite_id = data.get('suite_id')
         case_id = data.get('case_id')
-        desc = data.get('desc', None)
         if not TestSuite.objects.filter(id=suite_id).exists() or not TestCase.objects.filter(id=case_id).exists():
             return False, ErrorCode.ADD_BASELINE_ERROR.to_api
         if not all([baseline_id, case_id, job_id, suite_id]):
@@ -858,12 +857,17 @@ class PerfBaselineService(CommonService):
         test_job = TestJob.objects.filter(id=job_id).first()
         if not test_job:
             return False, ErrorCode.ADD_BASELINE_JOB_MISSING.to_api
-        add_baseline_thread = ToneThread(self.add_one_perf_back,
-                                         (baseline_id, case_id, job_id, suite_id, test_job, user_id, desc))
+        add_baseline_thread = ToneThread(self.add_one_perf_back, (data, test_job, user_id))
         add_baseline_thread.start()
         return True, None
 
-    def add_one_perf_back(self, baseline_id, case_id, job_id, suite_id, test_job, user_id, desc):
+    def add_one_perf_back(self, data, test_job, user_id):
+        baseline_id = data.get('baseline_id')
+        job_id = data.get('job_id')
+        suite_id = data.get('suite_id')
+        case_id = data.get('case_id')
+        desc = data.get('desc')
+        metrics = data.get('metric_list')
         sm_name = ''
         instance_type = ''
         image = ''
@@ -883,49 +887,45 @@ class PerfBaselineService(CommonService):
                     sm_name = machine.sm_name
                     machine_ip = machine.ip
             save_baseline_server(baseline_id, server_provider, machine, job_id, suite_id, case_id)
-        perf_res_list = PerfResult.objects.filter(test_job_id=job_id, test_suite_id=suite_id, test_case_id=case_id)
+        q = Q(test_job_id=job_id, test_suite_id=suite_id, test_case_id=case_id)
+        if metrics:
+            q &= Q(metric__in=metrics.split(','))
+        perf_res_list = PerfResult.objects.filter(q)
         create_list = []
         update_dict = dict()
         for perf_res in perf_res_list:
-            self._get_add_perf_baseline_detail(bandwidth, baseline_id, case_id, create_list, image, instance_type,
-                                               job_id, machine, machine_ip, perf_res, sm_name, suite_id, test_job_case,
-                                               update_dict, user_id, desc)
+            perf_detail = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
+                                                            test_case_id=case_id, metric=perf_res.metric)
+            create_data = PerfBaselineDetail(
+                baseline_id=baseline_id,
+                test_job_id=job_id,
+                test_suite_id=suite_id,
+                test_case_id=case_id,
+                server_ip=machine_ip,
+                server_sn='' if machine is None else machine.sn,
+                server_sm_name=sm_name,
+                server_instance_type=instance_type,
+                server_image=image,
+                server_bandwidth=bandwidth,
+                run_mode=test_job_case.run_mode,
+                source_job_id=job_id,
+                metric=perf_res.metric,
+                test_value=perf_res.test_value,
+                cv_value=perf_res.cv_value,
+                max_value=perf_res.max_value,
+                min_value=perf_res.min_value,
+                value_list=perf_res.value_list,
+                note=test_job_case.note,
+                update_user=user_id,
+                description=desc
+            )
+            if not perf_detail.exists():
+                create_data.creator = user_id
+                create_list.append(create_data)
+            else:
+                update_dict.setdefault(str(perf_detail[0].id), create_data)
             self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
                                            desc)
-
-    def _get_add_perf_baseline_detail(self, bandwidth, baseline_id, case_id, create_list, image, instance_type, job_id,
-                                      machine, machine_ip, perf_res, sm_name, suite_id, test_job_case, update_dict,
-                                      user_id, desc):
-        perf_detail = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
-                                                        test_case_id=case_id, metric=perf_res.metric)
-        create_data = PerfBaselineDetail(
-            baseline_id=baseline_id,
-            test_job_id=job_id,
-            test_suite_id=suite_id,
-            test_case_id=case_id,
-            server_ip=machine_ip,
-            server_sn='' if machine is None else machine.sn,
-            server_sm_name=sm_name,
-            server_instance_type=instance_type,
-            server_image=image,
-            server_bandwidth=bandwidth,
-            run_mode=test_job_case.run_mode,
-            source_job_id=job_id,
-            metric=perf_res.metric,
-            test_value=perf_res.test_value,
-            cv_value=perf_res.cv_value,
-            max_value=perf_res.max_value,
-            min_value=perf_res.min_value,
-            value_list=perf_res.value_list,
-            note=test_job_case.note,
-            update_user=user_id,
-            description=desc
-        )
-        if not perf_detail.exists():
-            create_data.creator = user_id
-            create_list.append(create_data)
-        else:
-            update_dict.setdefault(str(perf_detail[0].id), create_data)
 
     def _add_perf_baseline_detail(self, job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
                                   desc):
