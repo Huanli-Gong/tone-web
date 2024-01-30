@@ -91,6 +91,7 @@ class ErrorCode(Enum):
     SUB_CASE_NEED = ("1-07-005", " sub_case为必填参数", "", "", "")
     BASE_JOB_NEED = ("1-07-006", " base_group为必填参数", "", "", "")
     BASE_SUITE_OBJ_NEED = ("1-07-007", " base_suite_obj为必填参数", "", "", "")
+    ANALYSIS_TAG_NEED = ("1-07-008", " ws下缺少analytics标签", "", "", "")
     PLAN_NAME_NEED = ("1-08-001", "计划名称不能为空", "", "", "")
     PLAN_NAME_EXISTS = ("1-08-002", "计划名称已存在", "", "", "")
     PLAN_PREPARE_EXISTS = ("1-08-003", "测试准备阶段不能为空", "", "", "")
