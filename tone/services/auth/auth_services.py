@@ -1,5 +1,5 @@
 import uuid
-
+import json
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.hashers import make_password
@@ -473,3 +473,12 @@ class MsgNotifyService(CommonService):
     def update_all_apply_msg(operator):
         """更新全部审批消息已读"""
         InSiteWorkProcessUserMsg.objects.filter(user_id=operator, i_am_handle=False).update(i_am_handle=True)
+
+
+class ShareService(CommonService):
+    @staticmethod
+    def get_share_id(data):
+        share_id = str(uuid.uuid4()).replace('-', '')
+        redis_cache.set_info(share_id, json.dumps(data))
+        return share_id
+

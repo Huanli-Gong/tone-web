@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
 from tone import settings
+from tone.core.common.redis_cache import redis_cache
 from tone.core.common.permission_config_info import SYS_PERMISSION_CONFIG, WS_PERMISSION_CONFIG, VALID_URL_LIST, \
     RE_PERMISSION_CONFIG
 from tone.core.utils.config_parser import get_config_from_db
@@ -216,6 +217,14 @@ class ValidPermission(MiddlewareMixin):
 
     def process_request(self, request):
         """权限校验中间件"""
+        if request.method == 'GET' and request.GET.get('share_id'):
+            params = redis_cache.get_info(request.GET.get('share_id'))
+            if params:
+                req_params = request.GET.copy()
+                req_params.update(json.loads(params))
+                req_params.pop('share_id')
+                request.GET = req_params
+                return None
         current_path = request.path_info  # 当前访问路径
         token = request.GET.get('token')
         response_401 = JsonResponse(
