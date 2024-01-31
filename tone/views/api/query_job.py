@@ -51,6 +51,7 @@ def job_query(request):
     resp = CommResp()
     req_info = json.loads(request.body)
     tmp_job_id = req_info.get('tmp_job_id', None)
+    hide_case = req_info.get('hide_case', 0)
     job_id = None
     if tmp_job_id:
         tmp_relation = BatchJobRelation.objects.filter(tmp_job_id=tmp_job_id).first()
@@ -123,43 +124,44 @@ def job_query(request):
             },
             'log': get_log_file(job_case)
         }
-        if job.test_type == 'performance':
-            metric_results = PerfResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
-            result_list = list()
-            for metric_result in metric_results:
-                result_list.append(
-                    {
-                        'metric': metric_result.metric,
-                        'test_value': metric_result.test_value,
-                        'cv_value': metric_result.cv_value,
-                        'max_value': metric_result.max_value,
-                        'min_value': metric_result.min_value,
-                        'value_list': metric_result.value_list,
-                        'baseline_value': metric_result.baseline_value,
-                        'compare_result': metric_result.compare_result,
-                        'track_result': metric_result.track_result,
-                        'unit': metric_result.unit
-                    }
-                )
-            result_item['case_result'] = result_list
-        elif job.test_type == 'functional':
-            sub_case_results = FuncResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
-            statistic_file = ''
-            statistic_result = ResultFile.objects.filter(test_job_id=job_id, test_suite_id=job_case.test_suite_id,
-                                                         test_case_id=job_case.test_case_id,
-                                                         result_file='statistic.json').first()
-            if statistic_result:
-                statistic_file = statistic_result.result_path + statistic_result.result_file
-            result_item['statistic_file'] = statistic_file
-            result_list = list()
-            for sub_case_result in sub_case_results:
-                result_list.append(
-                    {
-                        'sub_case_name': sub_case_result.sub_case_name,
-                        'sub_case_result': sub_case_result.sub_case_result
-                    }
-                )
-            result_item['case_result'] = result_list
+        if not hide_case:
+            if job.test_type == 'performance':
+                metric_results = PerfResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
+                result_list = list()
+                for metric_result in metric_results:
+                    result_list.append(
+                        {
+                            'metric': metric_result.metric,
+                            'test_value': metric_result.test_value,
+                            'cv_value': metric_result.cv_value,
+                            'max_value': metric_result.max_value,
+                            'min_value': metric_result.min_value,
+                            'value_list': metric_result.value_list,
+                            'baseline_value': metric_result.baseline_value,
+                            'compare_result': metric_result.compare_result,
+                            'track_result': metric_result.track_result,
+                            'unit': metric_result.unit
+                        }
+                    )
+                result_item['case_result'] = result_list
+            elif job.test_type == 'functional':
+                sub_case_results = FuncResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
+                statistic_file = ''
+                statistic_result = ResultFile.objects.filter(test_job_id=job_id, test_suite_id=job_case.test_suite_id,
+                                                             test_case_id=job_case.test_case_id,
+                                                             result_file='statistic.json').first()
+                if statistic_result:
+                    statistic_file = statistic_result.result_path + statistic_result.result_file
+                result_item['statistic_file'] = statistic_file
+                result_list = list()
+                for sub_case_result in sub_case_results:
+                    result_list.append(
+                        {
+                            'sub_case_name': sub_case_result.sub_case_name,
+                            'sub_case_result': sub_case_result.sub_case_result
+                        }
+                    )
+                result_item['case_result'] = result_list
         result_data.append(result_item)
         # case_state
         if job_case.state in ['pending', 'running']:
