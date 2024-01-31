@@ -197,23 +197,19 @@ class ValidPermission(MiddlewareMixin):
     @staticmethod
     def parse_request_ws_id(request):
         # 获取请求参数
+        body = None
         try:
-            body = None
             body_unicode = request.body.decode('utf-8')
-            try:
-                if body_unicode:
-                    body = json.loads(body_unicode)
-            except Exception as e:
-                logger.warning(str(e))
-                body = request.POST
-            if isinstance(body, dict) and body:
-                ws_id = body.get('ws_id', '') or str(body.get('id', '') if len(str(body.get('id', ''))) == 8 else '') or \
-                        str(body.get('workspace', '') if len(str(body.get('workspace', ''))) == 8 else '')
-            else:
-                ws_id = request.GET.get('ws_id', '')
-            return ws_id
+            if body_unicode:
+                body = json.loads(body_unicode)
         except Exception as e:
-            logger.error(f'parse_request_ws_id error!path:{request.path_info}, error:{e}')
+            logger.warning(str(e))
+            body = request.POST
+        if isinstance(body, dict) and body:
+            ws_id = body.get('ws_id', '') or str(body.get('id', '') if len(str(body.get('id', ''))) == 8 else '')
+        else:
+            ws_id = request.GET.get('ws_id', '')
+        return ws_id
 
     def process_request(self, request):
         """权限校验中间件"""
