@@ -640,6 +640,27 @@ def get_job_case_run_server(job_case_id, return_field='ip', runner_version=1):
     return server
 
 
+def get_run_server(job_case, runner_version=1):
+    run_mode = job_case.run_mode
+    server_provider = job_case.server_provider
+    server = None
+    if server_provider == 'aligroup' and job_case.server_ip:
+        server = dict({'ip': job_case.server_ip})
+    elif run_mode == 'standalone' and server_provider == 'aligroup':
+        server = TestServerSnapshot.objects.filter(id=job_case.server_snapshot_id).first()
+    elif run_mode == 'standalone' and server_provider == 'aliyun':
+        server = CloudServerSnapshot.objects.filter(id=job_case.server_snapshot_id).first()
+    elif run_mode == 'cluster' and server_provider == 'aligroup':
+        server_snapshot_id = get_cluster_snapshot(job_case.id, runner_version)
+        if server_snapshot_id:
+            server = TestServerSnapshot.objects.filter(id=server_snapshot_id).first()
+    elif run_mode == 'cluster' and server_provider == 'aliyun':
+        server_snapshot_id = get_cluster_snapshot(job_case.id, runner_version)
+        if server_snapshot_id:
+            server = CloudServerSnapshot.objects.filter(id=server_snapshot_id).first()
+    return server
+
+
 def get_cluster_snapshot(job_case_id, runner_version):
     server_snapshot_id = None
     if runner_version == 1:
