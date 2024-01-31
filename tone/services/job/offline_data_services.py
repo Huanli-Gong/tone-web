@@ -68,6 +68,10 @@ class OfflineDataUploadService(object):
             code = 201
             msg = '登录信息失效，请重新登录。'
             return code, msg
+        if not file.name.endswith(('.tar', '.tar.gz')):
+            code = 201
+            msg = '文件类型错误，请上传tar或tar.gz文件。'
+            return code, msg
         if not re.match(r'^[A-Za-z0-9\{}\._-]+$', original_file_name) or len(original_file_name) > 128:
             code = 201
             msg = '文件名不符合规范，允许字母、数字、下划线、中划线、{date}占位符，"."，不允许中文,请修改后重新上传。'

@@ -30,8 +30,14 @@ class TestTemplateView(CommonAPIView):
         """
         获取WorkSpace下TestTemplate
         """
-        queryset = self.service.filter(self.get_queryset(), request.GET)
-        response_data = self.get_response_data(queryset)
+        page_size = request.GET.get('page_size')
+        if page_size == '999':
+            response_data = self.get_response_code()
+            data = self.service.filter_all(request.GET)
+            response_data['data'] = data
+        else:
+            queryset = self.service.filter(self.get_queryset(), request.GET)
+            response_data = self.get_response_data(queryset)
         return Response(response_data)
 
     @method_decorator(views_catch_error)
