@@ -12,7 +12,7 @@ from tone.core.utils.common_utils import query_all_dict
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -46,9 +46,21 @@ def job_query(request):
         example:
         curl -H 'Content-Type: application/json' -X POST -d '{"task_id": 215}' http://localhost:8000/api/task_query/
     """
+    if request.method == 'GET':
+        assert None, ValueError(ErrorCode.SUPPORT_POST)
     resp = CommResp()
     req_info = json.loads(request.body)
-    job_id = req_info.get('job_id', None)
+    tmp_job_id = req_info.get('tmp_job_id', None)
+    hide_case = req_info.get('hide_case', 0)
+    job_id = None
+    if tmp_job_id:
+        tmp_relation = BatchJobRelation.objects.filter(tmp_job_id=tmp_job_id).first()
+        if tmp_relation:
+            job_id = tmp_relation.job_id
+        else:
+            assert None, ValueError(ErrorCode.TEST_JOB_NONEXISTENT)
+    if not job_id:
+        job_id = req_info.get('job_id', None)
     assert job_id, ValueError(ErrorCode.JOB_NEED)
     if isinstance(job_id, str):
         assert job_id.isdigit(), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
@@ -62,14 +74,16 @@ def job_query(request):
     machine_result = ResultFile.objects.filter(test_job_id=job_id, result_file='1/machine_info.json').first()
     if machine_result:
         machine_file = machine_result.result_path + machine_result.result_file
+    has_server_info = req_info.get('has_server_info', 0)
     resp_data = {
         'job_id': job_id,
         'job_link': splice_job_link(job),
         'job_state': 'pending' if job.state == 'pending_q' else job.state,
         'test_type': job.test_type,
-        'server_info': package_server_list(job),
         'machine_file': machine_file
     }
+    if has_server_info:
+        resp_data['server_info'] = package_server_list(job)
     statics = calc_job(job_id)
     statics['total'] = statics.pop('count')
     result_data = list()
@@ -110,43 +124,44 @@ def job_query(request):
             },
             'log': get_log_file(job_case)
         }
-        if job.test_type == 'performance':
-            metric_results = PerfResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
-            result_list = list()
-            for metric_result in metric_results:
-                result_list.append(
-                    {
-                        'metric': metric_result.metric,
-                        'test_value': metric_result.test_value,
-                        'cv_value': metric_result.cv_value,
-                        'max_value': metric_result.max_value,
-                        'min_value': metric_result.min_value,
-                        'value_list': metric_result.value_list,
-                        'baseline_value': metric_result.baseline_value,
-                        'compare_result': metric_result.compare_result,
-                        'track_result': metric_result.track_result,
-                        'unit': metric_result.unit
-                    }
-                )
-            result_item['case_result'] = result_list
-        elif job.test_type == 'functional':
-            sub_case_results = FuncResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
-            statistic_file = ''
-            statistic_result = ResultFile.objects.filter(test_job_id=job_id, test_suite_id=job_case.test_suite_id,
-                                                         test_case_id=job_case.test_case_id,
-                                                         result_file='statistic.json').first()
-            if statistic_result:
-                statistic_file = statistic_result.result_path + statistic_result.result_file
-            result_item['statistic_file'] = statistic_file
-            result_list = list()
-            for sub_case_result in sub_case_results:
-                result_list.append(
-                    {
-                        'sub_case_name': sub_case_result.sub_case_name,
-                        'sub_case_result': sub_case_result.sub_case_result
-                    }
-                )
-            result_item['case_result'] = result_list
+        if not hide_case:
+            if job.test_type == 'performance':
+                metric_results = PerfResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
+                result_list = list()
+                for metric_result in metric_results:
+                    result_list.append(
+                        {
+                            'metric': metric_result.metric,
+                            'test_value': metric_result.test_value,
+                            'cv_value': metric_result.cv_value,
+                            'max_value': metric_result.max_value,
+                            'min_value': metric_result.min_value,
+                            'value_list': metric_result.value_list,
+                            'baseline_value': metric_result.baseline_value,
+                            'compare_result': metric_result.compare_result,
+                            'track_result': metric_result.track_result,
+                            'unit': metric_result.unit
+                        }
+                    )
+                result_item['case_result'] = result_list
+            elif job.test_type == 'functional':
+                sub_case_results = FuncResult.objects.filter(test_job_id=job.id, test_case_id=job_case.test_case_id)
+                statistic_file = ''
+                statistic_result = ResultFile.objects.filter(test_job_id=job_id, test_suite_id=job_case.test_suite_id,
+                                                             test_case_id=job_case.test_case_id,
+                                                             result_file='statistic.json').first()
+                if statistic_result:
+                    statistic_file = statistic_result.result_path + statistic_result.result_file
+                result_item['statistic_file'] = statistic_file
+                result_list = list()
+                for sub_case_result in sub_case_results:
+                    result_list.append(
+                        {
+                            'sub_case_name': sub_case_result.sub_case_name,
+                            'sub_case_result': sub_case_result.sub_case_result
+                        }
+                    )
+                result_item['case_result'] = result_list
         result_data.append(result_item)
         # case_state
         if job_case.state in ['pending', 'running']:
@@ -333,20 +348,21 @@ def get_job_info_list(request):
             creator=job_info['creator']
         )
         res_list.append(job_dict)
-    tag_sql = "SELECT a.id,a.name,c.id AS tag_id,C.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
-              "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where A.is_deleted=0 AND B.is_deleted=0 " \
-              "AND C.is_deleted=0 AND a.id IN %s"
-    tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
     job_filter_tag_list = list()
-    for res_job_info in res_list:
-        tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
-        tag_info = dict()
-        tag_name_list = list()
-        for job_tag in tags:
-            tag_info[job_tag['tag_id']] = job_tag['tag_name']
-            tag_name_list.append(job_tag['tag_name'])
-        if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
-            job_filter_tag_list.append(res_job_info)
-        res_job_info['tags'] = tag_info
+    if job_id_list:
+        tag_sql = "SELECT a.id,a.name,c.id AS tag_id,c.name AS tag_name FROM test_job a LEFT JOIN job_tag_relation b " \
+                  "ON a.id=b.job_id LEFT JOIN job_tag c ON b.tag_id=c.id where a.is_deleted=0 AND b.is_deleted=0 " \
+                  "AND c.is_deleted=0 AND a.id IN %s"
+        tags_result = query_all_dict(tag_sql, params=[tuple(job_id_list)])
+        for res_job_info in res_list:
+            tags = [tag for tag in tags_result if tag['id'] == res_job_info['job_id']]
+            tag_info = dict()
+            tag_name_list = list()
+            for job_tag in tags:
+                tag_info[job_tag['tag_id']] = job_tag['tag_name']
+                tag_name_list.append(job_tag['tag_name'])
+            if tag_name and set(tag_name.split(',')).issubset(set(tag_name_list)):
+                job_filter_tag_list.append(res_job_info)
+            res_job_info['tags'] = tag_info
     resp.data = job_filter_tag_list if tag_name else res_list
     return resp.json_resp()

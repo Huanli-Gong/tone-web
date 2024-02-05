@@ -8,6 +8,9 @@ import json
 
 from django.db import transaction
 
+
+from tone.core.utils.short_uuid import short_uuid
+from tone.core.common.redis_cache import redis_cache
 from tone.core.utils.common_utils import kernel_info_format
 from tone.models import TestJob, TestJobCase, TestJobSuite, JobTagRelation, Project, JobTag, Baseline, TestTemplate, \
     JobType, TestSuite, TestCase, TestServer, CloudServer, TestCluster, ServerTag, Workspace, KernelInfo
@@ -46,6 +49,25 @@ def job_create(request):
             JobTagRelation.objects.create(tag_id=tag, job_id=test_job.id)
         resp_data = {'job_id': test_job.id, 'job_name': test_job.name, 'test_type': test_job.test_type}
     resp.data = resp_data
+    return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def job_batch_create(request):
+    resp = CommResp()
+    if request.method != 'POST':
+        raise ValueError(ErrorCode.SUPPORT_POST)
+    data = json.loads(request.body)
+    operator = request.user
+    conversion_data(data)
+    handler = JobDataHandle(data, operator, is_api=True)
+    data_dic, case_list, suite_list, tag_list = handler.return_result()
+    tmp_job_id = short_uuid()
+    job_data = dict(tmp_job_id=tmp_job_id, data_dic=data_dic, case_list=case_list, suite_list=suite_list,
+                    tag_list=tag_list)
+    redis_cache.lpush('batch_create_job', json.dumps(job_data))
+    resp.data = {'tmp_job_id': tmp_job_id}
     return resp.json_resp()
 
 

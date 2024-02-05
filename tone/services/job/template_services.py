@@ -6,7 +6,7 @@ Author: Yfh
 """
 from django.db.models import Q
 from django.db import transaction
-
+from tone.core.utils.common_utils import query_all_dict
 from tone.core.common.services import CommonService
 from tone.models import TestTemplate, TestTmplCase, TestTmplSuite, WorkspaceMember, Role, RoleMember, \
     PlanStageTestRelation, TestPlan, PlanInstance, User
@@ -28,7 +28,31 @@ class TestTemplateService(CommonService):
         q &= Q(update_user=data.get('update_user')) if data.get('update_user') else q
         q &= Q(job_type_id__in=data.getlist('job_type_id')) if data.get('job_type_id') else q
         q &= Q(description__icontains=data.get('description')) if data.get('description') else q
+        q &= Q(enable=data.get('enable')) if data.get('enable') else q
         return queryset.filter(q)
+
+    def filter_all(self, data):
+        test_type_map = {
+            'functional': '功能测试',
+            'performance': '性能测试',
+            'business': '业务测试',
+            'stability': '稳定性测试',
+        }
+        ws_id = data.get('ws_id')
+        enable = data.get('enable')
+        raw_sql = 'SELECT a.id, a.name,job_type_id,b.name as job_type,server_provider,b.test_type,a.ws_id ' \
+                  'from test_tmpl a left join job_type b ON a.job_type_id=b.id WHERE a.is_deleted=0 '
+        params = list()
+        if ws_id:
+            raw_sql += ' and a.ws_id=%s'
+            params.append(ws_id)
+        if enable and enable.lower() == 'true':
+            raw_sql += ' and a.enable=1'
+        template_res = query_all_dict(raw_sql, params)
+        tmp_list = [{'id': m['id'], 'name': m['name'], 'test_type': test_type_map.get(m['test_type']),
+                     'job_type': m['job_type'], 'server_provider': m['server_provider'],
+                     'job_type_id': m['job_type_id'], 'ws_id': m['ws_id']} for m in template_res]
+        return tmp_list
 
     def check_template_plan_running(self, data):
         template_id = data.get('template_id')

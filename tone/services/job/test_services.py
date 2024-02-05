@@ -43,7 +43,7 @@ from tone.settings import cp
 from tone.core.common.redis_cache import runner_redis_cache
 from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
-from tone.core.common.job_result_helper import get_test_config, perse_func_result
+from tone.core.common.job_result_helper import get_test_config, get_job_state
 from tone.core.utils.sftp_client import sftp_client
 
 
@@ -190,6 +190,17 @@ class JobTestService(CommonService):
                 query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
             else:
                 query_sql.append('AND id=0')
+        if data.get('test_conf'):
+            test_conf = data.get('test_conf')
+            test_case_ids = TestCase.objects.filter(name=test_conf).values('id').distinct()
+            job_ids = list()
+            if len(test_case_ids) > 0:
+                test_cases = TestJobCase.objects.filter(test_case_id__in=test_case_ids).values('job_id').distinct()
+                job_ids = [test_case['job_id'] for test_case in test_cases]
+            if job_ids:
+                query_sql.append('AND id IN ({})').format(','.join(str(job_id) for job_id in job_ids))
+            else:
+                query_sql.append('AND id=0')
         if data.get('creation_time'):
             creation_time = data.get('creation_time')
             creation_time = json.loads(creation_time)
@@ -281,7 +292,7 @@ class JobTestService(CommonService):
             'id': job_id,
             'name': row_data[1],
             'ws_id': row_data[2],
-            'state': self.get_job_state(job_id, row_data[5], row_data[3], func_view_config),
+            'state': get_job_state(job_id, row_data[5], row_data[3], func_view_config, '', 1),
             'state_desc': row_data[4],
             'test_type': test_type_map.get(row_data[5]),
             'test_result': row_data[6],
@@ -304,27 +315,6 @@ class JobTestService(CommonService):
             'collection': True if job_id in collect_job_set else False,
             'report_li': self.get_report_li(job_id, create_name_map)
         })
-
-    def get_job_state(self, test_job_id, test_type, state, func_view_config):
-        if state == 'pending_q':
-            state = 'pending'
-        if test_type == 'functional' and (state == 'fail' or state == 'success'):
-            if func_view_config and func_view_config.config_value == '2':
-                count_case_fail, count_total, count_fail, count_no_match_baseline = perse_func_result(test_job_id, 2, 0)
-                if count_total == 0:
-                    state = 'fail'
-                    return state
-                if count_case_fail > 0:
-                    state = 'fail'
-                else:
-                    if count_fail == 0:
-                        state = 'pass'
-                    else:
-                        if count_no_match_baseline > 0:
-                            state = 'fail'
-                        else:
-                            state = 'pass'
-        return state
 
     @staticmethod
     def get_job_server(server_provider, job_id):
@@ -480,11 +470,14 @@ class JobTestService(CommonService):
             release_server(job_id)
 
     @staticmethod
-    def create(data, operator):
+    def create(data, operator, is_patch=False, test_job_id=0):
         handler = JobDataHandle(data, operator)
         with transaction.atomic():
             data_dic, case_list, suite_list, tag_list = handler.return_result()
-            test_job = TestJob.objects.create(**data_dic)
+            if is_patch:
+                test_job = TestJob.objects.filter(id=test_job_id).first()
+            else:
+                test_job = TestJob.objects.create(**data_dic)
             suite_obj_list = list()
             for suite in suite_list:
                 suite['job_id'] = test_job.id
@@ -496,11 +489,11 @@ class JobTestService(CommonService):
             tag_obj_list = list()
             for tag in tag_list:
                 tag_obj_list.append(JobTagRelation(tag_id=tag, job_id=test_job.id))
-            if suite_obj_list:
+            if suite_obj_list and not is_patch:
                 TestJobSuite.objects.bulk_create(suite_obj_list)
-            if case_obj_list:
+            if case_obj_list and not is_patch:
                 TestJobCase.objects.bulk_create(case_obj_list)
-            if tag_obj_list:
+            if tag_obj_list and not is_patch:
                 JobTagRelation.objects.bulk_create(tag_obj_list)
             return test_job
 
@@ -712,7 +705,7 @@ class JobTestPrepareService(CommonService):
                 for server_id in server_id_list:
                     server_steps = cluster_steps.filter(server=server_id)
                     final_state = JobTestPrepareService.get_final_state(server_steps)
-                    server = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+                    server, exists = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
                     step_server_order = server_steps.order_by('gmt_created')
                     last_step = step_server_order.last()
                     step_end = server_steps.filter(state__in=['success', 'fail', 'stop']).order_by(
@@ -720,6 +713,7 @@ class JobTestPrepareService(CommonService):
                     final_stage = JobTestPrepareService.get_final_stage(final_state, last_step)
                     date = {'server_type': 'standalone',
                             'server': server,
+                            'exists': exists,
                             'server_id': int(server_id),
                             'stage': final_stage,
                             'state': final_state,
@@ -1516,11 +1510,18 @@ def package_server_list(job):
 class JobPrepareInfo:
     @staticmethod
     def get_server_ip_for_snapshot_id(provider, server_id):
+        exists = 1
         if provider == 'aligroup':
-            server = TestServerSnapshot.objects.get(id=server_id).ip
+            server_snapshot = TestServerSnapshot.objects.get(id=server_id)
+            server = server_snapshot.ip
+            if server_snapshot.source_server_id:
+                exists = 1 if TestServer.objects.filter(id=server_snapshot.source_server_id).exists() else 0
         else:
-            server = CloudServerSnapshot.objects.get(id=server_id).private_ip
-        return server
+            server_snapshot = CloudServerSnapshot.objects.get(id=server_id)
+            server = server_snapshot.private_ip
+            if server_snapshot.source_server_id:
+                exists = 1 if CloudServer.objects.filter(id=server_snapshot.source_server_id).exists() else 0
+        return server, exists
 
     @staticmethod
     def get_server_step_info(provider, step):
@@ -1558,7 +1559,7 @@ class JobPrepareInfo:
         server_id_list = cluster_steps.values_list('server', flat=True).distinct()
         for server_id in server_id_list:
             server_steps = cluster_steps.filter(server=server_id)
-            server = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+            server, _ = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
             server_dict[server] = []
             for step in server_steps:
                 server_dict[server].append(JobPrepareInfo.get_server_step_info(provider, step))

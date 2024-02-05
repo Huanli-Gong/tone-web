@@ -105,6 +105,19 @@ def query_all_dict(sql, params=None):
         return rowList
 
 
+def execute_sql(sql, params=None):
+    with connection.cursor() as cursor:
+        try:
+            if params:
+                cursor.execute(sql, params=params)
+            else:
+                cursor.execute(sql)
+            rows = cursor.fetchall()
+            return rows
+        except Exception as e:
+            raise ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+
+
 def kernel_info_format(kernel_info):
     # 内核管理需求优化，内核包可扩展多个，故将原test_job.kernel_info转换为新数据结构
     # 原数据结构：{"kernel": "a.rpm", "devel": "b.rpm", "headers": "c.rpm", "hotfix_install": true}

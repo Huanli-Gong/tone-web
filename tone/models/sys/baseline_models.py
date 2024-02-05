@@ -85,6 +85,7 @@ class PerfBaselineDetail(BaseModel):
     note = models.CharField(max_length=255, null=True, blank=True, help_text='NOTE')
     creator = models.IntegerField(help_text='创建者', null=True)
     update_user = models.IntegerField(help_text='修改者', null=True)
+    description = models.TextField(null=True, blank=True, help_text='问题描述')
 
     class Meta:
         db_table = 'perf_baseline_detail'

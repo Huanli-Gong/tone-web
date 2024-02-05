@@ -26,4 +26,5 @@ urlpatterns = [
     path('msg_state/', auth_views.MsgStateView.as_view(), name='msg_state'),
     path('task_msg/', auth_views.TaskMsgView.as_view(), name='task_msg'),
     path('apply_msg/', auth_views.ApplyMsgView.as_view(), name='apply_msg'),
+    path('share/', auth_views.ShareView.as_view(), name='share'),
 ]
