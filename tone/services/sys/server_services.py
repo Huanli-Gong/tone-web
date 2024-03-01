@@ -1766,8 +1766,9 @@ class ToneAgentService(CommonService):
             mode=post_data.get('mode'),
         )
 
-    def toneagent_version_list(self, version):
-        list_url = '{}/v1/agent/version/manage?arch={}&page_num=1&page_size=100'.format(TONEAGENT_DOMAIN, version)
+    def toneagent_version_list(self, os, arch):
+        list_url = '{}/v1/agent/version/manage?os={}&arch={}&page_num=1&page_size=100'.\
+            format(TONEAGENT_DOMAIN, os, arch)
         try:
             result = requests.get(list_url).json()
         except Exception as e:
