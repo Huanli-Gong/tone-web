@@ -636,9 +636,12 @@ class TestSuiteService(CommonService):
                     title_list = line.split()
                     continue
                 case_name = ''
-                for i, item in enumerate(line.split()):
-                    if item.lower() != 'na':
-                        case_name += f'{title_list[i]}={item},'
+                if len(line.split()) == 1 and line.split()[0].lower() == 'na':
+                    case_name = 'default'
+                else:
+                    for i, item in enumerate(line.split()):
+                        if item.lower() != 'na':
+                            case_name += f'{title_list[i]}={item},'
                 case_list.append(case_name.strip(','))
         if not case_list:
             case_list = ['default']
