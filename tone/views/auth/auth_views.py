@@ -18,7 +18,7 @@ from tone.serializers.auth.auth_serializers import UserSerializer, RoleSerialize
     PersonalUserSerializer, UserWorkspaceSerializer, UserApproveSerializer, WsAdminSerializer, TaskMsgSerializer, \
     ApplyMsgSerializer, LoginUserInfoSerializer
 from tone.services.auth.auth_services import UserService, RoleService, UserInfoService, UserTokenService, \
-    PersonalHomeService, ReApplyService, FilterWsAdminService, MsgNotifyService, AuthService
+    PersonalHomeService, ReApplyService, FilterWsAdminService, MsgNotifyService, AuthService, ShareService
 from tone.settings import LOGIN_URL
 
 
@@ -294,4 +294,13 @@ class ApplyMsgView(CommonAPIView):
         """修改单条已读状态"""
         data = self.service.update_apply_msg(request.data, operator=request.user.id)
         response_data = self.get_response_data(data)
+        return Response(response_data)
+
+
+class ShareView(CommonAPIView):
+    service_class = ShareService
+
+    def post(self, request):
+        data = self.service.get_share_id(request.data)
+        response_data = self.get_response_only_for_data(data)
         return Response(response_data)

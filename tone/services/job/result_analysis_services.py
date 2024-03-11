@@ -9,11 +9,12 @@ from datetime import datetime
 
 from django.db.models import Q
 from tone.core.utils.common_utils import query_all_dict
-from tone.models import FuncResult, TestJob, JobTagRelation, User, PerfResult, JobTag, Project
+from tone.models import FuncResult, TestJob, JobTagRelation, User, PerfResult, JobTag, \
+    Project, TestJobCase, TestCase, TestSuite
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP
-from tone.core.common.job_result_helper import get_job_case_run_server, date_add
+from tone.core.common.job_result_helper import get_job_case_run_server, date_add, get_run_server
 from tone.core.common.services import CommonService
-from tone.core.common.constant import ANALYSIS_SQL_MAP, ANALYSIS_SUITE_LIST_SQL_MAP, ANALYSIS_METRIC_LIST_SQL_MAP
+from tone.core.common.constant import ANALYSIS_SUITE_LIST_SQL_MAP, ANALYSIS_METRIC_LIST_SQL_MAP
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import AnalysisException
 
@@ -43,37 +44,46 @@ class PerfAnalysisService(CommonService):
         end_time = data.get('end_time', None)
         provider_env = data.get('provider_env', 'aligroup')
         tag = data.get('tag', None)
+        ws_id = data.get('ws_id')
         assert project, AnalysisException(ErrorCode.PROJECT_ID_NEED)
         assert test_suite, AnalysisException(ErrorCode.TEST_SUITE_NEED)
         assert test_case, AnalysisException(ErrorCode.TEST_CASE_NEED)
         assert metrics, AnalysisException(ErrorCode.METRIC_NEED)
         assert start_time, AnalysisException(ErrorCode.START_TIME_NEED)
         assert end_time, AnalysisException(ErrorCode.END_TIME_NEED)
+        assert ws_id, AnalysisException(ErrorCode.WS_NEED)
         end_time = date_add(end_time, 1)
         job_list = []
-        sql = self.get_sql(provider_env, tag)
-        metrics_str = ','.join("'" + e + "'" for e in metrics)
-        raw_sql = sql.format(project=project, test_suite=test_suite, test_case=test_case, metric=metrics_str,
-                             start_time=datetime.strptime(start_time, '%Y-%m-%d'),
-                             end_time=datetime.strptime(end_time, '%Y-%m-%d'), tag=tag, provider_env=provider_env)
-        metrics_result = query_all_dict(raw_sql)
-        for metric in metrics:
-            metric_result = [result for result in metrics_result if result['metric'] == metric]
-            if metric_result:
-                metric_data = self.get_metric_data(metric_result, provider_env)
-                result_data = self.get_result_data(metric_data, provider_env, start_time, end_time)
-                job_list = self.get_job_list(result_data, provider_env)
-                baseline_data = self.get_baseline_data(test_suite, test_case, metric, job_list)
-                metric_map[metric] = {
-                    'result_data': result_data,
-                    'baseline_data': baseline_data
-                }
-            else:
-                metric_map[metric] = {
-                    'result_data': {},
-                    'baseline_data': {'value': 'null', 'cv_value': 'null'}
-                }
-
+        sql = self.get_sql()
+        metrics_str = tuple(metrics)
+        start_dt = datetime.strptime(start_time, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_time, '%Y-%m-%d')
+        params = [start_dt, end_dt, provider_env, project, metrics_str, test_case, test_suite]
+        analysis_tag = JobTag.objects.filter(name='analytics', ws_id=ws_id).first()
+        assert analysis_tag, AnalysisException(ErrorCode.ANALYSIS_TAG_NEED)
+        job_id_list = set(JobTagRelation.objects.filter(tag_id=analysis_tag.id).values_list('job_id', flat=True))
+        if tag:
+            tag_input = set(JobTagRelation.objects.filter(tag_id=tag).values_list('job_id', flat=True))
+            job_id_list = tag_input & job_id_list
+        if len(job_id_list) > 0:
+            params.append(tuple(job_id_list))
+            metrics_result = query_all_dict(sql, params=params)
+            for metric in metrics:
+                metric_result = [result for result in metrics_result if result['metric'] == metric]
+                if metric_result:
+                    metric_data = self.get_metric_data(metric_result, test_suite, test_case)
+                    result_data = self.get_result_data(metric_data, provider_env, start_time, end_time)
+                    job_list = self.get_job_list(result_data, provider_env)
+                    baseline_data = self.get_baseline_data(test_suite, test_case, metric, job_list)
+                    metric_map[metric] = {
+                        'result_data': result_data,
+                        'baseline_data': baseline_data
+                    }
+                else:
+                    metric_map[metric] = {
+                        'result_data': {},
+                        'baseline_data': {'value': 'null', 'cv_value': 'null'}
+                    }
         res_data = {
             'job_list': job_list,
             'metric_map': metric_map
@@ -93,8 +103,7 @@ class PerfAnalysisService(CommonService):
                 values_list('baseline_value', 'baseline_cv_value')
             if perf_results:
                 perf_result = perf_results[0]
-                baseline_data['value'] = '%.2f' % float(perf_result[0]) \
-                    if perf_result[0] else None
+                baseline_data['value'] = '%.2f' % float(perf_result[0]) if perf_result[0] else None
                 baseline_data['cv_value'] = perf_result[1]
         return baseline_data
 
@@ -126,32 +135,47 @@ class PerfAnalysisService(CommonService):
         return result_data
 
     @staticmethod
-    def get_metric_data(rows, provider_env):
+    def get_metric_data(rows, test_suite_id, test_case_id):
         metric_data = list()
         for row in rows:
-            if provider_env == 'aligroup':
-                metric_obj = _package_metric(row, 'ip')
-            else:
-                metric_obj = _package_metric(row, 'private_ip')
-                metric_obj.update({
-                    'instance_type': row['instance_type'],
-                    'image': row['image'],
-                    'bandwidth': row['bandwidth'],
-                    'run_mode': row['run_mode']
-                })
+            metric_obj = _package_metric(row, test_suite_id, test_case_id)
             metric_data.append(metric_obj)
         return metric_data
 
     @staticmethod
-    def get_sql(provider_env, tag):
-        if provider_env == 'aligroup' and tag:
-            sql = ANALYSIS_SQL_MAP.get('group_perf_tag')
-        elif provider_env == 'aliyun' and tag:
-            sql = ANALYSIS_SQL_MAP.get('group_perf_aliyun_tag')
-        elif provider_env == 'aliyun':
-            sql = ANALYSIS_SQL_MAP.get('group_perf_aliyun')
-        else:
-            sql = ANALYSIS_SQL_MAP.get('group_perf')
+    def get_sql():
+        sql = """
+                SELECT
+                    A.id,
+                    A.name,
+                    A.start_time,
+                    A.end_time,
+                    A.build_pkg_info,
+                    B.test_value,
+                    B.cv_value,
+                    B.note,
+                    B.id as result_obj_id,
+                    B.metric,
+                    B.compare_result,
+                    A.creator
+                FROM
+                    test_job AS A,
+                    perf_result AS B
+                WHERE
+                    A.id = B.test_job_id 
+                    AND A.start_time >= %s
+                    AND A.end_time <= %s
+                    AND A.server_provider = %s
+                    AND A.test_type = 'performance' 
+                    AND A.project_id = %s 
+                    AND B.metric IN %s  
+                    AND B.test_case_id = %s 
+                    AND B.test_suite_id = %s 
+                    AND A.state IN ( 'success', 'fail' )
+                    AND A.id IN %s 
+                    AND A.is_deleted = 0
+                    AND B.is_deleted = 0
+                """
         return sql
 
     @staticmethod
@@ -182,10 +206,14 @@ class PerfAnalysisService(CommonService):
         assert test_type, AnalysisException(ErrorCode.TEST_TYPE_LACK)
         assert ws_id, AnalysisException(ErrorCode.WS_NEED)
         assert project_id, AnalysisException(ErrorCode.PROJECT_ID_NEED)
+        analysis_tag = JobTag.objects.filter(name='analytics', ws_id=ws_id).first()
+        assert analysis_tag, AnalysisException(ErrorCode.ANALYSIS_TAG_NEED)
+        job_id_list = JobTagRelation.objects.filter(tag_id=analysis_tag.id).values_list('job_id', flat=True)
         raw_sql = self.get_suite_list_sql(test_type)
         params = [provider_env, project_id, ws_id]
         if test_type == 'functional':
             params = [project_id, ws_id]
+        params.append(tuple(job_id_list))
         suite_res_list = query_all_dict(raw_sql, params=params)
         suite_case_list = sorted(suite_res_list, key=lambda x: x['test_suite_id'], reverse=True)
         suite_list = list()
@@ -193,13 +221,17 @@ class PerfAnalysisService(CommonService):
         suite_dict = dict()
         for suite_info in suite_case_list:
             case_dict = dict()
+            test_case = TestCase.objects.filter(id=suite_info['test_case_id']).first()
+            test_suite = TestSuite.objects.filter(id=suite_info['test_suite_id']).first()
+            if not test_case or not test_suite:
+                continue
             case_dict['test_case_id'] = suite_info['test_case_id']
-            case_dict['test_case_name'] = suite_info['test_case_name']
+            case_dict['test_case_name'] = test_case.name
             if suite_info['test_suite_id'] != tmp_suite_id:
                 tmp_suite_id = suite_info['test_suite_id']
                 suite_dict = dict()
                 suite_dict['test_suite_id'] = suite_info['test_suite_id']
-                suite_dict['test_suite_name'] = suite_info['test_suite_name']
+                suite_dict['test_suite_name'] = test_suite.name
                 suite_dict['test_case_list'] = list()
                 suite_list.append(suite_dict)
             suite_dict['test_case_list'].append(case_dict)
@@ -223,13 +255,15 @@ class PerfAnalysisService(CommonService):
         assert test_suite_id, AnalysisException(ErrorCode.TEST_CASE_NEED)
         assert test_case_id, AnalysisException(ErrorCode.TEST_SUITE_NEED)
         end_time = date_add(end_time, 1)
-        raw_sql = self.get_metric_list_sql(test_type, tag).format(project=project_id, ws_id=ws_id,
-                                                                  start_time=datetime.strptime(start_time, '%Y-%m-%d'),
-                                                                  end_time=datetime.strptime(end_time, '%Y-%m-%d'),
-                                                                  tag=tag, provider_env=provider_env,
-                                                                  test_suite_id=test_suite_id,
-                                                                  test_case_id=test_case_id)
-        metric_res_list = query_all_dict(raw_sql)
+        start_time = datetime.strptime(start_time, '%Y-%m-%d')
+        end_time = datetime.strptime(end_time, '%Y-%m-%d')
+        params = [start_time, end_time, provider_env, project_id, test_suite_id, test_case_id, ws_id]
+        if test_type == 'functional':
+            params = [start_time, end_time, project_id, test_suite_id, test_case_id, ws_id]
+        if tag:
+            params.append(tag)
+        raw_sql = self.get_metric_list_sql(test_type, tag)
+        metric_res_list = query_all_dict(raw_sql, params=params)
         metric_list = list()
         for metric in metric_res_list:
             metric_list.append(metric['metric'])
@@ -267,9 +301,12 @@ def package_job_info(job_value, job_id_list, job_list):
         job_id_list.append(job_value.get('job_id'))
 
 
-def _package_metric(row, column_ip):
-    server = get_job_case_run_server(row['job_case_id']) if row['run_mode'] == 'cluster' else row[column_ip]
-    return dict(
+def _package_metric(row, test_suite_id, test_case_id):
+    test_job_case = TestJobCase.objects.filter(job_id=row['id'], test_suite_id=test_suite_id, test_case_id=test_case_id,
+                                               state__in=('success', 'fail')).first()
+    server = get_run_server(test_job_case)
+    user = User.objects.filter(id=row['creator']).first()
+    metric_info = dict(
         {
             'job_id': row['id'],
             'job_name': row['name'],
@@ -278,17 +315,30 @@ def _package_metric(row, column_ip):
             'end_time': datetime.strftime(row['end_time'], "%Y-%m-%d %H:%M:%S")
             if row['end_time'] else None,
             'commit_id': json.loads(row['build_pkg_info']).get('commit_id', None),
-            'creator': row['first_name'] or row['last_name'],
-            'server': server,
+            'creator': user.first_name or user.last_name,
             'value': row['test_value'],
             'cv_value': row['cv_value'],
             'compare_result': '{0:.2f}%'.format(float(row['compare_result']) * 100) if row['compare_result'] else '',
             'note': row['note'],
             'result_obj_id': row['result_obj_id'],
-            'creator_id': row['creator_id']
+            'creator_id': user.id
         }
     )
-
+    if server:
+        if test_job_case.server_provider == 'aligroup':
+            if isinstance(server, dict):
+                metric_info['server'] = server.get('ip')
+            else:
+                metric_info['server'] = server.ip
+        else:
+            metric_info.update({
+                'server': server.private_ip,
+                'instance_type': server.instance_type,
+                'image': server.image,
+                'bandwidth': server.bandwidth,
+                'run_mode': test_job_case.run_mode
+            })
+    return metric_info
 
 
 class FuncAnalysisService(CommonService):
@@ -328,11 +378,12 @@ class FuncAnalysisService(CommonService):
         if show_type != 'pass_rate':
             func_results_q &= Q(sub_case_name=sub_case_name)
         func_job_ids = FuncResult.objects.filter(func_results_q).values_list('test_job_id', flat=True).distinct()
-        job_queryset = TestJob.objects.filter(id__in=func_job_ids, project_id=project, state__in=['success', 'fail']).\
-            order_by('-gmt_created')
+        job_queryset = TestJob.objects.filter(
+            id__in=func_job_ids, project_id=project,
+            state__in=['success', 'fail']).order_by('-gmt_created')
         job_li = list()
         ws_id = Project.objects.get(id=project).ws_id
-        analytics_tag_id_set = set(JobTag.objects.filter(ws_id=ws_id, name='analytics').values_list('id', flat=True))
+        analytics_tag_id_set = {JobTag.objects.get(ws_id=ws_id, name='analytics').id}
         if tag:
             analytics_tag_id_set.add(tag)
         job_tag_list = JobTagRelation.objects.filter(job_id__in=func_job_ids)
@@ -344,7 +395,7 @@ class FuncAnalysisService(CommonService):
             if analytics_tag_id_set.issubset(job_tag_relation_ids):
                 job_li.append(job)
         sub_case_map, job_id_li = self.get_sub_case_map(job_li, start_time, end_time)
-        res_data = None
+        res_data = dict()
         if job_id_li:
             res_data = self.get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li)
         return res_data
@@ -362,20 +413,20 @@ class FuncAnalysisService(CommonService):
     def get_res_data(sub_case_map, test_suite, test_case, sub_case_name, show_type, job_id_li):
         job_list = list()
         case_map = dict()
-        job_li = ','.join(str(e) for e in job_id_li)
+        job_li = tuple(job_id_li)
         if show_type == 'pass_rate':
             raw_sql = 'SELECT COUNT(*) AS all_case,SUM(case when sub_case_result=1 then 1 ELSE 0 END ) AS ' \
-                      'pass_case,test_job_id FROM func_result WHERE test_job_id IN (' + job_li + ') AND ' \
+                      'pass_case,test_job_id FROM func_result WHERE test_job_id IN %s AND ' \
                       'test_suite_id=%s AND test_case_id=%s GROUP BY test_job_id '
-            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case])
+            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [job_li, test_suite, test_case])
         else:
             assert sub_case_name, AnalysisException(ErrorCode.SUB_CASE_NEED)
             raw_sql = 'SELECT id,note,sub_case_result,test_job_id FROM func_result WHERE test_job_id ' \
-                      'IN (' + job_li + ') AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
-            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [test_suite, test_case, sub_case_name])
-        job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN (' + job_li + ')' \
+                      'IN %s AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
+            func_queryset = query_all_dict(raw_sql.replace('\'', ''), [job_li, test_suite, test_case, sub_case_name])
+        job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN %s' \
                        ' AND test_suite_id=%s AND test_case_id=%s'
-        job_cases = query_all_dict(job_case_sql.replace('\'', ''), [test_suite, test_case])
+        job_cases = query_all_dict(job_case_sql.replace('\'', ''), [job_li, test_suite, test_case])
         for key, value in sub_case_map.items():
             if value:
                 job_case = [case for case in job_cases if case['job_id'] == value.get('job_id')]

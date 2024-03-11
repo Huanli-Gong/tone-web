@@ -1,5 +1,6 @@
 import re
 
+# for staragent plugin
 from tone import settings
 
 SCRIPT_FLAG = 'script'
@@ -126,298 +127,41 @@ RANDOM_THEME_COLOR_LIST = [
     '#FF9D4E', '#39B3B2', '#5B8FF9', '#F56C6C', '#3FB7E6'
 ]
 
-ANALYSIS_SQL_MAP = {
-    'group_perf': """
-        SELECT
-        A.id,
-        A.name,
-        A.start_time,
-        A.end_time,
-        A.build_pkg_info,
-        E.first_name,
-        E.last_name,
-        D.ip,
-        B.test_value,
-        B.cv_value, 
-        B.note,
-        B.id as result_obj_id,
-        B.metric,
-        B.compare_result,
-        C.id as job_case_id,
-        C.run_mode,
-        E.id as creator_id
-    FROM
-        test_job AS A,
-        perf_result AS B,
-        test_job_case AS C,
-        test_server_snapshot AS D,
-        user AS E,
-        job_tag AS F,
-        job_tag_relation AS G 
-    WHERE
-        A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
-        AND A.test_type = 'performance' 
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric}) 
-        AND C.job_id = A.id 
-        AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
-        AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
-        AND C.state IN ( 'success', 'fail' ) 
-        AND A.state IN ( 'success', 'fail' ) 
-        AND C.server_snapshot_id = D.id 
-        AND A.creator = E.id
-        AND A.is_deleted = 0
-        AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND F.is_deleted = 0
-        AND G.is_deleted = 0
-        AND F.ws_id = A.ws_id 
-        AND F.NAME = 'analytics' 
-        AND F.id = G.tag_id 
-        AND A.id = G.job_id
-    """,
-    'group_perf_tag': """
-    SELECT
-        A.id,
-        A.name,
-        A.start_time,
-        A.end_time,
-        A.build_pkg_info,
-        E.first_name,
-        E.last_name,
-        D.ip,
-        B.test_value,
-        B.cv_value,
-        B.note,
-        B.id as result_obj_id,
-        B.metric,
-        B.compare_result,
-        C.id as job_case_id,
-        C.run_mode,
-        E.id as creator_id
-    FROM
-        test_job AS A,
-        perf_result AS B,
-        test_job_case AS C,
-        test_server_snapshot AS D,
-        user AS E,
-        job_tag_relation AS F, 
-        job_tag AS G, 
-        job_tag_relation AS H
-    WHERE
-        A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
-        AND A.test_type = 'performance' 
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric})  
-        AND C.job_id = A.id 
-        AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
-        AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
-        AND C.state IN ( 'success', 'fail' ) 
-        AND A.state IN ( 'success', 'fail' ) 
-        AND C.server_snapshot_id = D.id 
-        AND A.creator = E.id 
-        AND F.job_id = A.id 
-        AND F.tag_id = {tag}
-        AND A.is_deleted = 0
-        AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND F.is_deleted = 0
-        AND G.is_deleted = 0
-        AND H.is_deleted = 0
-        AND G.ws_id = A.ws_id 
-        AND G.NAME = 'analytics' 
-        AND G.id = H.tag_id 
-        AND A.id = H.job_id
-   """,
-    'group_perf_aliyun': """
-    SELECT
-        A.id,
-        A.name,
-        A.start_time,
-        A.end_time,
-        A.build_pkg_info,
-        E.first_name,
-        E.last_name,
-        D.private_ip,
-        B.test_value,
-        B.cv_value,
-        B.note,
-        B.id as result_obj_id,
-        B.metric,
-        B.compare_result,
-        D.instance_type,
-        D.image,
-        D.bandwidth,
-        C.run_mode,
-        C.id as job_case_id,
-        E.id as creator_id
-    FROM
-        test_job AS A,
-        perf_result AS B,
-        test_job_case AS C,
-        cloud_server_snapshot AS D,
-        user AS E,
-        job_tag AS F,
-        job_tag_relation AS G  
-    WHERE
-        A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
-        AND A.test_type = 'performance'
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric})
-        AND C.job_id = A.id 
-        AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
-        AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
-        AND C.state IN ( 'success', 'fail' ) 
-        AND A.state IN ( 'success', 'fail' ) 
-        AND C.server_snapshot_id = D.id 
-        AND A.creator = E.id
-        AND A.is_deleted = 0
-        AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND F.is_deleted = 0
-        AND G.is_deleted = 0
-        AND F.ws_id = A.ws_id 
-        AND F.NAME = 'analytics' 
-        AND F.id = G.tag_id 
-        AND A.id = G.job_id
-    """,
-    'group_perf_aliyun_tag': """
-    SELECT
-        A.id,
-        A.name,
-        A.start_time,
-        A.end_time,
-        A.build_pkg_info,
-        E.first_name,
-        E.last_name,
-        D.private_ip,
-        B.test_value,
-        B.cv_value,
-        B.note,
-        B.id as result_obj_id,
-        B.metric,
-        B.compare_result,
-        D.instance_type,
-        D.image,
-        D.bandwidth,
-        C.run_mode,
-        C.id as job_case_id,
-        E.id as creator_id
-    FROM
-        test_job AS A,
-        perf_result AS B,
-        test_job_case AS C,
-        cloud_server_snapshot AS D,
-        USER AS E,
-        job_tag_relation AS F,
-        job_tag AS G, 
-        job_tag_relation AS H
-    WHERE
-        A.id = B.test_job_id 
-        AND A.start_time >= '{start_time}'
-        AND A.end_time <= '{end_time}'
-        AND A.server_provider = '{provider_env}'
-        AND A.test_type = 'performance' 
-        AND A.project_id = {project} 
-        AND B.metric IN ({metric}) 
-        AND C.job_id = A.id 
-        AND B.test_case_id = C.test_case_id 
-        AND C.test_case_id = {test_case} 
-        AND B.test_suite_id = C.test_suite_id 
-        AND C.test_suite_id = {test_suite} 
-        AND C.state IN ( 'success', 'fail' ) 
-        AND A.state IN ( 'success', 'fail' ) 
-        AND C.server_snapshot_id = D.id 
-        AND A.creator = E.id 
-        AND F.job_id = A.id 
-        AND F.tag_id = {tag}
-        AND A.is_deleted = 0
-        AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND F.is_deleted = 0
-        AND G.is_deleted = 0
-        AND H.is_deleted = 0
-        AND G.ws_id = A.ws_id 
-        AND G.NAME = 'analytics' 
-        AND G.id = H.tag_id 
-        AND A.id = H.job_id
-""",
-
-}
-
 ANALYSIS_SUITE_LIST_SQL_MAP = {
     'group_perf': """
         SELECT DISTINCT 
         A.test_suite_id,
-        A.test_case_id,
-        C.name AS test_suite_name,
-        D.name AS test_case_name
+        A.test_case_id
     FROM
         perf_result AS A,
-        test_job AS B,
-        test_suite AS C,
-        test_case AS D,
-        job_tag AS E,
-        job_tag_relation AS F 
+        test_job AS B
     WHERE
         B.id = A.test_job_id 
         AND B.server_provider = %s
         AND B.test_type = 'performance' 
         AND B.project_id = %s
-        AND A.test_suite_id = C.id 
-        AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND B.ws_id = %s 
-        AND E.NAME = 'analytics' 
-        AND E.id = F.tag_id 
-        AND B.id = F.job_id
+        AND B.ws_id = %s
+        AND B.id IN %s
     """,
     'group_func': """
         SELECT DISTINCT 
         A.test_suite_id,
-        A.test_case_id,
-        C.name AS test_suite_name,
-        D.name AS test_case_name
+        A.test_case_id
     FROM
         func_result AS A,
-        test_job AS B,
-        test_suite AS C,
-        test_case AS D
+        test_job AS B
     WHERE
         B.id = A.test_job_id 
         AND B.test_type = 'functional' 
         AND B.project_id = %s
-        AND A.test_suite_id = C.id 
-        AND A.test_case_id = D.id 
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
         AND B.ws_id = %s 
+        AND B.id IN %s
     """,
 }
 
@@ -432,17 +176,17 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id} 
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s 
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
@@ -454,26 +198,26 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         perf_result AS A,
         test_job AS B,
         job_tag AS E,
-        job_tag_relation AS F 
+        job_tag_relation AS F,
+        job_tag_relation AS G 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
+        AND B.server_provider = %s
         AND B.test_type = 'performance' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id}
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND C.is_deleted = 0
-        AND D.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.NAME = 'analytics' 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
-        AND F.tag_id = {tag}
+        AND B.id = G.job_id
+        AND G.tag_id = %s
    """,
     'group_func': """
         SELECT DISTINCT 
@@ -483,17 +227,16 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         test_job AS B
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id} 
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s 
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s
     """,
     'group_func_tag': """
     SELECT DISTINCT 
@@ -505,20 +248,19 @@ ANALYSIS_METRIC_LIST_SQL_MAP = {
         job_tag_relation AS F 
     WHERE
         B.id = A.test_job_id 
-        AND B.start_time >= '{start_time}'
-        AND B.end_time <= '{end_time}'
-        AND B.server_provider = '{provider_env}'
+        AND B.start_time >= %s
+        AND B.end_time <= %s
         AND B.test_type = 'functional' 
-        AND B.project_id = {project} 
-        AND A.test_suite_id = {test_suite_id} 
-        AND A.test_case_id = {test_case_id}
+        AND B.project_id = %s 
+        AND A.test_suite_id = %s 
+        AND A.test_case_id = %s
         AND B.state IN ( 'success', 'fail' ) 
         AND A.is_deleted = 0
         AND B.is_deleted = 0
-        AND B.ws_id = '{ws_id}' 
+        AND B.ws_id = %s 
         AND E.id = F.tag_id 
         AND B.id = F.job_id
-        AND F.tag_id = {tag}
+        AND F.tag_id = %s
    """,
 }
 
@@ -530,7 +272,7 @@ FILTER_JOB_TAG_SQL = """
         job_tag AS B,
         job_tag_relation AS C 
     WHERE
-        A.project_id = {project_id}
+        A.project_id = %s
         AND B.NAME = 'analytics' 
         AND B.id = C.tag_id 
         AND A.id = C.job_id 

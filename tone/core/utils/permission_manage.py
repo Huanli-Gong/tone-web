@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
 from tone import settings
+from tone.core.common.redis_cache import redis_cache
 from tone.core.common.permission_config_info import SYS_PERMISSION_CONFIG, WS_PERMISSION_CONFIG, VALID_URL_LIST, \
     RE_PERMISSION_CONFIG
 from tone.core.utils.config_parser import get_config_from_db
@@ -196,26 +197,30 @@ class ValidPermission(MiddlewareMixin):
     @staticmethod
     def parse_request_ws_id(request):
         # 获取请求参数
+        body = None
         try:
-            body = None
             body_unicode = request.body.decode('utf-8')
-            try:
-                if body_unicode:
-                    body = json.loads(body_unicode)
-            except Exception as e:
-                logger.warning(str(e))
-                body = request.POST
-            if isinstance(body, dict) and body:
-                ws_id = body.get('ws_id', '') or str(body.get('id', '') if len(str(body.get('id', ''))) == 8 else '') or \
-                        str(body.get('workspace', '') if len(str(body.get('workspace', ''))) == 8 else '')
-            else:
-                ws_id = request.GET.get('ws_id', '')
-            return ws_id
+            if body_unicode:
+                body = json.loads(body_unicode)
         except Exception as e:
-            logger.error(f'parse_request_ws_id error!path:{request.path_info}, error:{e}')
+            logger.warning(str(e))
+            body = request.POST
+        if isinstance(body, dict) and body:
+            ws_id = body.get('ws_id', '') or str(body.get('id', '') if len(str(body.get('id', ''))) == 8 else '')
+        else:
+            ws_id = request.GET.get('ws_id', '')
+        return ws_id
 
     def process_request(self, request):
         """权限校验中间件"""
+        if request.method == 'GET' and request.GET.get('share_id'):
+            params = redis_cache.get_info(request.GET.get('share_id'))
+            if params:
+                req_params = request.GET.copy()
+                req_params.update(json.loads(params))
+                req_params.pop('share_id')
+                request.GET = req_params
+                return None
         current_path = request.path_info  # 当前访问路径
         token = request.GET.get('token')
         response_401 = JsonResponse(

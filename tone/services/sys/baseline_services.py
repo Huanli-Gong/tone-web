@@ -809,7 +809,7 @@ class PerfBaselineService(CommonService):
     def get_conf_info(queryset):
         """展开conf"""
         conf_list = []
-        case_id_list = queryset.values_list("test_case_id", "description")
+        case_id_list = queryset.values_list("test_case_id", "description").distinct()
         # 根据case_id返回 case_name
         for case_id in set(case_id_list):
             # 被删除case的基线不再展示
@@ -990,41 +990,29 @@ class PerfBaselineService(CommonService):
 
     @back_fill_version
     def add_perf(self, data, user_id):
-        """
-        批量加入基线
-        请求数据：
-        {
-            "baseline_id": 1,
-            "job_id": "13",
-            "suite_list": [5, 6],
-            "suite_data": [
-                           {
-                            suite_id: 1,
-                            case_list: [1, 2, 3]
-                           },
-                           {
-                            suite_id: 2,
-                            case_list: [4, 5]
-                           },
-                           {
-                            suite_id: 4,
-                            case_list: [7]
-                           },
-                       ]
-        }
-        """
         job_id = data.get('job_id')
-        desc = data.get('desc', None)
-        baseline_id = self.get_baseline_id(data)
-        if not all([baseline_id, job_id]):
-            return False, "Required request parameters: 1.baseline_id, 2.job_id, 3.suite_list, 4.suite_data"
-        suite_data_list = data.get('suite_data', [])
-        suite_id_list = data.get('suite_list')
-        perf_baseline_detail_list = list()
-        baseline_server_list = list()
+        suite_data_list = data.get('ids')
+        baseline_id = data.get('baseline_id')
+        if not all([baseline_id, job_id, suite_data_list]):
+            return False, "Required request parameters: 1.baseline_id, 2.job_id, 3.ids"
         test_job = TestJob.objects.filter(id=job_id).first()
         if not test_job:
             return False, "关联job不存在!"
+        if suite_data_list:
+            # 加入基线和测试基线相同时，匹配基线
+            add_perf_baseline_thread = ToneThread(self._add_perf_baseline_backend, (data, test_job, user_id))
+            add_perf_baseline_thread.start()
+            return True, None
+        else:
+            return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
+
+    def _add_perf_baseline_backend(self, data, test_job, user_id):
+        job_id = data.get('job_id')
+        desc = data.get('desc')
+        suite_data_list = data.get('ids')
+        baseline_id = data.get('baseline_id')
+        perf_baseline_detail_list = list()
+        baseline_server_list = list()
         pre_aligroup = 'SELECT a.test_job_id,a.test_suite_id,a.test_case_id,a.metric, a.test_value, ' \
                        'a.cv_value, a.max_value, a.min_value, a.value_list,a.match_baseline,' \
                        'b.note,b.run_mode,c.ip,c.sn,c.sm_name,"" as image,0 as bandwidth,c.kernel_version,' \
@@ -1043,48 +1031,47 @@ class PerfBaselineService(CommonService):
         end_sql = 'AND a.is_deleted is FALSE AND b.is_deleted is FALSE AND c.is_deleted is FALSE'
         pre_sql = pre_aligroup if test_job.server_provider == 'aligroup' else pre_aliyun
         q = Q(test_job_id=job_id)
-        if suite_data_list:
-            case_list = list()
-            for suite_data in suite_data_list:
-                if suite_data.get('suite_id') in suite_id_list:
-                    suite_id_list.remove(suite_data.get('suite_id'))
-                if suite_data.get('case_list'):
-                    case_list.extend(suite_data.get('case_list'))
-            suite_id_list_str = ','.join(str(e) for e in suite_id_list)
-            case_id_list_str = ','.join(str(e) for e in case_list)
-            if case_list and suite_id_list:
-                q &= (Q(test_suite_id__in=suite_id_list) | Q(test_case_id__in=case_list))
-                raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ') OR ' \
-                                    'a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
-            elif case_list:
-                q &= Q(test_suite_id__in=suite_id_list)
-                raw_sql = pre_sql + '(a.test_case_id IN (' + case_id_list_str + ') ) ' + end_sql
-            elif suite_id_list:
-                q &= Q(test_suite_id__in=suite_id_list)
-                raw_sql = pre_sql + '(a.test_suite_id IN (' + suite_id_list_str + ')) ' + end_sql
-            else:
-                return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
-        elif suite_id_list:
-            suite_id_list_str = ','.join(str(e) for e in suite_id_list)
-            raw_sql = pre_sql + 'a.test_suite_id IN (' + suite_id_list_str + ') ' + end_sql
-            q &= Q(test_suite_id__in=suite_id_list)
-        else:
-            return False, ErrorCode.BATCH_ADD_BASELINE_ERROR.to_api
-        # 加入基线和测试基线相同时，匹配基线
-        add_perf_baseline_thread = ToneThread(self._add_perf_baseline_backend, (baseline_id, baseline_server_list,
-                                                                                job_id, perf_baseline_detail_list, q,
-                                                                                raw_sql, test_job, user_id, desc))
-        add_perf_baseline_thread.start()
-        return True, None
-
-    def _add_perf_baseline_backend(self, baseline_id, baseline_server_list, job_id, perf_baseline_detail_list, q,
-                                   raw_sql, test_job, user_id, desc):
+        suite_list = list()
+        case_list = list()
+        metric_list = list()
+        for suite_id, case_id_list in suite_data_list.items():
+            if suite_id not in suite_list and not case_id_list:
+                suite_list.append(suite_id)
+            if case_id_list:
+                for case_id, metric_id_list in case_id_list.items():
+                    if metric_id_list:
+                        metric_list.extend(metric_id_list)
+                    else:
+                        case_list.append(case_id)
+        suite_id_list_str = tuple(suite_list)
+        case_id_list_str = tuple(case_list)
+        metric_id_list_str = tuple(metric_list)
+        q_condition = Q()
+        params = [job_id]
+        raw_condition_sql = ''
+        if suite_list:
+            q_condition |= Q(test_suite_id__in=suite_list)
+            raw_condition_sql += ' a.test_suite_id IN %s or'
+            params.append(suite_id_list_str)
+        if case_list:
+            q_condition |= Q(test_suite_id__in=case_list)
+            raw_condition_sql += ' a.test_case_id IN %s or'
+            params.append(case_id_list_str)
+        if metric_list:
+            q_condition |= Q(id__in=metric_list)
+            raw_condition_sql += ' a.id IN %s '
+            params.append(metric_id_list_str)
+        if raw_condition_sql.endswith('or'):
+            raw_condition_sql = raw_condition_sql[:-2]
+        raw_sql = pre_sql + '(' + raw_condition_sql + ')' + end_sql
+        q &= Q(q_condition)
         if test_job.baseline_id == baseline_id:
+            q &= Q(match_baseline=False)
             PerfResult.objects.filter(q).update(match_baseline=True)
-        all_perf_results = query_all_dict(raw_sql.replace('\'', ''), params=[job_id])
+        all_perf_results = query_all_dict(raw_sql.replace('\'', ''), params=params)
         for perf_result in all_perf_results:
             perf_baseline_detail_obj = self._add_perf_baseline(perf_result, job_id, baseline_id,
-                                                               test_job.server_provider, user_id, desc)
+                                                               test_job.server_provider, user_id)
             if perf_baseline_detail_obj:
                 perf_baseline_detail_list.append(perf_baseline_detail_obj)
             server_provider, machine = get_job_baseline_server(job_id, perf_result['test_case_id'])
@@ -1093,8 +1080,10 @@ class PerfBaselineService(CommonService):
         if len(baseline_server_list) > 0:
             BaselineServerSnapshot.objects.bulk_create(baseline_server_list)
         PerfBaselineDetail.objects.bulk_create(perf_baseline_detail_list)
+        if desc:
+            PerfBaselineDetail.objects.filter(baseline_id=baseline_id).update(description=desc)
 
-    def _add_perf_baseline(self, perf_result, job_id, baseline_id, server_provider, user_id, desc):
+    def _add_perf_baseline(self, perf_result, job_id, baseline_id, server_provider, user_id):
         suite_id = perf_result['test_suite_id']
         case_id = perf_result['test_case_id']
         perf_detail = PerfBaselineDetail.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
@@ -1122,8 +1111,7 @@ class PerfBaselineService(CommonService):
                 value_list=perf_result['value_list'],
                 note=perf_result['note'],
                 creator=user_id,
-                update_user=user_id,
-                description=desc
+                update_user=user_id
             )
             return perf_baseline_detail_obj
         else:
@@ -1147,8 +1135,7 @@ class PerfBaselineService(CommonService):
                 min_value=perf_result['min_value'],
                 value_list=perf_result['value_list'],
                 note=perf_result['note'],
-                update_user=user_id,
-                description=desc
+                update_user=user_id
             )
             return None
 
@@ -1233,18 +1220,6 @@ class SuiteSearchServer(CommonService):
 
 
 class ContrastBaselineService(CommonService):
-    @staticmethod
-    def get_res_list(job_id, suite_id_list, suite_data_list):
-        """获取性能结果列表"""
-        perf_res_list = PerfResult.objects.filter(test_job_id=job_id, test_suite_id__in=suite_id_list)
-        for suite_data in suite_data_list:
-            tmp_suite_id = suite_data.get('suite_id')
-            tmp_case_id_list = suite_data.get('case_list', [])
-            for tmp_case_id in tmp_case_id_list:
-                perf_res_list = perf_res_list | PerfResult.objects.filter(test_job_id=job_id,
-                                                                          test_suite_id=tmp_suite_id,
-                                                                          test_case_id=tmp_case_id)
-        return perf_res_list
 
     @staticmethod
     def modify_perf_res(perf_res, baseline_id, perf_detail):
@@ -1299,10 +1274,28 @@ class ContrastBaselineService(CommonService):
     def contrast_perf(self, data):
         baseline_id = data.get('baseline_id')
         job_id = data.get('job_id')
-        suite_id_list = data.get('suite_list', [])
-        suite_data_list = data.get('suite_data', [])
-
-        perf_res_list = self.get_res_list(job_id, suite_id_list, suite_data_list)
+        suite_data_list = data.get('ids')
+        suite_list = list()
+        case_list = list()
+        metric_list = list()
+        for suite_id, case_id_list in suite_data_list.items():
+            if suite_id not in suite_list and not case_id_list:
+                suite_list.append(suite_id)
+            if case_id_list:
+                for case_id, metric_id_list in case_id_list.items():
+                    if metric_id_list:
+                        metric_list.extend(metric_id_list)
+                    else:
+                        case_list.append(case_id)
+        q_condition = Q()
+        if suite_list:
+            q_condition |= Q(test_suite_id__in=suite_list)
+        if case_list:
+            q_condition |= Q(test_case_id__in=case_list)
+        if metric_list:
+            q_condition |= Q(id__in=metric_list)
+        q = Q(test_job_id=job_id) & Q(q_condition)
+        perf_res_list = PerfResult.objects.filter(q)
         thread_tasks = []
         for perf_res in perf_res_list:
             thread_tasks.append(

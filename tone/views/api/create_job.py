@@ -20,6 +20,7 @@ from tone.core.common.verify_token import token_required
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
 from tone.core.utils.permission_manage import check_ws_operator_permission
+from tone.serializers.job.test_serializers import JobSerializerForAPI
 
 
 @api_catch_error
@@ -47,8 +48,11 @@ def job_create(request):
             TestJobCase.objects.create(**case)
         for tag in tag_list:
             JobTagRelation.objects.create(tag_id=tag, job_id=test_job.id)
-        resp_data = {'job_id': test_job.id, 'job_name': test_job.name, 'test_type': test_job.test_type}
-    resp.data = resp_data
+        job_data = JobSerializerForAPI(test_job, many=False).data
+        job_data['job_id'] = test_job.id
+        job_data['job_name'] = test_job.name
+        job_data['test_type'] = test_job.test_type
+    resp.data = job_data
     return resp.json_resp()
 
 
