@@ -534,7 +534,7 @@ class OutSiteMsgHandle(object):
     @staticmethod
     def get_job_content(job_obj):
         """获取job信息"""
-        content = '''JobID: {task_id}; Author: {author}\nDuration: {duration} (hour)'''
+        content = '''ToneJobID: {task_id}; Author: {author}\nDuration: {duration} (hour)'''
         content = content.format(task_id=job_obj.id, author=get_user_name(job_obj.creator),
                                  duration=round(
                                      (job_obj.gmt_modified - job_obj.gmt_created).total_seconds() / 60 / 60, 2))

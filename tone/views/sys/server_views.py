@@ -860,7 +860,10 @@ class ToneAgentVersion(CommonAPIView):
     service_class = ToneAgentService
 
     def get(self, request):
-        success, result = self.service.toneagent_version_list(request.GET.get('version'))
+        success, result = self.service.toneagent_version_list(
+            request.GET.get('os'),
+            request.GET.get('arch')
+        )
         if success:
             response_data = self.get_response_code()
         else:
