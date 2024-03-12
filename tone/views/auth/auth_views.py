@@ -79,6 +79,10 @@ class UserView(CommonAPIView):
         queryset = self.service.filter(self.get_queryset(), request.GET, request.user.id)
         source_data = self.get_response_data(queryset)
         response_data = self.service.query_user_from_db(source_data, request.GET, request.user)
+        if request.GET.get('scope') == 'aligroup':
+            for user_info in response_data.get('data'):
+                user_info.pop('ws_list')
+                user_info.pop('role_list')
         return Response(response_data)
 
     def post(self, request):
