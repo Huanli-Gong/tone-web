@@ -10,7 +10,7 @@ from tone.schemas.sys.baseline_schemas import BaselineSchema, FuncBaselineDetail
     BaselineUploadSchema, BaselineDownloadSchema, BaselineByNameSchema
 from tone.serializers.sys.baseline_serializers import BaselineSerializer, \
     FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
-from tone.services.sys.baseline_services import BaselineService, \
+from tone.services.sys.baseline_services import BaselineService, BaselineCopyService, \
     FuncBaselineService, PerfBaselineService, SuiteSearchServer, ContrastBaselineService, BaselineUploadService
 
 
@@ -305,3 +305,17 @@ class BaselineByNameView(CommonAPIView):
         response_data = self.get_response_data(baseline_list, page=False)
         return Response(response_data)
 
+
+class BaselineCopyView(CommonAPIView):
+    service_class = BaselineCopyService
+    serializer_class = BaselineSerializer
+
+    @method_decorator(views_catch_error)
+    def post(self, request):
+        success, baseline = self.service.create(request.data, operator=request.user)
+        if success:
+            response_data = self.get_response_data(baseline, many=False)
+            return Response(response_data)
+        else:
+            response_data = self.get_response_code(code=201, msg=baseline)
+            return Response(response_data)

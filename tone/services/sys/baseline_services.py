@@ -1317,3 +1317,102 @@ class ContrastBaselineService(CommonService):
                                                         ).first()
         if perf_detail:
             return self.modify_perf_res(perf_res, baseline_id, perf_detail)
+
+
+class BaselineCopyService(CommonService):
+    @staticmethod
+    def create(data, operator):
+        creator = operator.id
+        baseline_name = data.get('baseline_name')
+        baseline_id = data.get('baseline_id')
+        baseline = Baseline.objects.filter(id=baseline_id).first()
+        if not baseline:
+            return False, ErrorCode.BASELINE_NOT_EXISTS.to_api
+        baseline_name_exists = Baseline.objects.filter(name=baseline_name, ws_id=baseline.ws_id).first()
+        if baseline_name_exists:
+            return False, ErrorCode.BASELINE_EXISTS.to_api
+        baseline_copy = Baseline.objects.create(
+            name=baseline_name,
+            version=baseline.version,
+            description=baseline.description,
+            test_type=baseline.test_type,
+            creator=creator,
+            ws_id=baseline.ws_id
+        )
+        if baseline.test_type == 'functional':
+            baseline_details = FuncBaselineDetail.objects.filter(baseline_id=baseline_id)
+            baseline_detail_list = list()
+            for baseline_detail in baseline_details:
+                baseline_detail_list.append(FuncBaselineDetail(
+                    baseline_id=baseline_copy.id,
+                    test_job_id=baseline_detail.test_job_id,
+                    test_suite_id=baseline_detail.test_suite_id,
+                    test_case_id=baseline_detail.test_case_id,
+                    sub_case_name=baseline_detail.sub_case_name,
+                    impact_result=baseline_detail.impact_result,
+                    bug=baseline_detail.bug,
+                    description=baseline_detail.description,
+                    source_job_id=baseline_detail.source_job_id,
+                    note=baseline_detail.note,
+                    creator=creator,
+                    update_user=creator
+                ))
+            if baseline_detail_list:
+                FuncBaselineDetail.objects.bulk_create(baseline_detail_list)
+        else:
+            baseline_details = PerfBaselineDetail.objects.filter(baseline_id=baseline_id)
+            baseline_detail_list = list()
+            for baseline_detail in baseline_details:
+                baseline_detail_list.append(PerfBaselineDetail(
+                    baseline_id=baseline_copy.id,
+                    test_job_id=baseline_detail.test_job_id,
+                    test_suite_id=baseline_detail.test_suite_id,
+                    test_case_id=baseline_detail.test_case_id,
+                    server_ip=baseline_detail.server_ip,
+                    server_sn=baseline_detail.server_sn,
+                    server_sm_name=baseline_detail.server_sm_name,
+                    server_instance_type=baseline_detail.server_instance_type,
+                    server_image=baseline_detail.server_image,
+                    server_bandwidth=baseline_detail.server_bandwidth,
+                    run_mode=baseline_detail.run_mode,
+                    source_job_id=baseline_detail.source_job_id,
+                    metric=baseline_detail.metric,
+                    test_value=baseline_detail.test_value,
+                    unit=baseline_detail.unit,
+                    cv_value=baseline_detail.cv_value,
+                    max_value=baseline_detail.max_value,
+                    min_value=baseline_detail.min_value,
+                    value_list=baseline_detail.value_list,
+                    description=baseline_detail.description,
+                    note=baseline_detail.note,
+                    creator=creator,
+                    update_user=creator
+                ))
+            if baseline_detail_list:
+                PerfBaselineDetail.objects.bulk_create(baseline_detail_list)
+        baseline_servers = BaselineServerSnapshot.objects.filter(baseline_id=baseline_id)
+        baseline_server_list = list()
+        for baseline_server in baseline_servers:
+            baseline_server_list.append(BaselineServerSnapshot(
+                baseline_id=baseline_copy.id,
+                test_job_id=baseline_server.test_job_id,
+                test_suite_id=baseline_server.test_suite_id,
+                test_case_id=baseline_server.test_case_id,
+                ip=baseline_server.ip,
+                sn=baseline_server.sn,
+                image=baseline_server.image,
+                bandwidth=baseline_server.bandwidth,
+                sm_name=baseline_server.sm_name,
+                kernel_version=baseline_server.kernel_version,
+                distro=baseline_server.distro,
+                gcc=baseline_server.gcc,
+                rpm_list=baseline_server.rpm_list,
+                glibc=baseline_server.glibc,
+                memory_info=baseline_server.memory_info,
+                disk=baseline_server.disk,
+                cpu_info=baseline_server.cpu_info,
+                ether=baseline_server.ether,
+            ))
+        if baseline_server_list:
+            BaselineServerSnapshot.objects.bulk_create(baseline_server_list)
+        return True, baseline_copy

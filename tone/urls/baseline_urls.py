@@ -26,4 +26,5 @@ urlpatterns = [
     path('download/query/', baseline_views.BaselineDownloadRecordView.as_view(), name='download_query'),
     path('upload/', baseline_views.UploadDataView.as_view(), name='offline_upload'),
     path('list_by_name/', baseline_views.BaselineByNameView.as_view(), name='baseline_filter'),
+    path('copy/', baseline_views.BaselineCopyView.as_view(), name='baseline_copy'),
 ]
