@@ -365,19 +365,14 @@ def get_rerun_case_server(job_case, template=None, is_config=False, data=None):
         _get_server_for_aligroup_standalone_by_id(job_case.server_object_id, obj)
     elif job_case.server_object_id and run_mode == 'standalone' and server_provider == 'aliyun':
         if not obj.is_instance and data and data.get('inheriting_machine'):
-            name = obj.ip
-            if job_case.server_snapshot_id:
-                _get_server_inheriting_machine(is_config, job_case.id, obj)
-            else:
-                obj.server_no_allocated = [{'id': job_case.server_object_id, 'name': name}]
-                obj.ip = None
+            _get_server_inheriting_machine(is_config, job_case, obj)
         else:
             _get_server_for_aliyun_standalone_by_id(job_case.server_object_id, obj)
     elif job_case.server_object_id and run_mode == 'cluster':
         _get_server_for_cluster(job_case, obj, False)
     else:
         if data and data.get('inheriting_machine'):
-            _get_server_inheriting_machine(is_config, job_case.id, obj)
+            _get_server_inheriting_machine(is_config, job_case, obj)
         else:
             _get_server_no_inheriting_machine(is_config, job_case, obj, server_provider)
     return obj
@@ -401,8 +396,7 @@ def _get_server_no_inheriting_machine(is_config, job_case, obj, server_provider)
         obj.server = '随机'
 
 
-def _get_server_inheriting_machine(is_config, job_case_id, obj):
-    job_case = TestJobCase.objects.get(id=job_case_id)
+def _get_server_inheriting_machine(is_config, job_case, obj):
     run_mode = job_case.run_mode
     server_provider = job_case.server_provider
     if not job_case.server_snapshot_id:
@@ -411,9 +405,9 @@ def _get_server_inheriting_machine(is_config, job_case_id, obj):
             if tag_list:
                 obj.server_no_allocated = [{'id': server_obj[0], 'name': server_obj[1]} for server_obj in tag_list]
         elif server_provider == 'aligroup':
-            pass
+            _get_server_for_aligroup_standalone_by_id(job_case.server_object_id, obj)
         elif server_provider == 'aliyun':
-            pass
+            _get_server_for_aliyun_standalone_by_id(job_case.server_object_id, obj)
     elif job_case.server_snapshot_id and server_provider == 'aligroup' and run_mode == 'standalone' and \
             TestServerSnapshot.objects.get(id=job_case.server_snapshot_id).in_pool:
         test_server = TestServerSnapshot.objects.filter(id=job_case.server_snapshot_id).first()
@@ -644,12 +638,13 @@ def get_run_server(job_case, runner_version=1):
     run_mode = job_case.run_mode
     server_provider = job_case.server_provider
     server = None
-    if server_provider == 'aligroup' and job_case.server_ip:
-        server = dict({'ip': job_case.server_ip})
-    elif run_mode == 'standalone' and server_provider == 'aligroup':
+    exists = 0
+    if run_mode == 'standalone' and server_provider == 'aligroup':
         server = TestServerSnapshot.objects.filter(id=job_case.server_snapshot_id).first()
     elif run_mode == 'standalone' and server_provider == 'aliyun':
         server = CloudServerSnapshot.objects.filter(id=job_case.server_snapshot_id).first()
+        if server:
+            exists = 1 if CloudServer.objects.filter(id=server.source_server_id).exists() else 0
     elif run_mode == 'cluster' and server_provider == 'aligroup':
         server_snapshot_id = get_cluster_snapshot(job_case.id, runner_version)
         if server_snapshot_id:
@@ -658,7 +653,9 @@ def get_run_server(job_case, runner_version=1):
         server_snapshot_id = get_cluster_snapshot(job_case.id, runner_version)
         if server_snapshot_id:
             server = CloudServerSnapshot.objects.filter(id=server_snapshot_id).first()
-    return server
+            if server:
+                exists = 1 if CloudServer.objects.filter(id=server.source_server_id).exists() else 0
+    return server, exists
 
 
 def get_cluster_snapshot(job_case_id, runner_version):
@@ -776,7 +773,7 @@ def __get_server_value(server, server_provider, return_field):
     elif return_field == 'exists':
         source_server = server.first().source_server_id
         if server_provider == 'aligroup':
-            return 1 if TestServer.objects.filter(id=source_server).exists() else 0
+            return 0
         elif server_provider == 'aliyun':
             return 1 if CloudServer.objects.filter(id=source_server).exists() else 0
     else:
