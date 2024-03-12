@@ -55,7 +55,10 @@ class EcsDriver(BaseDriver):
                 {
                     'name': item['LocalName'],
                     'id': item['ZoneId'],
-                    'available_disk_categories': item['AvailableDiskCategories']['DiskCategories']
+                    'available_disk_categories': item['AvailableResources']['ResourcesInfo'][0]
+                    ['DataDiskCategories']['supportedDataDiskCategory'],
+                    'available_system_disk_categories': item['AvailableResources']['ResourcesInfo'][0]
+                    ['SystemDiskCategories']['supportedSystemDiskCategory']
                 }
                 for item in zone_info_list
             ]
