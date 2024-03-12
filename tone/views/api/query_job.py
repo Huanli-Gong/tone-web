@@ -17,12 +17,13 @@ from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
 from tone.core.common.verify_token import token_required
-from tone.core.common.job_result_helper import calc_job, get_job_case_server, get_job_case_run_server, calc_job_case, \
+from tone.core.common.job_result_helper import calc_job, get_job_case_server, get_job_case_run_server, \
     splice_job_link
 from tone.services.sys.testcase_services import TestCaseInfoService
 from tone.services.job.test_services import package_server_list
 from tone.core.utils.permission_manage import check_job_operator_permission, check_ws_operator_permission, \
     check_admin_operator_permission
+from tone.core.common.toneagent import server_check
 
 
 def _replace_statics_key(case_statics):
@@ -365,4 +366,33 @@ def get_job_info_list(request):
                 job_filter_tag_list.append(res_job_info)
             res_job_info['tags'] = tag_info
     resp.data = job_filter_tag_list if tag_name else res_list
+    return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def query_toneagent_info(request):
+    resp = CommResp()
+    ip = request.GET.get('ip', None)
+    assert ip, ValueError(ErrorCode.SERVER_IP_NEED)
+    ws_id = request.GET.get('ws_id', None)
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    code, _, agent_info = server_check(ip)
+    result_dict = dict()
+    if code == 200 and 'RESULT' in agent_info:
+        result_dict = dict(
+            ip=agent_info['RESULT']['IP'],
+            tsn=agent_info['RESULT']['TSN'],
+            status=agent_info['RESULT']['STATUS'],
+            heartbeat=agent_info['RESULT']['HEARTBEAT'],
+            mode=agent_info['RESULT']['MODE'],
+            version=agent_info['RESULT']['VERSION'],
+            kernel=agent_info['RESULT']['KERNEL'],
+            os=agent_info['RESULT']['OS'],
+            arch=agent_info['RESULT']['ARCH'],
+            description=agent_info['RESULT']['DESCRIPTION']
+        )
+    resp.data = result_dict
     return resp.json_resp()

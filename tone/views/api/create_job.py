@@ -38,6 +38,8 @@ def job_create(request):
     conversion_data(data)
     handler = JobDataHandle(data, operator, is_api=True)
     data_dic, case_list, suite_list, tag_list = handler.return_result()
+    if not case_list or not suite_list:
+        raise ValueError(ErrorCode.SUITE_NOT_EXISTS)
     with transaction.atomic():
         test_job = TestJob.objects.create(**data_dic)
         for suite in suite_list:
