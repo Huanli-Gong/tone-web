@@ -221,6 +221,10 @@ class ValidPermission(MiddlewareMixin):
                 req_params.pop('share_id')
                 request.GET = req_params
                 return None
+        if request.method == 'POST' and request.content_type == 'application/json':
+            post_params = json.loads(request.body)
+            if post_params and isinstance(post_params, dict) and post_params.get('share_id'):
+                return None
         current_path = request.path_info  # 当前访问路径
         token = request.GET.get('token')
         response_401 = JsonResponse(
