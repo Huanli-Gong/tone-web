@@ -688,6 +688,7 @@ class JobTestPrepareService(CommonService):
                 last_step = step_cluster.last()
                 step_end = cluster_steps.filter(state__in=['success', 'fail', 'stop']).order_by('-gmt_modified').first()
                 final_stage = JobTestPrepareService.get_final_stage(final_state, last_step)
+                server_list, server_list_exists = JobPrepareInfo.get_server_dict(cluster_steps, provider)
                 date = {'server_type': 'cluster',
                         'server': cluster_name,
                         'stage': final_stage,
@@ -697,7 +698,8 @@ class JobTestPrepareService(CommonService):
                         'gmt_created': datetime.strftime(step_cluster.first().gmt_created, "%Y-%m-%d %H:%M:%S"),
                         'gmt_modified': datetime.strftime(step_end.gmt_modified, "%Y-%m-%d %H:%M:%S"
                                                           ) if step_end and step_end.gmt_modified else "",
-                        'server_list': JobPrepareInfo.get_server_dict(cluster_steps, provider)
+                        'server_list': server_list,
+                        'server_list_exists': server_list_exists
                         }
                 date_list.append(date)
             else:
@@ -1515,7 +1517,7 @@ class JobPrepareInfo:
             server_snapshot = TestServerSnapshot.objects.get(id=server_id)
             server = server_snapshot.ip
             if server_snapshot.source_server_id:
-                exists = 1 if TestServer.objects.filter(id=server_snapshot.source_server_id).exists() else 0
+                exists = 0
         else:
             server_snapshot = CloudServerSnapshot.objects.get(id=server_id)
             server = server_snapshot.private_ip
@@ -1556,11 +1558,13 @@ class JobPrepareInfo:
     @staticmethod
     def get_server_dict(cluster_steps, provider):
         server_dict = {}
+        server_list_exists = dict()
         server_id_list = cluster_steps.values_list('server', flat=True).distinct()
         for server_id in server_id_list:
             server_steps = cluster_steps.filter(server=server_id)
-            server, _ = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+            server, exists = JobPrepareInfo.get_server_ip_for_snapshot_id(provider, server_id)
+            server_list_exists[server] = exists
             server_dict[server] = []
             for step in server_steps:
                 server_dict[server].append(JobPrepareInfo.get_server_step_info(provider, step))
-        return server_dict
+        return server_dict, server_list_exists
