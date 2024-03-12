@@ -93,27 +93,36 @@ def job_query(request):
     else:
         suite_result = FuncResult.objects.filter(test_job_id=job_id)
     job_cases = TestJobCase.objects.filter(job_id=job_id)
+    test_suite_dict = dict()
+    test_case_dict = dict()
+    test_suite_list = TestSuite.objects.all().values_list('id', 'name')
+    for test_suite in test_suite_list:
+        test_suite_dict[test_suite[0]] = test_suite[1]
+    test_case_list = TestCase.objects.all().values_list('id', 'name')
+    for test_case in test_case_list:
+        test_case_dict[test_case[0]] = test_case[1]
+    job_count_data = get_job_count(job_id, job.baseline_id, job.test_type)
     for job_case in job_cases:
-        test_suite = TestSuite.objects.filter(id=job_case.test_suite_id, query_scope='all')
-        test_case = TestCase.objects.filter(id=job_case.test_case_id, query_scope='all')
+        test_suite = test_suite_dict.get(job_case.test_suite_id)
+        test_case = test_case_dict.get(job_case.test_case_id)
         if not test_suite.exists():
             raise f'test_suite_id: {job_case.test_suite_id}不存在'
         if not test_case.exists():
             raise f'test_case_id: {job_case.test_case_id}不存在'
         ip, is_instance, _, _ = get_job_case_server(job_case.id)
         suite_result = suite_result.filter(test_suite_id=job_case.test_suite_id)
-        case_state, case_statics = calc_job_case(job_case, suite_result, job.test_type, is_api=True)
-        case_statics = _replace_statics_key(case_statics)
+        case_statics = job_count_data.get(str(job_case.test_suite_id) + '_' + str(job_case.test_case_id))
+        case_state = case_statics.pop('result') if case_statics and 'result' in case_statics else '-'
         start_time, end_time = '', ''
         if job_case.start_time:
             start_time = datetime.strftime(job_case.start_time, "%Y-%m-%d %H:%M:%S")
         if job_case.end_time:
             end_time = datetime.strftime(job_case.end_time, "%Y-%m-%d %H:%M:%S")
         result_item = {
-            'test_suite_id': test_suite.first().id,
-            'test_suite': test_suite.first().name,
-            'test_case_id': test_case.first().id,
-            'test_case': test_case.first().name,
+            'test_suite_id': job_case.test_suite_id if test_suite else None,
+            'test_suite': test_suite if test_suite else None,
+            'test_case_id': job_case.test_case_id if test_case else None,
+            'test_case': test_case if test_case else None,
             'start_time': start_time,
             'end_time': end_time,
             'result_statistics': case_statics,
@@ -177,6 +186,93 @@ def job_query(request):
     resp.data = resp_data
     resp.result = True
     return resp.json_resp()
+
+
+def get_job_count(job_id, baseline_id, test_type):
+    if test_type == 'performance':
+        raw_sql = 'SELECT test_suite_id,test_case_id,COUNT(track_result)  as total,' \
+                  'COUNT(CASE WHEN track_result="increase" THEN 1 END) as increase, ' \
+                  'COUNT(CASE WHEN track_result="decline" THEN 1 END) as decline,' \
+                  'COUNT(CASE WHEN track_result="normal" THEN 1 END) as normal,' \
+                  'COUNT(CASE WHEN track_result="invalid" THEN 1 END) as invalid FROM perf_result ' \
+                  'WHERE test_job_id = %s GROUP BY test_suite_id,test_case_id'
+        job_case_list = query_all_dict(raw_sql, [job_id])
+        job_case_dict = dict()
+        for job_case_count in job_case_list:
+            key = str(job_case_count['test_suite_id']) + '_' + str(job_case_count['test_case_id'])
+            na = job_case_count['total'] - job_case_count['increase'] - job_case_count['decline'] - \
+                 job_case_count['normal'] - job_case_count['invalid']
+            job_case_dict[key] = dict(
+                {
+                    'count': job_case_count['total'],
+                    'increase': job_case_count['increase'],
+                    'decline': job_case_count['decline'],
+                    'normal': job_case_count['normal'],
+                    'invalid': job_case_count['invalid'],
+                    'na': na,
+                }
+            )
+    else:
+        raw_sql = 'SELECT test_suite_id,test_case_id,COUNT(sub_case_result) as total, ' \
+                  'COUNT(CASE WHEN sub_case_result=1 THEN 1 END) as case_success, ' \
+                  'COUNT(CASE WHEN sub_case_result=2 THEN 1 END) as case_fail, ' \
+                  'COUNT(CASE WHEN sub_case_result=5 THEN 1 END) as case_skip,' \
+                  'COUNT(CASE WHEN sub_case_result=6 THEN 1 END) as case_warn,' \
+                  'COUNT(CASE WHEN sub_case_result=2 and match_baseline=False THEN 1 END) as match_baseline,' \
+                  'COUNT(CASE WHEN sub_case_result=2 and match_baseline=True THEN 1 END) as no_match_baseline ' \
+                  'FROM func_result WHERE test_job_id = %s GROUP BY test_suite_id,test_case_id'
+        job_case_list = query_all_dict(raw_sql, [job_id])
+        job_case_dict = dict()
+        for job_case_count in job_case_list:
+            key = str(job_case_count['test_suite_id']) + '_' + str(job_case_count['test_case_id'])
+            job_case_dict[key] = dict(
+                {
+                    'total': job_case_count['total'],
+                    'success': job_case_count['case_success'],
+                    'fail': job_case_count['case_fail'],
+                    'skip': job_case_count['case_skip'],
+                    'case_warn': job_case_count['case_warn'],
+                }
+            )
+            if job_case_count['match_baseline'] > 0:
+                job_case_dict[key]['result'] = 'fail'
+            else:
+                impact_result = 0
+                if job_case_count['no_match_baseline'] > 0:
+                    impact_sql = 'SELECT count(*) as t from `func_result` a LEFT JOIN `func_baseline_detail` b ' \
+                                 'on a.`test_suite_id` = b.test_suite_id and a.`test_case_id` = b.test_case_id ' \
+                                 'and a.`sub_case_name` = b.sub_case_name where a.test_job_id = %s and ' \
+                                 '`test_suite_id` = %s and `test_case_id` = %s and b.`source_job_id` = %s and ' \
+                                 'b.impact_result=1 and a.is_deleted=0 and b.is_deleted=0'
+                    params = list()
+                    params.append(job_id)
+                    params.append(job_case_count['test_suite_id'])
+                    params.append(job_case_count['test_case_id'])
+                    params.append(job_id)
+                    impact_list = query_all_dict(impact_sql, params)
+                    if impact_list and impact_list[0]['t'] > 0:
+                        impact_result = 1
+                    elif baseline_id:
+                        impact_sql_1 = 'SELECT count(*) as t from `func_result` a LEFT JOIN `func_baseline_detail` b ' \
+                                 'on a.`test_suite_id` = b.test_suite_id and a.`test_case_id` = b.test_case_id ' \
+                                 'and a.`sub_case_name` = b.sub_case_name where a.test_job_id = %s and ' \
+                                 '`test_suite_id` = %s and `test_case_id` = %s and b.`baseline_id` = %s and ' \
+                                 'b.impact_result=1 and a.is_deleted=0 and b.is_deleted=0'
+                        params = list()
+                        params.append(job_id)
+                        params.append(job_case_count['test_suite_id'])
+                        params.append(job_case_count['test_case_id'])
+                        params.append(baseline_id)
+                        impact_list = query_all_dict(impact_sql_1, params)
+                        if impact_list and impact_list[0]['t'] > 0:
+                            impact_result = 1
+                if impact_result == 1:
+                    job_case_dict[key]['result'] = 'fail'
+                elif job_case_count['total'] > 0:
+                    job_case_dict[key]['result'] = 'success'
+                else:
+                    job_case_dict[key]['result'] = 'fail'
+    return job_case_dict
 
 
 def get_log_file(job_case):
