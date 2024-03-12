@@ -27,17 +27,17 @@ BASE_CONFIG_DATA = [
     {
         'config_type': 'sys',
         'config_key': 'WHITE_LIST',
-        'config_value': """
-            /api/job/create/,
-            /api/job/query/,
-            /api/sys/upload/,
-            /api/auth/logout/,
-            /api/auth/re_login/,
-            /api/auth/ws_admin/,
-            /api/job/test/summary/,
-            /api/auth/personal_center/
+        'config_value': """/api/job/create/,
+/api/job/query/,
+/api/job/send_completed_msg/,
+/api/sys/upload/,
+/api/auth/logout/,
+/api/auth/re_login/,
+/api/auth/ws_admin/,
+/api/job/test/summary/,
+/api/auth/personal_center/
         """,
-        'description': '同步case时所需要的机器信息',
+        'description': 'api接口白名单',
     },
 
     # script
