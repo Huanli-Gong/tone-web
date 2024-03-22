@@ -142,6 +142,15 @@ class OfflineDataUploadService(object):
                 tmp_tar.close()
                 os.remove(file_name)
                 return code, msg, 0
+            test_suite_name = test_suite.get('test_suite')
+            if test_suite_name:
+                test_suite_obj = TestSuite.objects.filter(name=test_suite_name, test_framework='tone').first()
+                if test_suite_obj and test_suite_obj.test_type != data.get('test_type'):
+                    code = 201
+                    msg = 'test_suite与所选测试类型不匹配。详情：{}'.format(test_suite_name)
+                    tmp_tar.close()
+                    os.remove(file_name)
+                    return code, msg, 0
             for test_case in test_suite['cases']:
                 if 'server' not in test_case:
                     code = 201
