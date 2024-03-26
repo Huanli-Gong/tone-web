@@ -105,10 +105,8 @@ def job_query(request):
     for job_case in job_cases:
         test_suite = test_suite_dict.get(job_case.test_suite_id)
         test_case = test_case_dict.get(job_case.test_case_id)
-        if not test_suite.exists():
-            raise f'test_suite_id: {job_case.test_suite_id}不存在'
-        if not test_case.exists():
-            raise f'test_case_id: {job_case.test_case_id}不存在'
+        assert test_suite, ValueError(ErrorCode.SUITE_NOT_EXISTS)
+        assert test_case, ValueError(ErrorCode.CASE_NOT_EXISTS)
         ip, is_instance, _, _ = get_job_case_server(job_case.id)
         suite_result = suite_result.filter(test_suite_id=job_case.test_suite_id)
         case_statics = job_count_data.get(str(job_case.test_suite_id) + '_' + str(job_case.test_case_id))
