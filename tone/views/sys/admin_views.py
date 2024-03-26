@@ -1,5 +1,5 @@
 import os
-
+import uuid
 from django.http import JsonResponse
 
 
@@ -51,7 +51,8 @@ def create_superuser(request):
             'emp_id': str((User.objects.count() + 1)).zfill(6),
             'first_name': username,
             'last_name': username,
-            'is_superuser': True
+            'is_superuser': True,
+            'token': str(uuid.uuid4()).replace('-', '')
         }
     )
     RoleMember.objects.create(
