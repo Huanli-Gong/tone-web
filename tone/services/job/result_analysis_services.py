@@ -39,7 +39,7 @@ class PerfAnalysisService(CommonService):
         project = data.get('project_id', None)
         test_suite = data.get('test_suite_id', None)
         test_case = data.get('test_case_id', None)
-        metrics = data.get('metric', None)
+        metrics = data.get('metric')
         start_time = data.get('start_time', None)
         end_time = data.get('end_time', None)
         provider_env = data.get('provider_env', 'aligroup')
@@ -68,10 +68,11 @@ class PerfAnalysisService(CommonService):
         if len(job_id_list) > 0:
             params.append(tuple(job_id_list))
             metrics_result = query_all_dict(sql, params=params)
+            job_case_dict = self._get_job_case_dict(test_suite, test_case)
             for metric in metrics:
                 metric_result = [result for result in metrics_result if result['metric'] == metric]
                 if metric_result:
-                    metric_data = self.get_metric_data(metric_result, test_suite, test_case)
+                    metric_data = self.get_metric_data(metric_result, job_case_dict)
                     result_data = self.get_result_data(metric_data, provider_env, start_time, end_time)
                     job_list = self.get_job_list(result_data, provider_env)
                     baseline_data = self.get_baseline_data(test_suite, test_case, metric, job_list)
@@ -89,6 +90,15 @@ class PerfAnalysisService(CommonService):
             'metric_map': metric_map
         }
         return res_data
+
+    def _get_job_case_dict(self, test_suite_id, test_case_id):
+        job_case_dict = dict()
+        test_job_case_list = TestJobCase.objects.filter(test_suite_id=test_suite_id, test_case_id=test_case_id,
+                                                        state__in=('success', 'fail'))
+        for job_case in test_job_case_list:
+            if job_case.job_id not in job_case_dict:
+                job_case_dict[job_case.job_id] = job_case
+        return job_case_dict
 
     @staticmethod
     def get_baseline_data(test_suite, test_case, metric, job_list):
@@ -138,7 +148,7 @@ class PerfAnalysisService(CommonService):
     def get_metric_data(rows, test_suite_id, test_case_id):
         metric_data = list()
         for row in rows:
-            metric_obj = _package_metric(row, test_suite_id, test_case_id)
+            metric_obj = _package_metric(row, job_case_dict)
             metric_data.append(metric_obj)
         return metric_data
 
@@ -193,9 +203,9 @@ class PerfAnalysisService(CommonService):
         for value in result_data.values():
             if provider_env == 'aligroup':
                 for _value in value.values():
-                    package_job_info(_value, job_id_list, job_list)
+                    package_job_info(_value, job_id_list, job_list, provider_env)
             else:
-                package_job_info(value, job_id_list, job_list)
+                package_job_info(value, job_id_list, job_list, provider_env)
         return list(sorted(job_list, key=lambda x: x.get('job_id'), reverse=True))
 
     def get_suite_case_list(self, data):
@@ -219,19 +229,27 @@ class PerfAnalysisService(CommonService):
         suite_list = list()
         tmp_suite_id = 0
         suite_dict = dict()
+        test_suite_dict = dict()
+        test_case_dict = dict()
+        test_suite_list = TestSuite.objects.all().values_list('id', 'name')
+        for test_suite in test_suite_list:
+            test_suite_dict[test_suite[0]] = test_suite[1]
+        test_case_list = TestCase.objects.all().values_list('id', 'name')
+        for test_case in test_case_list:
+            test_case_dict[test_case[0]] = test_case[1]
         for suite_info in suite_case_list:
             case_dict = dict()
-            test_case = TestCase.objects.filter(id=suite_info['test_case_id']).first()
-            test_suite = TestSuite.objects.filter(id=suite_info['test_suite_id']).first()
+            test_case = test_case_dict.get(suite_info['test_case_id'])
+            test_suite = test_suite_dict.get(suite_info['test_suite_id'])
             if not test_case or not test_suite:
                 continue
             case_dict['test_case_id'] = suite_info['test_case_id']
-            case_dict['test_case_name'] = test_case.name
+            case_dict['test_case_name'] = test_case
             if suite_info['test_suite_id'] != tmp_suite_id:
                 tmp_suite_id = suite_info['test_suite_id']
                 suite_dict = dict()
                 suite_dict['test_suite_id'] = suite_info['test_suite_id']
-                suite_dict['test_suite_name'] = test_suite.name
+                suite_dict['test_suite_name'] = test_suite
                 suite_dict['test_case_list'] = list()
                 suite_list.append(suite_dict)
             suite_dict['test_case_list'].append(case_dict)
@@ -282,7 +300,7 @@ class PerfAnalysisService(CommonService):
         return sql
 
 
-def package_job_info(job_value, job_id_list, job_list):
+def package_job_info(job_value, job_id_list, job_list, provider_env):
     if job_value and job_value.get('job_id') not in job_id_list:
         job_list.append({
                     'job_id': job_value.get('job_id'),
@@ -292,19 +310,21 @@ def package_job_info(job_value, job_id_list, job_list):
                     'commit_id': job_value.get('commit_id'),
                     'creator': job_value.get('creator'),
                     'server': job_value.get('server'),
+                    'server_id': job_value.get('server_id'),
+                    'exists': job_value.get('exists'),
                     'value': job_value.get('value'),
                     'cv_value': job_value.get('cv_value'),
                     'note': job_value.get('note'),
                     'result_obj_id': job_value.get('result_obj_id'),
-                    'creator_id': job_value.get('creator_id')
+                    'creator_id': job_value.get('creator_id'),
+                    'server_provider': provider_env
                 })
         job_id_list.append(job_value.get('job_id'))
 
 
-def _package_metric(row, test_suite_id, test_case_id):
-    test_job_case = TestJobCase.objects.filter(job_id=row['id'], test_suite_id=test_suite_id, test_case_id=test_case_id,
-                                               state__in=('success', 'fail')).first()
-    server = get_run_server(test_job_case)
+def _package_metric(row, job_case_dict):
+    test_job_case = job_case_dict.get(row['id'])
+    server, exists = get_run_server(test_job_case)
     user = User.objects.filter(id=row['creator']).first()
     metric_info = dict(
         {
@@ -321,17 +341,16 @@ def _package_metric(row, test_suite_id, test_case_id):
             'compare_result': '{0:.2f}%'.format(float(row['compare_result']) * 100) if row['compare_result'] else '',
             'note': row['note'],
             'result_obj_id': row['result_obj_id'],
-            'creator_id': user.id
+            'creator_id': user.id,
+            'exists': exists
         }
     )
     if server:
         if test_job_case.server_provider == 'aligroup':
-            if isinstance(server, dict):
-                metric_info['server'] = server.get('ip')
-            else:
-                metric_info['server'] = server.ip
+            metric_info['server'] = server.ip
         else:
             metric_info.update({
+                'server_id': server.id,
                 'server': server.private_ip,
                 'instance_type': server.instance_type,
                 'image': server.image,
@@ -364,11 +383,13 @@ class FuncAnalysisService(CommonService):
         end_time = data.get('end_time', None)
         show_type = data.get('show_type', 'pass_rate')
         tag = data.get('tag', None)
+        ws_id = data.get('ws_id', None)
         assert project, AnalysisException(ErrorCode.PROJECT_ID_NEED)
         assert test_suite, AnalysisException(ErrorCode.TEST_SUITE_NEED)
         assert test_case, AnalysisException(ErrorCode.TEST_CASE_NEED)
         assert start_time, AnalysisException(ErrorCode.START_TIME_NEED)
         assert end_time, AnalysisException(ErrorCode.END_TIME_NEED)
+        assert ws_id, AnalysisException(ErrorCode.WS_NEED)
         end_time = date_add(end_time, 1)
         func_results_q = Q(
             test_suite_id=test_suite,
@@ -382,7 +403,6 @@ class FuncAnalysisService(CommonService):
             id__in=func_job_ids, project_id=project,
             state__in=['success', 'fail']).order_by('-gmt_created')
         job_li = list()
-        ws_id = Project.objects.get(id=project).ws_id
         analytics_tag_id_set = {JobTag.objects.get(ws_id=ws_id, name='analytics').id}
         if tag:
             analytics_tag_id_set.add(tag)
@@ -424,17 +444,22 @@ class FuncAnalysisService(CommonService):
             raw_sql = 'SELECT id,note,sub_case_result,test_job_id FROM func_result WHERE test_job_id ' \
                       'IN %s AND test_suite_id=%s AND test_case_id=%s AND sub_case_name=%s'
             func_queryset = query_all_dict(raw_sql.replace('\'', ''), [job_li, test_suite, test_case, sub_case_name])
-        job_case_sql = 'SELECT job_id,id,analysis_note FROM test_job_case WHERE job_id IN %s' \
-                       ' AND test_suite_id=%s AND test_case_id=%s'
-        job_cases = query_all_dict(job_case_sql.replace('\'', ''), [job_li, test_suite, test_case])
+        job_case_dict = dict()
+        job_cases = TestJobCase.objects.filter(job_id__in=job_id_li, test_suite_id=test_suite, test_case_id=test_case)
+        for job_case in job_cases:
+            if job_case.job_id not in job_case_dict:
+                job_case_dict[job_case.job_id] = job_case
         for key, value in sub_case_map.items():
             if value:
-                job_case = [case for case in job_cases if case['job_id'] == value.get('job_id')]
+                job_case = job_case_dict.get(value.get('job_id'))
                 analysis_note = None
-                job_case_id = 0
-                if len(job_case) > 0:
-                    job_case_id = job_case[0]['id']
-                    analysis_note = job_case[0]['analysis_note']
+                server, exists = get_run_server(job_case)
+                if job_case.server_provider == 'aligroup':
+                    ip = server.ip
+                else:
+                    ip = server.private_ip
+                if job_case:
+                    analysis_note = job_case.analysis_note
                 if show_type == 'pass_rate':
                     all_case = 0
                     pass_case = 0
@@ -446,9 +471,12 @@ class FuncAnalysisService(CommonService):
                                      **{'all_case': all_case, 'pass_case': pass_case,
                                         'pass_rate': pass_case / all_case, 'note': analysis_note}}
                     job_list.append(
-                        {**value, **{'server': get_job_case_run_server(job_case_id),
+                        {**value, **{'server': ip,
+                                     'server_id': server.id,
+                                     'exists': exists,
                                      'note': analysis_note,
-                                     'result_obj_id': job_case_id}})
+                                     'result_obj_id': job_case.id,
+                                     'server_provider': job_case.server_provider}})
                 else:
                     note = 0
                     func_result_id = 0
@@ -460,8 +488,8 @@ class FuncAnalysisService(CommonService):
                         func_result_id = func_result[0]['id']
                         sub_case_result = func_result[0]['sub_case_result']
                     job_list.append(
-                        {**value, **{'server': get_job_case_run_server(job_case_id), 'note': note},
-                         'result_obj_id': func_result_id})
+                        {**value, **{'server': ip, 'server_id': server.id, 'note': note, 'exists': exists},
+                         'result_obj_id': func_result_id, 'server_provider': job_case.server_provider})
                     case_map[key] = {**value,
                                      **{'result': FUNC_CASE_RESULT_TYPE_MAP.get(sub_case_result),
                                         'note': note}}
@@ -496,3 +524,25 @@ def get_case_map(sub_case_map, job, job_id_li):
     }
     job_id_li.append(job.id)
     sub_case_map[datetime.strftime(job.gmt_created, "%Y-%m-%d")] = _sub_case_map
+
+
+def get_share_request(share_req):
+    req_data = share_req.copy()
+    project = Project.objects.filter(id=share_req.get('project_id')).first()
+    if project:
+        req_data['project'] = project.name
+    suite = TestSuite.objects.filter(id=share_req.get('test_suite_id')).first()
+    if suite:
+        req_data['suite_name'] = suite.name
+    case = TestCase.objects.filter(id=share_req.get('test_case_id')).first()
+    if case:
+        req_data['case_name'] = case.name
+    if 'ws_id' in req_data:
+        req_data.pop('ws_id')
+    if 'project_id' in req_data:
+        req_data.pop('project_id')
+    if 'test_suite_id' in req_data:
+        req_data.pop('test_suite_id')
+    if 'test_case_id' in req_data:
+        req_data.pop('test_case_id')
+    return req_data

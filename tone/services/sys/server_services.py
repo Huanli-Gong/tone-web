@@ -989,27 +989,35 @@ class CloudServerService(CommonService):
             return []
         if provider == TestServerEnums.CLOUD_SERVER_PROVIDER_CHOICES[0][0]:
             zones_info = driver.get_zones()
-            category_list = []
+            data_category_list = []
+            system_category_list = []
             for item in zones_info:
-                category_list = []
                 category_mapping = {
                     'cloud_efficiency': '高效云盘',
                     'cloud_ssd': 'SSD云盘',
                     'ephemeral_ssd': '本地SSD盘',
                     'cloud_essd': 'ESSD云盘',
                     'cloud': '普通云盘',
-                    'cloud_auto': 'ESSD AutoPL云盘'
+                    'cloud_auto': 'ESSD AutoPL云盘',
+                    'cloud_essd_entry': 'ESSD Entry云盘'
                 }
                 if item.get('id') == data.get('zone'):
-                    available_disk_categories = item.get('available_disk_categories')
-                    for category in available_disk_categories:
-                        category_list.append({
+                    available_data_disk_categories = item.get('available_disk_categories')
+                    for category in available_data_disk_categories:
+                        data_category_list.append({
+                            'title': category_mapping.get(category, 'SSD云盘'),
+                            'value': category
+                        })
+                    available_sys_disk_categories = item.get('available_system_disk_categories')
+                    for category in available_sys_disk_categories:
+                        system_category_list.append({
                             'title': category_mapping.get(category, 'SSD云盘'),
                             'value': category
                         })
                     break
-            return category_list
-        return []
+            return data_category_list, system_category_list
+        return [{'title': '高效云盘', 'value': 'cloud_efficiency'}], [
+            {'title': '高效云盘', 'value': 'cloud_efficiency'}]
 
 
 class CloudAkService(CommonService):
@@ -1766,8 +1774,9 @@ class ToneAgentService(CommonService):
             mode=post_data.get('mode'),
         )
 
-    def toneagent_version_list(self, version):
-        list_url = '{}/v1/agent/version/manage?arch={}&page_num=1&page_size=100'.format(TONEAGENT_DOMAIN, version)
+    def toneagent_version_list(self, os, arch):
+        list_url = '{}/v1/agent/version/manage?os={}&arch={}&page_num=1&page_size=100'.\
+            format(TONEAGENT_DOMAIN, os, arch)
         try:
             result = requests.get(list_url).json()
         except Exception as e:

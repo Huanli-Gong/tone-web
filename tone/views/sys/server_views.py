@@ -440,9 +440,9 @@ class CloudServerDiskCategoriesView(BaseView):
         """
         查询磁盘规格列表
         """
-        data = self.service.get_disk_categories(request.GET)
+        data, sys = self.service.get_disk_categories(request.GET)
         response_data = self.get_response_code()
-        response_data['data'] = data
+        response_data['data'] = dict(sys_cat=sys, data_cat=data)
         return Response(response_data)
 
 
@@ -860,7 +860,10 @@ class ToneAgentVersion(CommonAPIView):
     service_class = ToneAgentService
 
     def get(self, request):
-        success, result = self.service.toneagent_version_list(request.GET.get('version'))
+        success, result = self.service.toneagent_version_list(
+            request.GET.get('os'),
+            request.GET.get('arch')
+        )
         if success:
             response_data = self.get_response_code()
         else:

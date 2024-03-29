@@ -12,8 +12,8 @@ from datetime import datetime
 from tone.core.utils.common_utils import kernel_info_format
 from tone.core.utils.verify_tools import check_ip
 from tone.models import Project, TestJob, JobType, TestTemplate, TestTmplCase, TestTmplSuite, \
-    TemplateTagRelation, JobTagRelation, TestJobCase, TestJobSuite, TestServerSnapshot, CloudServerSnapshot, \
-    TestServer, CloudServer, TestCluster, JobTag
+    TemplateTagRelation, TestCase, TestSuite, TestServerSnapshot, CloudServerSnapshot, \
+    TestServer, CloudServer, TestCluster, Baseline, JobTag
 from tone.core.handle.base_handle import BaseHandle
 from tone.core.common.constant import MonitorType
 from tone.core.common.expection_handler.error_code import ErrorCode
@@ -332,7 +332,7 @@ class JobDataHandle(BaseHandle):
                     'monitor_info': suite.monitor_info,
                     'priority': suite.priority,
                 })
-                    for suite in template_suites]
+                    for suite in template_suites if TestSuite.objects.filter(id=suite.test_suite_id).exists()]
                 snapshot_map = {}
                 [self.case_list.append({
                     'test_case_id': case.test_case_id,
@@ -353,7 +353,8 @@ class JobDataHandle(BaseHandle):
                     'monitor_info': case.monitor_info,
                     'priority': case.priority,
                 })
-                    for case in template_cases]
+                    for case in template_cases if TestCase.objects.filter(id=case.test_case_id).exists() and
+                                                  TestSuite.objects.filter(id=case.test_suite_id).exists()]
         elif self.data_from == 'import':
             test_config = self.data.get('test_config')
             assert test_config, JobTestException(ErrorCode.TEST_CONF_NEED)

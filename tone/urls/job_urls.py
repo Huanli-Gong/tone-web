@@ -66,5 +66,6 @@ urlpatterns = [
 
     path('state/', test_view.JobStateView.as_view(), name='job_state'),
     path('download/', test_view.JobDownloadView.as_view(), name='job_download'),
-    path('download/query/', test_view.JobDownloadRecordView.as_view(), name='download_query')
+    path('download/query/', test_view.JobDownloadRecordView.as_view(), name='download_query'),
+    path('result/share/analysis/', result_analysis.AnalysisShareView.as_view(), name='share_analysis'),
 ]

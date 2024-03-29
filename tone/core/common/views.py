@@ -1,3 +1,4 @@
+import json
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from rest_framework.exceptions import NotFound
@@ -6,6 +7,7 @@ from rest_framework.views import APIView
 
 from tone.core.common.exceptions.exception_class import NoMorePageException
 from tone.core.common.schemas import BaseSchema
+from tone.core.common.redis_cache import redis_cache
 
 
 class BaseView(APIView):
@@ -33,6 +35,14 @@ class CommonAPIView(GenericAPIView, BaseView):
     filter_fields = []
     search_param = 'keyword'
     search_fields = []
+
+    def get_share_request(self, data):
+        if data.get('share_id'):
+            params = redis_cache.get_info(data.get('share_id'))
+            if params:
+                data.update(json.loads(params))
+                data.pop('share_id')
+        return data
 
     def get_response_data(self, queryset, many=True, page=True):
         serializer_data = self.get_serializer_data(queryset, many, page)

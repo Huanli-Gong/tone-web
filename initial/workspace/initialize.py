@@ -1,5 +1,6 @@
 from django.db import transaction
 
+import uuid
 from tone.core.utils.short_uuid import short_uuid
 from tone.models import Workspace, User, RoleMember, Role
 from tone.services.sys.workspace_services import WorkspaceService
@@ -13,7 +14,8 @@ class WorkspaceDataInitialize(object):
             if not system_user:
                 system_user = User.objects.create_user(
                     'system',
-                    **{'emp_id': '000000', 'first_name': 'admin', 'last_name': 'tone', 'is_superuser': True}
+                    **{'emp_id': '000000', 'first_name': 'admin', 'last_name': 'tone', 'is_superuser': True,
+                       'token': str(uuid.uuid4()).replace('-', '')}
                 )
                 RoleMember.objects.create(
                     user_id=system_user.id,
