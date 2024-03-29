@@ -72,6 +72,8 @@ class TestServerService(CommonService):
         if data.get('app_group'):
             q &= Q(app_group=data.get('app_group'))
             # q &= Q(app_group__icontains=data.get('app_group'))
+        if data.get('ip'):
+            q &= Q(ip__icontains=data.get('ip'))
         return queryset.filter(q)
 
     @staticmethod
