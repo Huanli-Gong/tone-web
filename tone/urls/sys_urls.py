@@ -58,4 +58,5 @@ urlpatterns = [
     path('ws_chart/', dashboard_views.WorkspaceChartView.as_view(), name='workspace_chart'),
     path('workspace/check/', workspace_views.WorkspaceCheckView.as_view(), name='workspace_check'),
     path('ws_data_list/', dashboard_views.WorkspaceListDataView.as_view(), name='workspace_data_list'),
+    path('workspace/change_job_project/', dashboard_views.ChangeJobProjectView.as_view(), name='change_job_project'),
 ]
