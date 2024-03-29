@@ -4,9 +4,11 @@ from django.db import transaction, connection, connections
 
 from tone.core.utils.schedule_lock import lock_run_task
 from tone.core.common.redis_cache import redis_cache
+from tone.core.utils.common_utils import query_all_dict
 from tone.models import TestPlan, PlanInstance, PlanStageRelation, PlanStageTestRelation, PlanStagePrepareRelation, \
     PlanInstanceStageRelation, PlanInstanceTestRelation, PlanInstancePrepareRelation, BLOCKING_STATEGY_CHOICES, \
-    TestTemplate, JobType, datetime, Workspace, TestJobSuite, TestJobCase, JobTagRelation, TestJob, BatchJobRelation
+    TestTemplate, JobType, datetime, Workspace, TestJobSuite, TestJobCase, JobTagRelation, TestJob, BatchJobRelation, \
+    PerfResult, FuncResult, TestStep
 from tone.core.handle.report_handle import ReportHandle
 from tone.services.plan.complete_plan_report import plan_create_report
 
@@ -196,3 +198,22 @@ def batch_create_job():
         except Exception as ex:
             logger.info(f'batch_create_job error. ex is {ex}')
         i += 1
+
+
+def clear_timeout_job():
+    raw_sql = "SELECT a.id FROM test_job a LEFT JOIN job_tag_relation b ON a.id=b.job_id LEFT JOIN job_tag c" \
+              " ON b.tag_id=c.id WHERE a.is_deleted=0 AND b.is_deleted=0 AND c.is_deleted=0 AND " \
+              "((c.name='keep_three_months' AND TIMESTAMPDIFF(MONTH, a.gmt_created, NOW()) > 3) OR " \
+              "(c.name='keep_six_months' AND TIMESTAMPDIFF(MONTH, a.gmt_created, NOW()) > 6) OR " \
+              "(c.name='keep_one_year' AND TIMESTAMPDIFF(MONTH, a.gmt_created, NOW()) > 12))"
+    job_res_list = query_all_dict(raw_sql, params=None)
+    job_id_list = [job_id['id'] for job_id in job_res_list]
+    if job_id_list:
+        with transaction.atomic():
+            TestJob.objects.filter(id__in=job_id_list).delete(really_delete=True)
+            PerfResult.objects.filter(test_job_id__in=job_id_list).delete(really_delete=True)
+            FuncResult.objects.filter(test_job_id__in=job_id_list).delete(really_delete=True)
+            JobTagRelation.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
+            TestStep.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
+            TestJobCase.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
+            TestJobSuite.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
