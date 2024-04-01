@@ -295,6 +295,24 @@ class WorkspaceService(CommonService):
             ws_id=ws_id,
             description='Analytics性能分析专用标签'
         )
+        JobTag.objects.create(
+            name='keep_three_months',
+            source_tag='system_tag',
+            ws_id=ws_id,
+            description='保留三个月'
+        )
+        JobTag.objects.create(
+            name='keep_six_months',
+            source_tag='system_tag',
+            ws_id=ws_id,
+            description='保留六个月'
+        )
+        JobTag.objects.create(
+            name='keep_one_year',
+            source_tag='system_tag',
+            ws_id=ws_id,
+            description='保留一年'
+        )
 
     @staticmethod
     def check_ws(data):
