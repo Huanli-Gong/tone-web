@@ -1,7 +1,7 @@
 # flake8: noqa
 from datetime import timedelta
 
-from django.db import connection
+from django.db import connection, transaction
 
 from tone.core.common.redis_cache import redis_cache
 from tone.core.common.services import CommonService
@@ -665,6 +665,15 @@ class DashboardService(CommonService):
                     'FailCase': file_case_count
                 })
         return True, ws_chart_data
+
+    def chang_job_project(self, data):
+        job_list = data.get('job_list', list())
+        project_id = data.get('project_id')
+        assert project_id, ValueError(ErrorCode.PROJECT_ID_NEED)
+        project = Project.objects.filter(id=project_id).first()
+        assert project, ValueError(ErrorCode.PROJECT_NOT_EXISTS)
+        with transaction.atomic():
+            TestJob.objects.filter(id__in=job_list).update(project_id=project_id, product_id=project.product_id)
 
 
 def calculate_benchmark_data():

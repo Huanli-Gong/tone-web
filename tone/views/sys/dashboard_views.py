@@ -93,3 +93,12 @@ class WorkspaceListDataView(CommonAPIView):
         response = self.get_response_code()
         response['data'] = self.service.get_ws_data_list(request.GET)
         return Response(response)
+
+
+class ChangeJobProjectView(CommonAPIView):
+    service_class = DashboardService
+
+    def post(self, request):
+        response = self.get_response_code()
+        self.service.chang_job_project(request.data)
+        return Response(response)
