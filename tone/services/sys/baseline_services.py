@@ -24,10 +24,11 @@ from tone.core.utils.tone_thread import ToneThread
 from tone.core.utils.common_utils import query_all_dict
 from tone.models import Baseline, FuncBaselineDetail, PerfBaselineDetail, TestJob, PerfResult, TestJobCase, \
     TestSuite, TestCase, Project, TestStep, FuncResult, TestMetric, TestServerSnapshot, \
-    CloudServerSnapshot, BaselineServerSnapshot, BaselineDownloadRecord, TestClusterSnapshot, TestClusterServerSnapshot
+    CloudServerSnapshot, BaselineServerSnapshot, BaselineDownloadRecord
 from tone.services.portal.sync_portal_task_servers import sync_baseline, sync_baseline_del
 from tone.serializers.sys.baseline_serializers import FuncBaselineDetailSerializer, PerfBaselineDetialSerializer
 from tone.core.common.expection_handler.error_code import ErrorCode
+from tone.core.common.job_result_helper import get_run_server
 
 
 def back_fill_version(func):
@@ -547,7 +548,8 @@ class FuncBaselineService(CommonService):
             return False, msg
         server_provider, machine = self.get_job_server(test_job_id, test_suite_id, test_case_id)
         for baseline_id in baseline_id_list:
-            save_baseline_server(baseline_id, server_provider, machine, test_job_id, test_suite_id, test_case_id)
+            if machine:
+                save_baseline_server(baseline_id, server_provider, machine, test_job_id, test_suite_id, test_case_id)
             func_baseline_detail = FuncBaselineDetail.objects.filter(
                 baseline_id=baseline_id, test_suite_id=test_suite_id,
                 test_case_id=test_case_id, sub_case_name=sub_case_name).first()
@@ -644,28 +646,17 @@ class FuncBaselineService(CommonService):
 
 
 def get_job_baseline_server(job_id, case_id):
-    snap_server_id = None
+    test_job = TestJob.objects.filter(id=job_id).first()
     test_job_case = TestJobCase.objects.filter(job_id=job_id, test_case_id=case_id).first()
-    test_step_case = TestStep.objects.filter(job_id=job_id, job_case_id=test_job_case.id).first()
-    server_provider = test_job_case.server_provider
-    if test_job_case.run_mode == 'cluster':
-        test_cluster_snap = TestClusterSnapshot.objects.filter(id=test_job_case.server_snapshot_id).first()
-        baseline_server_snap = TestClusterServerSnapshot.objects.filter(
-            cluster_id=test_cluster_snap.id, baseline_server=True).first()
-        snap_server_id = baseline_server_snap.server_id
+    if test_job and test_job_case:
+        machine, _ = get_run_server(test_job_case, test_job.runner_version)
+        server_provider = test_job_case.server_provider
+        return server_provider, machine
     else:
-        if test_step_case and test_step_case.server:
-            snap_server_id = test_step_case.server
-    if server_provider == 'aliyun':
-        machine = CloudServerSnapshot.objects.filter(id=snap_server_id, query_scope='all').first()
-    else:
-        machine = TestServerSnapshot.objects.filter(id=snap_server_id, query_scope='all').first()
-    return server_provider, machine
+        return None, None
 
 
 def save_baseline_server(baseline_id, server_provider, machine, job_id, suite_id, case_id):
-    if not machine:
-        return
     if not BaselineServerSnapshot.objects.filter(baseline_id=baseline_id, test_suite_id=suite_id,
                                                  test_case_id=case_id).exists():
         baseline_server = dict(
@@ -886,7 +877,8 @@ class PerfBaselineService(CommonService):
                 if machine is not None:
                     sm_name = machine.sm_name
                     machine_ip = machine.ip
-            save_baseline_server(baseline_id, server_provider, machine, job_id, suite_id, case_id)
+            if machine:
+                save_baseline_server(baseline_id, server_provider, machine, job_id, suite_id, case_id)
         q = Q(test_job_id=job_id, test_suite_id=suite_id, test_case_id=case_id)
         if metrics:
             q &= Q(metric__in=metrics.split(','))
