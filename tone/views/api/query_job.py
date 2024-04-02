@@ -5,8 +5,10 @@ Date:
 Author: Yfh
 """
 import json
+import math
 import urllib.parse as urlparse
 from datetime import datetime
+from urllib.parse import urlparse
 from tone.core.common.enums.job_enums import JobState
 from tone.core.utils.common_utils import query_all_dict
 from tone import settings
@@ -24,20 +26,7 @@ from tone.services.job.test_services import package_server_list
 from tone.core.utils.permission_manage import check_job_operator_permission, check_ws_operator_permission, \
     check_admin_operator_permission
 from tone.core.common.toneagent import server_check
-
-
-def _replace_statics_key(case_statics):
-    if 'count' in case_statics:
-        case_statics['total'] = case_statics.pop('count')
-    if 'case_count' in case_statics:
-        case_statics['total'] = case_statics.pop('case_count')
-    if 'case_success' in case_statics:
-        case_statics['success'] = case_statics.pop('case_success')
-    if 'case_fail' in case_statics:
-        case_statics['fail'] = case_statics.pop('case_fail')
-    if 'case_skip' in case_statics:
-        case_statics['skip'] = case_statics.pop('case_skip')
-    return case_statics
+from tone.core.utils.tone_thread import ToneThread
 
 
 @api_catch_error
@@ -490,3 +479,76 @@ def query_toneagent_info(request):
         )
     resp.data = result_dict
     return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def job_log_query(request):
+    if request.method == 'GET':
+        assert None, ValueError(ErrorCode.SUPPORT_POST)
+    resp = CommResp()
+    req_info = json.loads(request.body)
+    job_id = req_info.get('job_id', None)
+    page_size = req_info.get('page_size', 50)
+    assert isinstance(page_size, int), ValueError(ErrorCode.INT_NEED_ERROR)
+    page_num = req_info.get('page_num', 1)
+    assert isinstance(page_num, int), ValueError(ErrorCode.INT_NEED_ERROR)
+    assert job_id, ValueError(ErrorCode.JOB_NEED)
+    if isinstance(job_id, str):
+        assert job_id.isdigit(), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    else:
+        assert isinstance(job_id, int), ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
+    job = TestJob.objects.filter(id=job_id).first()
+    assert job, ValueError(ErrorCode.TEST_JOB_NONEXISTENT)
+    if not check_job_operator_permission(req_info.get('username', None), job):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    result_data = list()
+    job_cases = TestJobCase.objects.filter(job_id=job_id)
+    test_suite_dict = dict()
+    test_case_dict = dict()
+    test_suite_list = TestSuite.objects.all().values_list('id', 'name')
+    for test_suite in test_suite_list:
+        test_suite_dict[test_suite[0]] = test_suite[1]
+    test_case_list = TestCase.objects.all().values_list('id', 'name')
+    for test_case in test_case_list:
+        test_case_dict[test_case[0]] = test_case[1]
+    provider = job.server_provider
+    job_log_files = ResultFile.objects.filter(test_job_id=job_id, result_file__iendswith='.log').\
+        values_list('test_suite_id', 'test_case_id', 'result_path', 'result_file')
+    result_dict = dict()
+    start_num = page_size * (page_num - 1)
+    end_num = start_num + page_size
+    total = math.ceil(job_cases.count() / page_size)
+    job_cases_pages = job_cases[start_num:end_num]
+    thread_tasks = []
+    for job_case in job_cases_pages:
+        thread_tasks.append(
+            ToneThread(get_job_case_logs, (result_dict, job_case, job_log_files))
+        )
+        thread_tasks[-1].start()
+    for thread_task in thread_tasks:
+        thread_task.join()
+        thread_task.get_result()
+    for job_case in job_cases_pages:
+        test_suite = test_suite_dict.get(job_case.test_suite_id)
+        test_case = test_case_dict.get(job_case.test_case_id)
+        result_item = {
+            'test_suite': test_suite if test_suite else None,
+            'test_case': test_case if test_case else None,
+            'logs': result_dict.get(str(job_case.test_suite_id) + '_' + str(job_case.test_case_id))
+        }
+        result_data.append(result_item)
+    resp.data = result_data
+    resp.result = True
+    resp.total = total
+    return resp.json_resp()
+
+
+def get_job_case_logs(result_dict, job_case, job_log_files):
+    result_files = [log for log in job_log_files if log[0] == job_case.test_suite_id and
+                    log[1] == job_case.test_case_id]
+    key = str(job_case.test_suite_id) + '_' + str(job_case.test_case_id)
+    result_dict[key] = list()
+    for result_file in result_files:
+        log_file = result_file[2] + '/' + result_file[3]
+        result_dict[key].append(log_file)

@@ -34,4 +34,5 @@ urlpatterns = [
     path('job/stop/', handle_job.stop_job, name='job_stop'),
     path('job/batch/create/', create_job.job_batch_create, name='job_batch_create'),
     path('query/toneagent/', query_job.query_toneagent_info, name='query_toneagent'),
+    path('job/log/query/', query_job.job_log_query, name='job_log_query'),
 ]
