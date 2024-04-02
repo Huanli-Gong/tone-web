@@ -77,3 +77,20 @@ class JobTagRelationView(CommonAPIView):
             return Response(self.get_response_code())
         else:
             return HttpResponse(status=401, content=json.dumps({'code': 401, 'msg': '没有权限，请联系统管理员'}))
+
+
+class JobTagBatchRelationView(CommonAPIView):
+    queryset = JobTag.objects.all()
+    service_class = JobTagRelationService
+    permission_classes = []
+
+    @method_decorator(views_catch_error)
+    def post(self, request):
+        """
+        关联JobTag
+        """
+        success = self.service.batch_create(request.data, operator=request.user)
+        if success:
+            return Response(self.get_response_code())
+        else:
+            return HttpResponse(status=401, content=json.dumps({'code': 401, 'msg': '没有权限，请联系统管理员'}))

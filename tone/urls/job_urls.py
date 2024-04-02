@@ -36,6 +36,7 @@ urlpatterns = [
     path('collection/', test_view.JobCollectionView.as_view(), name='collection job'),
     path('tag/', tag_view.JobTagView.as_view(), name='job_tag'),
     path('tag/relation/', tag_view.JobTagRelationView.as_view(), name='job_tag_relation'),
+    path('tag/relation/batch/', tag_view.JobTagBatchRelationView.as_view(), name='job_tag_relation_batch'),
     path('template/', template_view.TestTemplateView.as_view(), name='template'),
     path('template/detail/', template_view.TestTemplateDetailView.as_view(), name='template_detail'),
     path('template/items/', template_view.TemplateItemsView.as_view(), name='template_items'),
