@@ -7,7 +7,9 @@ Author: Yfh
 import uuid
 from django.conf import settings
 from tone.models.sys.log_model import OperationLogs
+from tone.models.sys.config_models import JobTag, JobTagRelation, TemplateTagRelation
 from django.db import transaction
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 
 class LogRecordOperation(object):
@@ -88,3 +90,74 @@ def operation(operation_li):
                 obj.update(pid, operation_sn, values_li)
             else:
                 obj.create_delete(pid, operation_sn)
+
+
+def operation_one(operator, operation_object, pid, operation_type, db_table, value_li=list()):
+    operation_li = list()
+    log_data = {
+        'creator': operator,
+        'operation_object': operation_object,
+        'pid': pid,
+        'operation_type': operation_type,
+        'table': db_table,
+        'values_li': value_li
+    }
+    operation_li.append(log_data)
+    operation(operation_li)
+
+
+def job_keep_logs(job_id, ws_id, tag_id_list, operator):
+    keep_tags = JobTag.objects.filter(id__in=tag_id_list, ws_id=ws_id, name__istartswith='keep_',
+                                      source_tag='system_tag')
+    if not keep_tags:
+        return
+    assert len(keep_tags) == 1, ValueError(ErrorCode.KEEP_TAG_ERROR)
+    keep_tag_id = JobTag.objects.filter(ws_id=ws_id, name__istartswith='keep_', source_tag='system_tag').\
+        values_list('id', flat=True)
+    if not keep_tag_id:
+        return
+    new_keep_tag = list(set(keep_tag_id) & set(tag_id_list))
+    if not new_keep_tag:
+        return
+    if keep_tag_id:
+        old_tag_id_list = JobTagRelation.objects.filter(job_id=job_id).values_list('tag_id', flat=True)
+        old_keep_tag = list(set(keep_tag_id) & set(old_tag_id_list))
+        if old_keep_tag and old_keep_tag[0] == new_keep_tag[0]:
+            return
+        job_tag = JobTag.objects.filter(id=new_keep_tag[0]).first()
+        if not old_keep_tag:
+            operation_one(operator.id, job_tag.name, job_id, 'create', 'test_job')
+        else:
+            value_list = list()
+            old_job_tag = JobTag.objects.filter(id=old_keep_tag[0]).first()
+            value_list.append(('job_tag', old_job_tag.name, job_tag.name))
+            operation_one(operator.id, job_tag.name, job_id, 'update', 'test_job', value_list)
+
+
+def template_keep_logs(template_id, ws_id, tag_id_list, operator):
+    keep_tags = JobTag.objects.filter(id__in=tag_id_list, ws_id=ws_id, name__istartswith='keep_',
+                                      source_tag='system_tag')
+    if not keep_tags:
+        return
+    assert len(keep_tags) == 1, ValueError(ErrorCode.KEEP_TAG_ERROR)
+    keep_tag_id = JobTag.objects.filter(ws_id=ws_id, name__istartswith='keep_', source_tag='system_tag'). \
+        values_list('id', flat=True)
+    if not keep_tag_id:
+        return
+    new_keep_tag = list(set(keep_tag_id) & set(tag_id_list))
+    if not new_keep_tag:
+        return
+    if keep_tag_id:
+        old_tag_id_list = TemplateTagRelation.objects.filter(template_id=template_id).values_list('tag_id', flat=True)
+        old_keep_tag = list(set(keep_tag_id) & set(old_tag_id_list))
+        if old_keep_tag and old_keep_tag[0] == new_keep_tag[0]:
+            return
+        job_tag = JobTag.objects.filter(id=new_keep_tag[0]).first()
+        if not old_keep_tag:
+            operation_one(operator.id, job_tag.name, template_id, 'create', 'test_template')
+        else:
+            value_list = list()
+            old_job_tag = JobTag.objects.filter(id=old_keep_tag[0]).first()
+            value_list.append(('job_tag', old_job_tag.name, job_tag.name))
+            operation_one(operator.id, job_tag.name, template_id, 'update', 'test_template', value_list)
+

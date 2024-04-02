@@ -84,6 +84,9 @@ class ErrorCode(Enum):
     PARAMS_ERROR = ("1-05-048", "参数错误", "", "无", "")
     PROVIDER_NEED = ("1-05-049", "provider为必填参数", "", "无", "")
     JSON_FORMAT_ERROR = ("1-05-050", "请求参数json格式错误", "", "无", "")
+    PROJECT_NAME_NEED = ("1-05-051", "请求参数项目名称为必填参数", "", "无", "")
+    API_TIME_FORMAT_ERROR = ("1-05-052", "请求参数时间参数格式错误", "", "无", "")
+    KEEP_TAG_ERROR = ("1-05-053", "JOB保留时间标签只能选择一个", "", "", "")
     TEST_CASE_NEED = ("1-07-001", " test_case_id为必填参数", "", "", "")
     START_TIME_NEED = ("1-07-002", " start_time为必填参数", "", "", "")
     END_TIME_NEED = ("1-07-003", " end_time为必填参数", "", "", "")
@@ -209,6 +212,7 @@ class ErrorCode(Enum):
     PASSWORD_COMMIT_ERROR = ("1-19-011", "两次输入的密码不一致", "", "无", "")
     OLD_PASSWORD_ERROR = ("1-19-012", "旧密码输入错误", "", "无", "")
     PASSWORD_SAME_TO_OLD_ERROR = ("1-19-013", "新密码不能与旧密码一致", "", "无", "")
+    INT_NEED_ERROR = ("1-19-014", "分页参数必须为整型", "", "无", "")
 
     @property
     def code(self):
