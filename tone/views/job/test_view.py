@@ -409,7 +409,8 @@ class JobTestCaseFileView(CommonAPIView):
     @staticmethod
     def get_sign_url(path):
         _path = urlparse.urlparse(path[0]).path
-        file_path = urlparse.urljoin(_path, path[1])
+        _path = _path[:-1] if _path.endswith('/') else _path
+        file_path = _path + '/' + path[1]
         return file_path
 
 
