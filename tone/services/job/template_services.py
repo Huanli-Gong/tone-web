@@ -41,6 +41,7 @@ class TestTemplateService(CommonService):
         }
         ws_id = data.get('ws_id')
         enable = data.get('enable')
+        name = data.get('name')
         raw_sql = 'SELECT a.id, a.name,job_type_id,b.name as job_type,server_provider,b.test_type,a.ws_id ' \
                   'from test_tmpl a left join job_type b ON a.job_type_id=b.id WHERE a.is_deleted=0 '
         params = list()
@@ -49,6 +50,9 @@ class TestTemplateService(CommonService):
             params.append(ws_id)
         if enable and enable.lower() == 'true':
             raw_sql += ' and a.enable=1'
+        if name:
+            raw_sql += ' and a.name like %s '
+            params.append('%' + name.replace('_', '\_').replace('%', '\%') + '%')
         template_res = query_all_dict(raw_sql, params)
         tmp_list = [{'id': m['id'], 'name': m['name'], 'test_type': test_type_map.get(m['test_type']),
                      'job_type': m['job_type'], 'server_provider': m['server_provider'],
