@@ -432,6 +432,7 @@ class PlanResultDetailSerializer(CommonSerializer):
     report_template_id = serializers.SerializerMethodField()
     report_li = serializers.SerializerMethodField()
     report_template_name = serializers.SerializerMethodField()
+    error_info = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanInstance
@@ -439,7 +440,7 @@ class PlanResultDetailSerializer(CommonSerializer):
                   'creator_name', 'kernel_version', 'kernel_info', 'rpm_info', 'build_pkg_info',
                   'env_info', 'description', 'note', 'project_name', 'build_result', 'plan_config_info', 'auto_report',
                   'report_name', 'report_description', 'report_template_id', 'report_li', 'report_template_name',
-                  'group_method', 'base_group']
+                  'group_method', 'base_group', 'error_info']
 
     @staticmethod
     def get_kernel_info(obj):
@@ -640,3 +641,14 @@ class PlanResultDetailSerializer(CommonSerializer):
         if isinstance(obj.rpm_info, list):
             return '\n'.join(obj.rpm_info)
         return obj.rpm_info
+
+    @staticmethod
+    def get_error_info(obj):
+        error_info = obj.state_desc
+        plan_instance_relation = PlanInstanceTestRelation.objects.filter(plan_instance_id=obj.id).first()
+        if plan_instance_relation and plan_instance_relation.state_desc:
+            error_info = plan_instance_relation.state_desc
+        plan_instance_prepare = PlanInstancePrepareRelation.objects.filter(plan_instance_id=obj.id).first()
+        if plan_instance_prepare and plan_instance_prepare.state_desc:
+            error_info = plan_instance_prepare.state_desc
+        return error_info

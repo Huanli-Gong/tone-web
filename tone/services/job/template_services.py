@@ -9,11 +9,12 @@ from django.db import transaction
 from tone.core.utils.common_utils import query_all_dict
 from tone.core.common.services import CommonService
 from tone.models import TestTemplate, TestTmplCase, TestTmplSuite, WorkspaceMember, Role, RoleMember, \
-    PlanStageTestRelation, TestPlan, PlanInstance, User
+    PlanStageTestRelation, TestPlan, PlanInstance, User, JobTag
 from tone.models.sys.config_models import TemplateTagRelation
 from tone.core.handle.template_handle import TestTemplateHandle
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import JobTestException
+from tone.core.common.operation_log import template_keep_logs
 
 
 class TestTemplateService(CommonService):
@@ -40,6 +41,7 @@ class TestTemplateService(CommonService):
         }
         ws_id = data.get('ws_id')
         enable = data.get('enable')
+        name = data.get('name')
         raw_sql = 'SELECT a.id, a.name,job_type_id,b.name as job_type,server_provider,b.test_type,a.ws_id ' \
                   'from test_tmpl a left join job_type b ON a.job_type_id=b.id WHERE a.is_deleted=0 '
         params = list()
@@ -48,6 +50,9 @@ class TestTemplateService(CommonService):
             params.append(ws_id)
         if enable and enable.lower() == 'true':
             raw_sql += ' and a.enable=1'
+        if name:
+            raw_sql += ' and a.name like %s '
+            params.append('%' + name.replace('_', '\_').replace('%', '\%') + '%')
         template_res = query_all_dict(raw_sql, params)
         tmp_list = [{'id': m['id'], 'name': m['name'], 'test_type': test_type_map.get(m['test_type']),
                      'job_type': m['job_type'], 'server_provider': m['server_provider'],
@@ -118,6 +123,7 @@ class TestTemplateService(CommonService):
                         case['tmpl_id'] = template_id
                         TestTmplCase.objects.create(**case)
                 if data.get('tags'):
+                    template_keep_logs(template_id, obj.ws_id, tag_list, operator)
                     TemplateTagRelation.objects.filter(template_id=template_id).delete()
                     for tag in tag_list:
                         TemplateTagRelation.objects.create(tag_id=tag, template_id=template_id)
@@ -183,6 +189,8 @@ class TestTemplateService(CommonService):
                 TestTmplCase.objects.create(**case)
             for tag in tag_list:
                 TemplateTagRelation.objects.create(tag_id=tag, template_id=test_template.id)
+            if tag_list:
+                template_keep_logs(test_template.id, test_template.ws_id, tag_list, operator)
 
     @staticmethod
     def check_id(template_id):

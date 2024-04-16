@@ -347,7 +347,7 @@ def get_job_case_server(job_case_id, template=None, is_config=False, data=None):
         obj.server = '随机'
     else:
         if data and data.get('inheriting_machine'):
-            _get_server_inheriting_machine(is_config, job_case_id, obj)
+            _get_server_inheriting_machine(is_config, job_case, obj)
         else:
             _get_server_no_inheriting_machine(is_config, job_case, obj, server_provider)
     return obj.server, obj.is_instance, obj.server_is_deleted, obj.server_deleted
@@ -1165,7 +1165,7 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
     baseline_id_list = list()
     job_id_list = list()
     for group in group_list:
-        if group.get('is_baseline'):
+        if group.get('is_baseline', not group.get('is_job')):
             baseline_id_list.extend(group.get('job_list'))
         else:
             job_id_list.extend(group.get('job_list'))
@@ -1174,7 +1174,7 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
         for case_info in suite_value:
             case_id_list.append(case_info['conf_id'])
     case_id_str = tuple(case_id_list)
-    case_id_sql = '' if is_all else ' AND a.test_case_id IN (' + ','.join(str(e) for e in case_id_list) + ')'
+    case_id_sql = '' if is_all else ' AND a.test_case_id IN %s'
     baseline_result_list = None
     job_result_list = None
     if baseline_id_list:
@@ -1202,7 +1202,7 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
         params = [job_id_str, suite_id] if is_all else [job_id_str, suite_id, case_id_str]
         job_result_list = query_all_dict(raw_sql.replace('\'', ''), params=params)
     base_job_list = group_list.pop(base_index)
-    base_is_baseline = base_job_list.get('is_baseline', 0)
+    base_is_baseline = base_job_list.get('is_baseline', not base_job_list.get('is_job'))
     duplicate_conf = base_job_list.get('duplicate_conf')
     if is_all:
         if base_is_baseline:
@@ -1279,13 +1279,12 @@ def _get_suite_conf_metric_v1(conf_info, suite_obj, group_list, base_index, base
     compare_job_list = list()
     compare_result_li = list()
     conf_compare_data = list()
-    base_is_job = 0 if base_is_baseline else 1
+    base_is_job = not base_is_baseline
     for compare_job in group_list:
         duplicate_conf = compare_job.get('duplicate_conf')
         has_duplicate = _check_has_duplicate(duplicate_conf, conf_id)
         job_list = compare_job.get('job_list')
-        is_baseline = compare_job.get('is_baseline', 0)
-        is_job = 0 if is_baseline else 1
+        is_baseline = compare_job.get('is_baseline', not compare_job.get('is_job'))
         if not has_duplicate and len(job_list) > 0:
             for job_id in job_list:
                 if is_baseline:
@@ -1319,7 +1318,7 @@ def _get_suite_conf_metric_v1(conf_info, suite_obj, group_list, base_index, base
             compare_result_li.append(dict())
         compare_job_id = list(set(job_list) & set(compare_job_list))
         conf_compare_data.append(dict({
-            'is_job': is_job,
+            'is_job': not is_baseline,
             'obj_id': compare_job_id[0] if len(compare_job_id) > 0 else job_list[0],
             'is_baseline': is_baseline
         }))

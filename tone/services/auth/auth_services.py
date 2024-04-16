@@ -153,19 +153,17 @@ class UserService(CommonService):
         user_role_member = RoleMember.objects.filter(user_id=operator).first()
         role = Role.objects.filter(id=user_role_member.role_id).first()
         # 被修改人当前角色
-        role_member = RoleMember.objects.filter(user_id=user_id)
-        user_role = Role.objects.filter(id=role_member.first().role_id).first()
+        role_member = RoleMember.objects.filter(user_id=user_id).first()
+        if not role_member:
+            role_member = RoleMember.objects.create(user_id=user_id, role_id=role_id)
+        user_role = Role.objects.filter(id=role_member.role_id).first()
         if role.id >= user_role.id and role.title != 'sys_admin':
             return False, ErrorCode.PERMISSION_ERROR.to_api
-        if role_id:
-            if role_member.first() is None:
-                RoleMember.objects.create(user_id=user_id, role_id=role_id)
-            else:
-                if operator:
-                    # 当前角色可以设置的角色
-                    if Role.objects.filter(title__in=SYS_ROLE_MAP.get(role.title), id=role_id).exists():
-                        role_member.update(role_id=role_id)
-                        # 被设置系统角色, 发送消息到被操作人
+        if role_id and operator:
+            # 当前角色可以设置的角色
+            if Role.objects.filter(title__in=SYS_ROLE_MAP.get(role.title), id=role_id).exists():
+                role_member.update(role_id=role_id)
+                # 被设置系统角色, 发送消息到被操作人
             user_role = Role.objects.filter(id=role_member.first().role_id).first()
             InSiteMsgHandle().by_update_sys_role(operator, user_id, user_role.title)
         return True, '修改成功'

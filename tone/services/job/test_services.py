@@ -45,6 +45,7 @@ from tone.core.common.constant import OFFLINE_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.core.common.job_result_helper import get_test_config, get_job_state
 from tone.core.utils.sftp_client import sftp_client
+from tone.core.common.operation_log import job_keep_logs
 
 
 logger = logging.getLogger()
@@ -494,6 +495,7 @@ class JobTestService(CommonService):
             if case_obj_list and not is_patch:
                 TestJobCase.objects.bulk_create(case_obj_list)
             if tag_obj_list and not is_patch:
+                job_keep_logs(test_job.id, test_job.ws_id, tag_list, operator)
                 JobTagRelation.objects.bulk_create(tag_obj_list)
             return test_job
 

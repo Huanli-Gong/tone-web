@@ -11,6 +11,7 @@ from tone.models import JobTag, JobTagRelation, WorkspaceMember, Role, TestJob, 
 from tone.core.common.services import CommonService
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.custom_error import JobTagException
+from tone.core.common.operation_log import job_keep_logs
 
 
 class JobTagService(CommonService):
@@ -114,12 +115,12 @@ class JobTagRelationService(CommonService):
     def create(data, operator):
         tag_ids = data.get('tag_id')
         job_id = data.get('job_id')
-        assert job_id, JobTagException(ErrorCode.JOB_NEED)
-        if not isinstance(tag_ids, list):
-            raise JobTagException(ErrorCode.TAG_ID_NEED)
+        assert job_id, ValueError(ErrorCode.JOB_NEED)
+        assert isinstance(tag_ids, list), ValueError(ErrorCode.TAG_ID_NEED)
         # 非系统管理员super_admin, sys_admin ws_member 只能修改自己
         sys_role_id = RoleMember.objects.get(user_id=operator.id).role_id
         sys_role = Role.objects.get(id=sys_role_id).title
+        obj = TestJob.objects.get(id=job_id)
         if sys_role not in ['super_admin', 'sys_admin']:
             obj = TestJob.objects.get(id=job_id)
             operator_role_id = WorkspaceMember.objects.get(ws_id=obj.ws_id, user_id=operator.id).role_id
@@ -128,6 +129,34 @@ class JobTagRelationService(CommonService):
             if operator_role not in allow_list and operator.id != obj.creator:
                 return False
         with transaction.atomic():
+            job_keep_logs(job_id, obj.ws_id, tag_ids, operator)
             JobTagRelation.objects.filter(job_id=job_id).delete()
             [JobTagRelation.objects.create(job_id=job_id, tag_id=tag_id) for tag_id in tag_ids]
+        return True
+
+    @staticmethod
+    def batch_create(data, operator):
+        tag_id = data.get('tag_id')
+        ws_id = data.get('ws_id')
+        job_id_list = data.get('job_id_list')
+        assert isinstance(job_id_list, list), ValueError(ErrorCode.JOB_NEED)
+        assert tag_id, ValueError(ErrorCode.TAG_ID_NEED)
+        # 非系统管理员super_admin, sys_admin ws_member 只能修改自己
+        sys_role_id = RoleMember.objects.get(user_id=operator.id).role_id
+        sys_role = Role.objects.get(id=sys_role_id).title
+        if sys_role not in ['super_admin', 'sys_admin']:
+            operator_role_id = WorkspaceMember.objects.get(ws_id=ws_id, user_id=operator.id).role_id
+            operator_role = Role.objects.get(id=operator_role_id).title
+            allow_list = ['ws_owner', 'ws_admin', 'ws_test_admin']
+            if operator_role not in allow_list:
+                return False
+        with transaction.atomic():
+            tag_list = list()
+            tag_list.append(tag_id)
+            for job_id in job_id_list:
+                job_keep_logs(job_id, ws_id, tag_list, operator)
+                keep_tag_id = JobTag.objects.filter(ws_id=ws_id, name__istartswith='keep_', source_tag='system_tag'). \
+                    values_list('id', flat=True)
+                JobTagRelation.objects.filter(job_id=job_id, tag_id__in=keep_tag_id).delete()
+                JobTagRelation.objects.create(job_id=job_id, tag_id=tag_id)
         return True
