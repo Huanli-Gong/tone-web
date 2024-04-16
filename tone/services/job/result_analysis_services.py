@@ -145,7 +145,7 @@ class PerfAnalysisService(CommonService):
         return result_data
 
     @staticmethod
-    def get_metric_data(rows, test_suite_id, test_case_id):
+    def get_metric_data(rows, job_case_dict):
         metric_data = list()
         for row in rows:
             metric_obj = _package_metric(row, job_case_dict)
