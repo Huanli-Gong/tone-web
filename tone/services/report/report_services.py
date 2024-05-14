@@ -391,12 +391,14 @@ class ReportService(CommonService):
                                                       compare_conf_list=compare_conf_list)
         item_conf_id = item_conf.id
         if test_type == 'functional':
-            self.save_item_sub_case_v1(test_suite_id, test_conf_id, item_conf_id, conf.get('job_list'), base_index)
+            self.save_item_sub_case_v1(test_suite_id, conf, item_conf_id, base_index)
         else:
-            self.save_item_metric_v1(test_suite_id, test_conf_id, item_conf_id, conf.get('job_list'), base_index)
+            self.save_item_metric_v1(test_suite_id, conf, item_conf_id, base_index)
 
     @staticmethod
-    def save_item_sub_case_v1(test_suite_id, test_conf_id, item_conf_id, job_list, base_index):
+    def save_item_sub_case_v1(test_suite_id, conf, item_conf_id, base_index):
+        job_list = list(conf.get('job_list'))
+        test_conf_id = conf.get('conf_id')
         base_job_id = job_list.pop(base_index)
         base_is_baseline = base_job_id.get('is_baseline', 0)
         if base_is_baseline:
@@ -432,16 +434,19 @@ class ReportService(CommonService):
         ReportItemSubCase.objects.bulk_create(item_sub_case_list)
 
     @staticmethod
-    def save_item_metric_v1(test_suite_id, test_conf_id, item_conf_id, job_list, base_index):
+    def save_item_metric_v1(test_suite_id, conf, item_conf_id, base_index):
+        job_list = list(conf.get('job_list'))
+        test_conf_id = conf.get('conf_id')
         base_job_id = job_list.pop(base_index)
         base_is_baseline = base_job_id.get('is_baseline', 0)
         job_id = base_job_id.get('job_id')
+        metric_list = [metric.get('metric') for metric in conf.get('metric_list')]
         if base_is_baseline:
             perf_results = PerfBaselineDetail.objects.filter(baseline_id=job_id, test_suite_id=test_suite_id,
-                                                             test_case_id=test_conf_id)
+                                                             test_case_id=test_conf_id, metric__in=metric_list)
         else:
             perf_results = PerfResult.objects.filter(test_job_id=job_id, test_suite_id=test_suite_id,
-                                                     test_case_id=test_conf_id)
+                                                     test_case_id=test_conf_id, metric__in=metric_list)
         item_metric_list = list()
         job_id_list = [job.get('job_id') for job in job_list if job.get('is_baseline', 0) == 0]
         base_id_list = [job.get('job_id') for job in job_list if job.get('is_baseline', 0) == 1]
