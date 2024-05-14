@@ -268,9 +268,8 @@ class JobTestService(CommonService):
             test_job_case = TestJobCase.objects.filter(job_id__in=job_id_list)
             report_obj = ReportObjectRelation.objects.filter(object_id__in=job_id_list)
             for row_data in rows:
-                self._get_test_res(clould_server_shot, collect_job_set, create_name_map, fun_result, func_view_config,
-                                   product_name_map, project_name_map, report_obj, res, row_data, test_job_case,
-                                   test_server_shot, test_type_map)
+                self._get_test_res(collect_job_set, create_name_map, func_view_config, product_name_map,
+                                   project_name_map, res, row_data, test_type_map)
             total = 0
             query_total = """
             SELECT COUNT(id) FROM test_job WHERE is_deleted=0 {} ORDER BY id DESC""".format(extend_sql)
@@ -280,15 +279,16 @@ class JobTestService(CommonService):
                 total = rows[0][0]
         return res, total
 
-    def _get_test_res(self, clould_server_shot, collect_job_set, create_name_map, fun_result, func_view_config,
-                      product_name_map, project_name_map, report_obj, res, row_data, test_job_case, test_server_shot,
-                      test_type_map):
+    def _get_test_res(self, collect_job_set, create_name_map, func_view_config, product_name_map, project_name_map,
+                      res, row_data, test_type_map):
         job_id = row_data[0]
         creator = row_data[9]
         project_id = row_data[7]
         product_id = row_data[8]
         server_provider = row_data[16]
         creator_name = self.get_expect_name(User, create_name_map, creator)
+        report_li = self.get_report_li(job_id, create_name_map)
+        tag_li = self.get_tag_li(job_id)
         res.append({
             'id': job_id,
             'name': row_data[1],
@@ -314,7 +314,8 @@ class JobTestService(CommonService):
             'product_name': self.get_expect_name(Product, product_name_map, product_id),
             'server': self.get_job_server(server_provider, job_id),
             'collection': True if job_id in collect_job_set else False,
-            'report_li': self.get_report_li(job_id, create_name_map)
+            'report_li': report_li,
+            'tag_list': tag_li
         })
 
     @staticmethod
@@ -347,6 +348,18 @@ class JobTestService(CommonService):
             'gmt_created': datetime.strftime(report.gmt_created, "%Y-%m-%d %H:%M:%S"),
         } for report in report_queryset]
         return report_li
+
+    def get_tag_li(self, job_id):
+        tags = list()
+        tag_id_list = JobTagRelation.objects.filter(job_id=job_id).values_list('tag_id', flat=True)
+        if tag_id_list:
+            tags = [{
+                'id': tag.id,
+                'name': tag.name,
+                'description': tag.description,
+                'tag_color': tag.tag_color
+            } for tag in JobTag.objects.filter(id__in=tag_id_list)]
+        return tags
 
     @staticmethod
     def get_expect_name(target_model, name_map, target_id):
