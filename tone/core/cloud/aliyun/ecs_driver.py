@@ -47,6 +47,7 @@ class EcsDriver(BaseDriver):
             return []
 
     def get_zones(self, region=None):
+        zone_info_list = None
         try:
             request = DescribeZonesRequest()
             response = self.client.do_action_with_exception(request)
@@ -55,15 +56,16 @@ class EcsDriver(BaseDriver):
                 {
                     'name': item['LocalName'],
                     'id': item['ZoneId'],
-                    'available_disk_categories': item['AvailableResources']['ResourcesInfo'][0]
-                    ['DataDiskCategories']['supportedDataDiskCategory'],
+                    'available_disk_categories': item['AvailableResources']['ResourcesInfo'][0]['DataDiskCategories']
+                    ['supportedDataDiskCategory'] if len(item['AvailableResources']['ResourcesInfo']) > 0 else list(),
                     'available_system_disk_categories': item['AvailableResources']['ResourcesInfo'][0]
                     ['SystemDiskCategories']['supportedSystemDiskCategory']
+                    if len(item['AvailableResources']['ResourcesInfo']) > 0 else list()
                 }
                 for item in zone_info_list
             ]
         except Exception as e:
-            logger.error('ecs sdk get_zones failed: {}'.format(str(e)))
+            logger.error('ecs sdk get_zones failed: {}, {}'.format(str(e), str(zone_info_list)))
             return []
 
     def get_images(self, instance_type=None):
