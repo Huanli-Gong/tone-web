@@ -111,9 +111,9 @@ def conversion_data(data):  # noqa: C901
         tags = list()
         tag_li = data.get('tags').split(',')
         for tag in tag_li:
-            if not JobTag.objects.filter(name=tag, ws_id=ws_id).exists():
+            if not JobTag.objects.filter(name__iexact=tag, ws_id=ws_id).exists():
                 raise ValueError(ErrorCode.TAG_NONEXISTENT)
-            tags.append(JobTag.objects.get(name=tag, ws_id=ws_id).id)
+            tags.append(JobTag.objects.get(name__iexact=tag, ws_id=ws_id).id)
         data['tags'] = tags
 
     if data.get('test_config') and isinstance(data.get('test_config'), list):
