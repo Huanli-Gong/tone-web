@@ -453,7 +453,7 @@ class OfflineDataUploadService(object):
                 test_case = TestCase.objects.filter(short_name=case_short_name, test_suite_id=test_suite.id).first()
                 if not test_case:
                     return 201, 'case [%s] not exist error.' % case_short_name
-                result_file = filename.split(case_short_name)[1][1:]
+                result_file = filename.split('/')[-1]
                 local_dir = '%s%d/%s_%d/%s' % (MEDIA_ROOT, test_job_id, case_short_name, _timestamp, result_file)
                 if not os.path.exists(local_dir.rsplit('/', 1)[0]):
                     os.makedirs(local_dir.rsplit('/', 1)[0])
