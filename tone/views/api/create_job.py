@@ -281,3 +281,20 @@ def get_server_tag_list(request):
     queryset = ServerTag.objects.filter(ws_id=ws_id).values_list('name', flat=True)
     resp.data = list(queryset)
     return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def get_cluster_list(request):
+    data = request.GET
+    ws_id = data.get('ws_id')
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    provider = data.get('provider')
+    assert provider, ValueError(ErrorCode.PROVIDER_NEED)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    resp = CommResp()
+    queryset = TestCluster.objects.filter(ws_id=ws_id, cluster_type=provider, is_occpuied=0,
+                                          occupied_job_id__isnull=True).values_list('name', flat=True).distinct()
+    resp.data = list(queryset)
+    return resp.json_resp()
