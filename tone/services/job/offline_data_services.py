@@ -371,6 +371,9 @@ class OfflineDataUploadService(object):
                 suite_dict['cases'] = case_list
                 if not any(d['test_suite'] == test_suite.id for d in test_config):
                     test_config.append(suite_dict)
+        if not test_config:
+            code = 201
+            msg = 'suite或conf数据获取失败，检查配置文件或系统中已导入对应的用例数据'
         return code, msg, test_config
 
     def handle_result_file(self, baseline_id, tar_file, test_job_id, test_type, req_ip, test_config, server_type,
