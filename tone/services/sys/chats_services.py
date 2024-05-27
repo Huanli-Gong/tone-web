@@ -6,19 +6,24 @@ from django.db.models import Q
 from django.db import transaction
 from django.utils import timezone
 
-from tone.core.common.constant import PREPARE_STEP_STAGE_MAP, STEP_TIMEOUT_DICT
+
 from tone.core.common.enums.content_enums import ContentEnums
-from tone.core.common.enums.job_enums import JobState
+
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.msg_notice import get_skip_url, SimpleMsgHandle
-from tone.core.common.oss_client import alg_oss, aly_oss
-from tone.core.common.redis_cache import runner_v2_redis_cache, redis_cache
-from tone.core.utils.common_utils import query_all_dict, get_ip_by_server_key, get_server
+from tone.core.common.enums.job_enums import JobState
+# from tone.core.common.constant import PREPARE_STEP_STAGE_MAP, STEP_TIMEOUT_DICT
+# from tone.core.common.oss_client import alg_oss, aly_oss
+# from tone.core.common.redis_cache import runner_v2_redis_cache
+# from tone.core.utils.common_utils import get_ip_by_server_key, get_server
+# from tone.models import TestSubJob, TestSubJobStep
+# from tone.core.utils.tone_thread import ToneThread
+from tone.core.common.redis_cache import redis_cache
+from tone.core.utils.common_utils import query_all_dict
 from tone.core.common.services import CommonService
 from tone.core.utils.config_parser import stopwords
-from tone.core.utils.tone_thread import ToneThread
-from tone.models import TestJob, WorkspaceMember, RoleMember, Role, TestSubJob, TestSuite, CloudServer, TestSubJobStep, \
-    TestJobCase, TestCase, BaseConfig, User
+from tone.models import TestJob, WorkspaceMember, RoleMember, Role, TestSuite, CloudServer, TestJobCase, TestCase, \
+    BaseConfig, User
 from tone.models.sys.chats_models import ChatsProblemAnswerRelation, ChatsAnswer, ChatsProblem, ChatsKeyword, \
     ChatsProblemKeywordRelation, ChatsCollection
 
