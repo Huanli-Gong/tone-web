@@ -213,6 +213,12 @@ class ErrorCode(Enum):
     OLD_PASSWORD_ERROR = ("1-19-012", "旧密码输入错误", "", "无", "")
     PASSWORD_SAME_TO_OLD_ERROR = ("1-19-013", "新密码不能与旧密码一致", "", "无", "")
     INT_NEED_ERROR = ("1-19-014", "分页参数必须为整型", "", "无", "")
+    ILLEGALITY_PARAM_ERROR = ("1-19-015", "非法参数", "", "无", "")
+    PROBLEM_ID_MISSING = ("1-20-001", 'problem_id不存在', "", "", "")
+    ANSWER_ID_MISSING = ("1-20-002", 'answer_id不存在', "", "", "")
+    CONTENTS_ID_MISSING = ("1-20-003", 'contents_id不存在', "", "", "")
+    PROBLEM_MISSING = ("1-20-004", '问题描述不能为空', "", "", "")
+    JOB_NOT_RUN_MISSING = ("1-20-005", "该job无执行记录", "", "无", "")
 
     @property
     def code(self):

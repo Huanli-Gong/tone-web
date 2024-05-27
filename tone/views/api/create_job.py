@@ -221,7 +221,7 @@ def get_server(server_ip, provider, run_mode, ws):
     elif provider == 'aliyun' and run_mode == 'standalone':
         if not CloudServer.objects.filter(private_ip=server_ip, ws_id=ws).exists():
             raise ValueError(ErrorCode.SERVER_NOT_EXISTS)
-        return CloudServer.objects.get(private_ip=server_ip, ws_id=ws).id
+        return CloudServer.objects.filter(private_ip=server_ip, ws_id=ws).last().id
     elif run_mode == 'cluster':
         if not TestCluster.objects.filter(name=server_ip, ws_id=ws).exists():
             raise ValueError(ErrorCode.CLUSTER_NOT_EXISTS)
