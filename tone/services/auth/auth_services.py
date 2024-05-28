@@ -162,9 +162,9 @@ class UserService(CommonService):
         if role_id and operator:
             # 当前角色可以设置的角色
             if Role.objects.filter(title__in=SYS_ROLE_MAP.get(role.title), id=role_id).exists():
-                role_member.update(role_id=role_id)
+                RoleMember.objects.filter(user_id=user_id).update(role_id=role_id)
                 # 被设置系统角色, 发送消息到被操作人
-            user_role = Role.objects.filter(id=role_member.first().role_id).first()
+            user_role = Role.objects.filter(id=role_member.role_id).first()
             InSiteMsgHandle().by_update_sys_role(operator, user_id, user_role.title)
         return True, '修改成功'
 
