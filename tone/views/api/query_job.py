@@ -407,6 +407,17 @@ def get_job_info_list(request):
               "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND " \
               "A.product_id=B.id  AND A.project_id=C.id AND " \
               " A.creator=F.id AND A.ws_id=%s"
+    if tag_name:
+        raw_sql = "SELECT DISTINCT A.id, A.name AS job_name,A.state,A.start_time,A.end_time,A.test_type," \
+                  "A.test_result, B.name AS product_name,C.name AS project_name,A.project_id," \
+                  "F.username AS creator FROM " \
+                  "test_job A, product B, project C, user F, job_tag E, job_tag_relation G " \
+                  "WHERE A.is_deleted=0 AND B.is_deleted=0 AND C.is_deleted=0 AND " \
+                  "E.is_deleted=0 AND G.is_deleted=0 AND " \
+                  "A.product_id=B.id  AND A.project_id=C.id AND " \
+                  "A.creator=F.id AND A.ws_id=%s AND " \
+                  "E.id=G.tag_id AND G.job_id=A.id AND E.name=%s"
+        params.append(tag_name)
     if product_name:
         raw_sql += " AND B.name=%s "
         params.append(product_name)
