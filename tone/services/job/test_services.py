@@ -911,6 +911,9 @@ class JobTestCasePerResultService(CommonService):
         q &= Q(test_job_id=job_id)
         q &= Q(test_suite_id=suite_id)
         q &= Q(test_case_id=case_id)
+        if data.get('metric'):
+            q &= Q(metric__contains=data.get('metric'))
+        q &= Q(sub_case_result=data.get('sub_case_result')) if data.get('sub_case_result') else q
         if data.get('compare_result'):
             if data.get('compare_result') == 'na':
                 # queryset.exclude(compare_result__in=['increase', 'decline', 'normal', 'invalid'])

@@ -317,26 +317,9 @@ class JobTestCasePerResultView(CommonAPIView):
         """
         获取JobCaseResult
         """
-        querysets = self.service.filter(self.get_queryset(), request.GET)
-        datas = self.get_per_result_data(querysets)
-        response_data = self.get_response_only_for_data(datas)
+        queryset = self.service.filter(self.get_queryset(), request.GET)
+        response_data = self.get_response_data(queryset)
         return Response(response_data)
-
-    def get_per_result_data(self, querysets):
-        thread_tasks = []
-        per_result_list = []
-        for query in querysets:
-            per_result = PerfResult.objects.filter(id=query.id)
-            thread_tasks.append(
-                ToneThread(self.get_serializer_data, (per_result, True, False))
-            )
-            thread_tasks[-1].start()
-        for thread_task in thread_tasks:
-            thread_task.join()
-            per_result_data = thread_task.get_result()
-            per_result_list.append(per_result_data)
-        datas = [case.get('data')[0] for case in per_result_list if case.get('data')]
-        return datas
 
 
 class JobTestCaseVersionView(CommonAPIView):
