@@ -4,6 +4,7 @@ import shlex
 from django.db import connection
 from tone.core.common.expection_handler.custom_error import JobTestException
 from tone.core.common.expection_handler.error_code import ErrorCode
+from tone.models import BaseConfig
 
 
 def list_shlex_data(shlex_data, list_equal_sign, list_equal_sign_index, list_connect_equal_sign_tuple,
@@ -166,3 +167,14 @@ def parse_env_info_by_delimiter(original_env_data, delimiter='\n'):
         item_list = item.split('=', 1)
         env_data[item_list[0]] = item_list[1]
     return env_data
+
+
+def get_warning_msg_ding_token(is_high_priority=False):
+    if is_high_priority:
+        ding_token_config = BaseConfig.objects.filter(config_type='sys', config_key='HIGH_PRIORITY_NOTICE').first()
+    else:
+        ding_token_config = BaseConfig.objects.filter(config_type='sys', config_key='LOW_PRIORITY_NOTICE').first()
+    if not ding_token_config:
+        return ""
+    ding_token = ding_token_config.config_value
+    return ding_token

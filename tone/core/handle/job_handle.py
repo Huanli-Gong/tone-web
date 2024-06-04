@@ -422,7 +422,7 @@ class JobDataHandle(BaseHandle):
                         else:
                             server_object = CloudServer.objects.filter(template_name=self.default_server)
                     if server_object.exists():
-                        return server_object.first().id
+                        return server_object.last().id
             else:
                 return case.server_object_id
 

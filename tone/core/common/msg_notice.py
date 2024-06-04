@@ -349,6 +349,28 @@ class SimpleMsgHandle(object):
         return True
 
     @staticmethod
+    def chats_suggest_warning(subject, content, msg_link, ding_to, at_all=False):
+        # 用意见反馈钉钉消息通知
+        msg_pic = 'https://icons.iconarchive.com/icons/paomedia/small-n-flat/1024/sign-check-icon.png'
+        send_type = 'markdown'
+        if not OutSiteMsg.objects.filter(
+                subject=subject,
+                send_to=ding_to,
+                send_by=SendByChoices.DING_TALK,
+                send_type=send_type
+        ).exists():
+            OutSiteMsg.objects.create(
+                subject=subject,
+                content=content,
+                send_to=ding_to,
+                send_by=SendByChoices.DING_TALK,
+                send_type=send_type,
+                msg_link=msg_link,
+                msg_pic=msg_pic,
+                extend_info={'at_all': at_all}
+            )
+
+    @staticmethod
     def plan_handle(message_obj, message_key):
         """
         计划结果消息处理
@@ -638,6 +660,12 @@ class OutSiteMsgHandle(object):
             analytics_task = JobTagRelation.objects.filter(tag_id__in=analytics_tag).values_list('job_id')
             nightly_task_list = JobTagRelation.objects.filter(tag_id__in=tag_id_list, job_id__in=analytics_task
                                                               ).exclude(job_id=job_obj.id).values_list('job_id')
+            if job_obj.test_type == 'performance':
+                nightly_task_list = TestJob.objects.filter(id__in=nightly_task_list, project_id=job_obj.project_id,
+                                                           server_provider=job_obj.server_provider).values_list('id')
+            else:
+                nightly_task_list = TestJob.objects.filter(id__in=nightly_task_list,
+                                                           project_id=job_obj.project_id).values_list('id')
             last_task_id = PerfResult.objects.values('test_job_id').filter(test_job_id__in=nightly_task_list
                                                                            ).order_by('-gmt_created').first()
             last_perf_result = PerfResult.objects.filter(test_job_id=last_task_id['test_job_id']).order_by('-cv_value')

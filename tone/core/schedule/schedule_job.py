@@ -203,9 +203,9 @@ def batch_create_job():
 def clear_timeout_job():
     raw_sql = "SELECT a.id FROM test_job a LEFT JOIN job_tag_relation b ON a.id=b.job_id LEFT JOIN job_tag c" \
               " ON b.tag_id=c.id WHERE a.is_deleted=0 AND b.is_deleted=0 AND c.is_deleted=0 AND " \
-              "((c.name='keep_three_months' AND TIMESTAMPDIFF(MONTH, a.gmt_created, NOW()) > 3) OR " \
-              "(c.name='keep_six_months' AND TIMESTAMPDIFF(MONTH, a.gmt_created, NOW()) > 6) OR " \
-              "(c.name='keep_one_year' AND TIMESTAMPDIFF(MONTH, a.gmt_created, NOW()) > 12))"
+              "((c.name='keep_three_months' AND TIMESTAMPDIFF(DAY, a.gmt_created, NOW()) > 90) OR " \
+              "(c.name='keep_six_months' AND TIMESTAMPDIFF(DAY, a.gmt_created, NOW()) > 180) OR " \
+              "(c.name='keep_one_year' AND TIMESTAMPDIFF(DAY, a.gmt_created, NOW()) > 365))"
     job_res_list = query_all_dict(raw_sql, params=None)
     job_id_list = [job_id['id'] for job_id in job_res_list]
     if job_id_list:

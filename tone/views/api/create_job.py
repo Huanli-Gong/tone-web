@@ -111,9 +111,9 @@ def conversion_data(data):  # noqa: C901
         tags = list()
         tag_li = data.get('tags').split(',')
         for tag in tag_li:
-            if not JobTag.objects.filter(name=tag, ws_id=ws_id).exists():
+            if not JobTag.objects.filter(name__iexact=tag, ws_id=ws_id).exists():
                 raise ValueError(ErrorCode.TAG_NONEXISTENT)
-            tags.append(JobTag.objects.get(name=tag, ws_id=ws_id).id)
+            tags.append(JobTag.objects.get(name__iexact=tag, ws_id=ws_id).id)
         data['tags'] = tags
 
     if data.get('test_config') and isinstance(data.get('test_config'), list):
@@ -221,7 +221,7 @@ def get_server(server_ip, provider, run_mode, ws):
     elif provider == 'aliyun' and run_mode == 'standalone':
         if not CloudServer.objects.filter(private_ip=server_ip, ws_id=ws).exists():
             raise ValueError(ErrorCode.SERVER_NOT_EXISTS)
-        return CloudServer.objects.get(private_ip=server_ip, ws_id=ws).id
+        return CloudServer.objects.filter(private_ip=server_ip, ws_id=ws).last().id
     elif run_mode == 'cluster':
         if not TestCluster.objects.filter(name=server_ip, ws_id=ws).exists():
             raise ValueError(ErrorCode.CLUSTER_NOT_EXISTS)
@@ -279,5 +279,22 @@ def get_server_tag_list(request):
         assert None, ValueError(ErrorCode.PERMISSION_ERROR)
     resp = CommResp()
     queryset = ServerTag.objects.filter(ws_id=ws_id).values_list('name', flat=True)
+    resp.data = list(queryset)
+    return resp.json_resp()
+
+
+@api_catch_error
+@token_required
+def get_cluster_list(request):
+    data = request.GET
+    ws_id = data.get('ws_id')
+    assert ws_id, ValueError(ErrorCode.WS_NEED)
+    provider = data.get('provider')
+    assert provider, ValueError(ErrorCode.PROVIDER_NEED)
+    if not check_ws_operator_permission(request.GET.get('username', None), ws_id):
+        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    resp = CommResp()
+    queryset = TestCluster.objects.filter(ws_id=ws_id, cluster_type=provider, is_occpuied=0,
+                                          occupied_job_id__isnull=True).values_list('name', flat=True).distinct()
     resp.data = list(queryset)
     return resp.json_resp()

@@ -323,3 +323,31 @@ RESULT_INFO_MAP = {
         "***No space left on device***": "磁盘空间不足，请清理磁盘空间后重新添加。"
     }
 }
+
+
+STEP_TIMEOUT_DICT = {
+    "precheck": 600,
+    "build_package": 3600,
+    "init_cloud": 1800,
+    "deploy_agent": 1800,
+    "initial": 300,
+    "install_rpm_before_reboot": 3600,
+    "script_before_reboot": 600,
+    "reboot": 600,
+    "script_before_install_kernel": 600,
+    "install_kernel": 600,
+    "install_hotfix": 3600,
+    "script_after_install_kernel": 3600,
+    "reboot_for_install_kernel": 700,
+    "check_kernel_install": 600,
+    "install_rpm_after_reboot": 3600,
+    "script_after_reboot": 600,
+    "prepare": 1200,
+    "reboot_before_suite": 600,
+    "script_before_suite": 600,
+    "reboot_before_case": 600,
+    "script_before_case": 600,
+    "script_after_case": 600,
+    "script_after_suite": 600,
+    "job_cleanup": 800
+}

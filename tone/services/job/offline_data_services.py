@@ -371,6 +371,9 @@ class OfflineDataUploadService(object):
                 suite_dict['cases'] = case_list
                 if not any(d['test_suite'] == test_suite.id for d in test_config):
                     test_config.append(suite_dict)
+        if not test_config:
+            code = 201
+            msg = 'suite或conf数据获取失败，检查配置文件或系统中已导入对应的用例数据'
         return code, msg, test_config
 
     def handle_result_file(self, baseline_id, tar_file, test_job_id, test_type, req_ip, test_config, server_type,
@@ -450,7 +453,7 @@ class OfflineDataUploadService(object):
                 test_case = TestCase.objects.filter(short_name=case_short_name, test_suite_id=test_suite.id).first()
                 if not test_case:
                     return 201, 'case [%s] not exist error.' % case_short_name
-                result_file = filename.split(case_short_name)[1][1:]
+                result_file = filename.split('/')[-1]
                 local_dir = '%s%d/%s_%d/%s' % (MEDIA_ROOT, test_job_id, case_short_name, _timestamp, result_file)
                 if not os.path.exists(local_dir.rsplit('/', 1)[0]):
                     os.makedirs(local_dir.rsplit('/', 1)[0])

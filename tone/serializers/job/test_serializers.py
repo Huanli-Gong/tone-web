@@ -5,7 +5,7 @@ Date:
 Author: Yfh
 """
 import urllib.parse as urlparse
-from datetime import datetime
+import datetime
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -167,7 +167,7 @@ class JobTestSummarySerializer(CommonSerializer):
                 'name': report.name,
                 'creator': report.creator,
                 'creator_name': self.get_creator_name(report),
-                'gmt_created': datetime.strftime(report.gmt_created, "%Y-%m-%d %H:%M:%S"),
+                'gmt_created': datetime.datetime.strftime(report.gmt_created, "%Y-%m-%d %H:%M:%S"),
             } for report in report_queryset]
         return report_li
 
@@ -264,8 +264,18 @@ class JobTestSummarySerializer(CommonSerializer):
         tags = [tag.tag_id for tag in JobTagRelation.objects.filter(job_id=obj.id)]
         for tag in tags:
             if JobTag.objects.filter(id=tag).exists():
-                tag_list.append({'id': JobTag.objects.get(id=tag).id, 'name': JobTag.objects.get(id=tag).name,
-                                 'color': JobTag.objects.get(id=tag).tag_color})
+                job_tag = JobTag.objects.filter(id=tag).first()
+                time_keep_to = ''
+                if job_tag.name == 'keep_three_months':
+                    time_keep_to = obj.gmt_created + datetime.timedelta(days=90)
+                elif job_tag.name == 'keep_six_months':
+                    time_keep_to = obj.gmt_created + datetime.timedelta(days=180)
+                elif job_tag.name == 'keep_one_year':
+                    time_keep_to = obj.gmt_created + datetime.timedelta(days=365)
+                if time_keep_to:
+                    time_keep_to = datetime.datetime.strftime(time_keep_to, "%Y-%m-%d")
+                tag_list.append({'id': job_tag.id, 'name': job_tag.name,
+                                 'color': job_tag.tag_color, 'time_keep_to': time_keep_to})
         return tag_list
 
     @staticmethod
@@ -320,8 +330,8 @@ class JobTestProcessSuiteSerializer(CommonSerializer):
                     'state': step.state,
                     'result': step.result,
                     'tid': step.tid,
-                    'gmt_created': datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
-                    'gmt_modified': datetime.strftime(step.gmt_modified,
+                    'gmt_created': datetime.datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
+                    'gmt_modified': datetime.datetime.strftime(step.gmt_modified,
                                                       "%Y-%m-%d %H:%M:%S") if step.state != 'running' else None
                 })
         return step_li
@@ -434,8 +444,8 @@ class JobTestProcessCaseSerializer(CommonSerializer):
                     'stage': test_step.stage,
                     'result': test_step.result,
                     'tid': test_step.tid,
-                    'gmt_created': datetime.strftime(test_step.gmt_created, "%Y-%m-%d %H:%M:%S"),
-                    'gmt_modified': datetime.strftime(test_step.gmt_created, "%Y-%m-%d %H:%M:%S"),
+                    'gmt_created': datetime.datetime.strftime(test_step.gmt_created, "%Y-%m-%d %H:%M:%S"),
+                    'gmt_modified': datetime.datetime.strftime(test_step.gmt_created, "%Y-%m-%d %H:%M:%S"),
                 })
         return step
 
@@ -509,9 +519,9 @@ class JobTestResultSerializer(CommonSerializer):
                 'suite_name': test_suite.name,
                 'test_type': test_type,
                 'note': suite.note,
-                'start_time': datetime.strftime(suite.start_time,
+                'start_time': datetime.datetime.strftime(suite.start_time,
                                                 "%Y-%m-%d %H:%M:%S") if suite.start_time else None,
-                'end_time': datetime.strftime(suite.end_time, "%Y-%m-%d %H:%M:%S") if suite.end_time else None,
+                'end_time': datetime.datetime.strftime(suite.end_time, "%Y-%m-%d %H:%M:%S") if suite.end_time else None,
                 'creator': test_job.creator,
                 'business_name': business_name,
             }
@@ -551,9 +561,9 @@ class JobTestResultSerializer(CommonSerializer):
                     'suite_name': test_suite.name,
                     'test_type': test_type,
                     'note': suite.note,
-                    'start_time': datetime.strftime(suite.start_time,
+                    'start_time': datetime.datetime.strftime(suite.start_time,
                                                     "%Y-%m-%d %H:%M:%S") if suite.start_time else None,
-                    'end_time': datetime.strftime(suite.end_time, "%Y-%m-%d %H:%M:%S") if suite.end_time else None,
+                    'end_time': datetime.datetime.strftime(suite.end_time, "%Y-%m-%d %H:%M:%S") if suite.end_time else None,
                     'creator': test_job.creator,
                     'business_name': business_name
                 }
@@ -891,8 +901,8 @@ def insert_standalone(step, server_step, provider):
             'server_id': step.server,
             'server_description': get_check_server_ip(step.server, provider,
                                                       return_field='description') if step.server.isdigit() else "",
-            'gmt_created': datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
-            'gmt_modified': datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
+            'gmt_created': datetime.datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
+            'gmt_modified': datetime.datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
             if step.state != 'running' else None
         })
     else:
@@ -905,8 +915,8 @@ def insert_standalone(step, server_step, provider):
             'server_description': get_check_server_ip(step.server, provider,
                                                       return_field='description') if step.server.isdigit() else "",
             'tid': step.tid,
-            'gmt_created': datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
-            'gmt_modified': datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
+            'gmt_created': datetime.datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
+            'gmt_modified': datetime.datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
             if step.state != 'running' else None
         }]
 
@@ -954,8 +964,8 @@ def insert_cluster(server_step, provider, step, data_list):
                 'result': step.result,
                 'tid': step.tid,
                 'log_file': step.log_file,
-                'gmt_created': datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
-                'gmt_modified': datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
+                'gmt_created': datetime.datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
+                'gmt_modified': datetime.datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
                 if step.state != JobState.RUNNING else None,
             }
             if cluster_name in server_step['cluster']:
@@ -983,7 +993,7 @@ def get_test_type(obj):
 
 
 def get_time(time):
-    return datetime.strftime(time, "%Y-%m-%d %H:%M:%S") if time else None
+    return datetime.datetime.strftime(time, "%Y-%m-%d %H:%M:%S") if time else None
 
 
 class JobSerializerForAPI(CommonSerializer):

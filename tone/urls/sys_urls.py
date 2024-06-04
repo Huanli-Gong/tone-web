@@ -1,7 +1,7 @@
 from django.urls import path
 
 from tone.views.sys import workspace_views, log_views, kernel_views, product_views, base_config_views, \
-    interface_token_view, help_doc_views, dashboard_views
+    interface_token_view, help_doc_views, dashboard_views, chats_views
 
 urlpatterns = [
     # ws
@@ -59,4 +59,12 @@ urlpatterns = [
     path('workspace/check/', workspace_views.WorkspaceCheckView.as_view(), name='workspace_check'),
     path('ws_data_list/', dashboard_views.WorkspaceListDataView.as_view(), name='workspace_data_list'),
     path('workspace/change_job_project/', dashboard_views.ChangeJobProjectView.as_view(), name='change_job_project'),
+
+    # 助手
+    path('chats/problem/', chats_views.ChatsProblemView.as_view(), name='chats_problem'),
+    path('chats/answer/', chats_views.ChatsAnswerView.as_view(), name='chats_answer'),
+    path('chats/query/', chats_views.ChatsQueryView.as_view(), name='chats_query'),
+    path('chats/check/', chats_views.ChatsCheakView.as_view(), name='chats_check'),
+    path('chats/collect/', chats_views.ChatsCollectView.as_view(), name='chats_collect'),
+    path('chats/config/', chats_views.ChatsConfigView.as_view(), name='chats_config'),
 ]
