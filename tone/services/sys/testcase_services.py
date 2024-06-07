@@ -423,6 +423,12 @@ class TestSuiteService(CommonService):
         test_suite = TestSuite.objects.filter(id=pk)
         if test_suite.first() is None:
             return False, 'suite not existed.'
+        if data.get('name'):
+            test_framework = get_config_from_db('TEST_FRAMEWORK', 'tone')
+            suite = TestSuite.objects.filter(name=data.get('name'), test_framework=test_framework).exclude(
+                id=pk).exists()
+            if suite:
+                return False, ErrorCode.SUITE_EXISTS.to_api
         update_data = dict()
         self.update_owner(data)
         for field in allow_modify_fields:
