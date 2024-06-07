@@ -415,9 +415,6 @@ class TestSuiteService(CommonService):
     def update(self, data, pk):
         # domain兼容多选
         domain_list = list()
-        domain_list_str = data.get('domain_list_str')
-        if domain_list_str:
-            domain_list = [int(domain) for domain in domain_list_str.split(',')]
         allow_modify_fields = ['name', 'test_type', 'run_mode', 'doc', 'description', 'owner', 'is_default',
                                'view_type', 'certificated']
         test_suite = TestSuite.objects.filter(id=pk)
@@ -440,10 +437,13 @@ class TestSuiteService(CommonService):
         test_suite.update(**update_data)
         TestCase.objects.filter(test_suite_id=pk).update(is_default=data.get('is_default'))
         TestCase.objects.filter(test_suite_id=pk).update(certificated=data.get('certificated'))
-        # 更新domain关系
-        DomainRelation.objects.filter(object_type='suite', object_id=pk).delete()
-        [DomainRelation.objects.create(object_type='suite', object_id=pk, domain_id=domain_id
-                                       ) for domain_id in domain_list]
+        domain_list_str = data.get('domain_list_str')
+        if domain_list_str:
+            domain_list = [int(domain) for domain in domain_list_str.split(',')]
+            # 更新domain关系
+            DomainRelation.objects.filter(object_type='suite', object_id=pk).delete()
+            [DomainRelation.objects.create(object_type='suite', object_id=pk, domain_id=domain_id
+                                           ) for domain_id in domain_list]
         return True, test_suite.first()
 
     @staticmethod
