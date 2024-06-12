@@ -649,7 +649,7 @@ def get_job_baseline_server(job_id, case_id):
     test_job = TestJob.objects.filter(id=job_id).first()
     test_job_case = TestJobCase.objects.filter(job_id=job_id, test_case_id=case_id).first()
     if test_job and test_job_case:
-        machine, _ = get_run_server(test_job_case, test_job.runner_version)
+        machine, _ = get_run_server(test_job_case)
         server_provider = test_job_case.server_provider
         return server_provider, machine
     else:
@@ -916,8 +916,8 @@ class PerfBaselineService(CommonService):
                 create_list.append(create_data)
             else:
                 update_dict.setdefault(str(perf_detail[0].id), create_data)
-            self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
-                                           desc)
+        self._add_perf_baseline_detail(job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
+                                       desc)
 
     def _add_perf_baseline_detail(self, job_id, suite_id, case_id, create_list, update_dict, test_job, baseline_id,
                                   desc):
