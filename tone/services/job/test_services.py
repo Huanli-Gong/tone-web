@@ -21,7 +21,7 @@ from threading import Thread
 from tone import settings
 
 from tone.core.common.callback import CallBackType, JobCallBack
-from tone.core.utils.common_utils import query_all_dict
+from tone.core.utils.common_utils import query_all_dict, execute_sql
 from tone.core.common.enums.job_enums import JobCaseState, JobState
 from tone.core.common.enums.ts_enums import TestServerState
 from tone.core.common.info_map import get_result_map
@@ -117,15 +117,19 @@ class JobTestService(CommonService):
         collection_jobs = JobCollection.objects.filter(user_id=operator)
         collect_job_set = set(collection_jobs.values_list('job_id', flat=True))
         query_sql = []
+        sql_params = []
         if data.get('tab') == 'my' or data.get('my_job'):
-            query_sql.append('AND creator="{}"'.format(operator))
+            query_sql.append('AND creator=%s')
+            sql_params.append(operator)
         if data.get('tab') == 'collection' or data.get('collection'):
             if collect_job_set:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in collect_job_set)))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple([job_id for job_id in collect_job_set]))
             else:
                 return res, 0
         if data.get('name'):
-            query_sql.append('AND name LIKE "%{}%"'.format(data.get('name').replace('_', '\_').replace('%', '\%')))
+            query_sql.append('AND name LIKE %s')
+            sql_params.append('%' + data.get('name').replace('_', '\_').replace('%', '\%') + '%')
         if data.get('job_id'):
             job_id = data.get('job_id')
             if isinstance(job_id, int):
@@ -133,7 +137,8 @@ class JobTestService(CommonService):
             else:
                 if not job_id.isdigit():
                     job_id = 0
-            query_sql.append('AND id="{}"'.format(job_id))
+            query_sql.append('AND id=%s')
+            sql_params.append(str(job_id))
         if data.get('state'):
             input_state_list = data.get('state').split(',')
             if 'pass' in input_state_list:
@@ -142,9 +147,11 @@ class JobTestService(CommonService):
             if 'pending' in state_list:
                 state_list.append('pending_q')
             if len(state_list) == 1:
-                query_sql.append('AND state="{}"'.format(state_list[0]))
+                query_sql.append('AND state=%s')
+                sql_params.append(state_list[0])
             else:
-                query_sql.append('AND state IN {}'.format(tuple(state_list)))
+                query_sql.append('AND state IN %s')
+                sql_params.append(tuple(state_list))
         if data.get('search'):
             # 模糊搜索只包含以下维度：job_id, job_name, 创建人名字，job类型
             search = data.get('search')
@@ -152,43 +159,25 @@ class JobTestService(CommonService):
             user_ids = [user['id'] for user in users]
             job_types = JobType.objects.filter(name=search).values('id')
             job_type_ids = [job_type['id'] for job_type in job_types]
-            search_sql = 'name LIKE "%{0}%" OR id like "%{0}%" '.format(search)
+            search_sql = 'name LIKE %s OR id like %s '
+            sql_params.append('%' + search + '%')
+            sql_params.append('%' + search + '%')
             if user_ids:
-                search_sql += 'OR creator IN ({}) '.format(','.join(str(user_id) for user_id in user_ids))
+                search_sql += 'OR creator IN %s '
+                sql_params.append(tuple([user_id for user_id in user_ids]))
             if job_type_ids:
-                search_sql += 'OR job_type_id IN ({})'.format(','.join(str(type_id) for type_id in job_type_ids))
+                search_sql += 'OR job_type_id IN %s'
+                sql_params.append(tuple([type_id for type_id in job_type_ids]))
             query_sql.append(f'AND ({search_sql})')
         if data.get('test_suite'):
             test_suite = json.loads(data.get('test_suite'))
-            test_suites = TestJobSuite.objects.filter(test_suite_id__in=test_suite).values('job_id')
-            job_ids = [test_suite['job_id'] for test_suite in test_suites]
-            if job_ids:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
-            else:
-                query_sql.append('AND id=0')
-        if data.get('server'):
-            server = data.get('server')
-            server_objs = TestServerSnapshot.objects.filter(ip=server)
-            cloud_server_objs = CloudServerSnapshot.objects.filter(private_ip=server)
-            id_li = list(set([obj.job_id for obj in server_objs]) | set([obj.job_id for obj in cloud_server_objs]))
-            if id_li:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in id_li)))
-            else:
-                query_sql.append('AND id=0')
-        if data.get('tags'):
-            tags = json.loads(data.get('tags'))
-            job_tags = JobTagRelation.objects.filter(tag_id__in=tags).values('job_id')
-            job_ids = [job_tag['job_id'] for job_tag in job_tags]
-            if job_ids:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
-            else:
-                query_sql.append('AND id=0')
-        if data.get('fail_case'):
-            fail_case = data.get('fail_case').split(',')
-            fail_cases = FuncResult.objects.filter(sub_case_name__in=fail_case, sub_case_result=2)
-            job_ids = [fail_case.test_job_id for fail_case in fail_cases]
-            if job_ids:
-                query_sql.append('AND id IN ({})'.format(','.join(str(job_id) for job_id in job_ids)))
+            test_suite_id_list = TestSuite.objects.filter(name__in=test_suite, query_scope='all'). \
+                values_list('id', flat=True)
+            if test_suite_id_list and TestJobSuite.objects.filter(test_suite_id__in=test_suite_id_list).exists():
+                job_ids = TestJobSuite.objects.filter(test_suite_id__in=test_suite_id_list). \
+                    values_list('job_id', flat=True)
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_ids))
             else:
                 query_sql.append('AND id=0')
         if data.get('test_conf'):
@@ -199,84 +188,117 @@ class JobTestService(CommonService):
                 test_cases = TestJobCase.objects.filter(test_case_id__in=test_case_ids).values('job_id').distinct()
                 job_ids = [test_case['job_id'] for test_case in test_cases]
             if job_ids:
-                query_sql.append('AND id IN ({})').format(','.join(str(job_id) for job_id in job_ids))
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple([job_id for job_id in job_ids]))
+            else:
+                query_sql.append('AND id=0')
+        if data.get('server'):
+            server = data.get('server')
+            server_objs = TestServerSnapshot.objects.filter(Q(ip=server) | Q(sn=server))
+            cloud_server_objs = CloudServerSnapshot.objects.filter(Q(private_ip=server) | Q(sn=server))
+            job_case = TestJobCase.objects.filter(server_ip=server)
+            id_li = list(set([obj.job_id for obj in server_objs]) | set([obj.job_id for obj in cloud_server_objs]) |
+                         set([obj.job_id for obj in job_case]))
+            if id_li:
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in id_li))
+            else:
+                query_sql.append('AND id=0')
+        if data.get('tags'):
+            tags = json.loads(data.get('tags'))
+            job_tags = JobTagRelation.objects.filter(tag_id__in=tags).values('job_id')
+            job_ids = [job_tag['job_id'] for job_tag in job_tags]
+            if job_ids:
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in job_ids))
+            else:
+                query_sql.append('AND id=0')
+        if data.get('fail_case'):
+            fail_case = data.get('fail_case').split(',')
+            fail_cases = FuncResult.objects.filter(sub_case_name__in=fail_case, sub_case_result=2)
+            job_ids = [fail_case.test_job_id for fail_case in fail_cases]
+            if job_ids:
+                query_sql.append('AND id IN %s')
+                sql_params.append(tuple(job_id for job_id in job_ids))
             else:
                 query_sql.append('AND id=0')
         if data.get('creation_time'):
             creation_time = data.get('creation_time')
             creation_time = json.loads(creation_time)
             start_time, end_time = self.check_time_fmt(creation_time)
-            query_sql.append('AND start_time BETWEEN "{}" AND "{}"'.format(start_time, end_time))
+            query_sql.append('AND start_time BETWEEN %s AND %s')
+            sql_params.append(start_time)
+            sql_params.append(end_time)
         if data.get('completion_time'):
             completion_time = data.get('completion_time')
             completion_time = json.loads(completion_time)
             start_time, end_time = self.check_time_fmt(completion_time)
             end_state = tuple(['stop', 'fail', 'success'])
             query_sql.append(
-                'AND end_time BETWEEN "{}" AND "{}" AND state IN {}'.format(start_time, end_time, end_state))
+                'AND end_time BETWEEN %s AND %s AND state IN %s'.format(start_time, end_time, end_state))
+            sql_params.append(start_time)
+            sql_params.append(end_time)
+            sql_params.append(end_state)
         if data.get('filter_id'):
-            query_sql.append('AND NOT id IN ({})'.format(data.get('filter_id')))
+            query_sql.append('AND NOT id IN (%s)')
+            sql_params.append(data.get('filter_id'))
         if data.get('creators'):
             creators = json.loads(data.get('creators'))
-            query_sql.append('AND creator IN ({})'.format(','.join(str(creator) for creator in creators)))
+            query_sql.append('AND creator IN %s')
+            sql_params.append(tuple(creator for creator in creators))
         if data.get('test_type') or pass_test_type:
             test_type = data.get('test_type') if data.get('test_type') else pass_test_type
-            query_sql.append('AND test_type="{}"'.format(test_type))
+            query_sql.append('AND test_type=%s')
+            sql_params.append(test_type)
         filter_fields = ['project_id', 'job_type_id', 'product_id', 'server_provider', 'product_version',
                          'ws_id']
         for filter_field in filter_fields:
             if data.get(filter_field):
-                query_sql.append('AND {}="{}"'.format(filter_field, data.get(filter_field)))
+                query_sql.append('AND {}=%s'.format(filter_field))
+                sql_params.append(data.get(filter_field).strip())
         extend_sql = ' '.join(query_sql)
         func_view_config = BaseConfig.objects.filter(config_type='ws', ws_id=data.get('ws_id'),
                                                      config_key='FUNC_RESULT_VIEW_TYPE').first()
-        with connection.cursor() as cursor:
-            search_sql = """
-            SELECT 
-            A.id,
-            A.name,
-            A.ws_id,
-            A.state,
-            A.state_desc,
-            A.test_type,
-            A.test_result,
-            A.project_id,
-            A.product_id,
-            A.creator,
-            A.callback_api,
-            A.start_time,
-            A.end_time,
-            A.gmt_created,
-            A.report_name,
-            A.report_template_id,
-            A.server_provider,
-            A.product_version,
-            A.created_from, A.baseline_id
-            FROM test_job A
-            RIGHT JOIN (
-            SELECT id FROM test_job
-            WHERE is_deleted=0 and ws_id='{}' {} ORDER BY id DESC LIMIT {}, {}) B
-            ON A.id=B.id ORDER BY B.id DESC
-            """.format(data.get('ws_id'), extend_sql, (page_num - 1) * page_size, page_size)
-
-            cursor.execute(search_sql)
-            rows = cursor.fetchall()
-            job_id_list = [row_data[0] for row_data in rows]
-            test_server_shot = TestServerSnapshot.objects.filter(job_id__in=job_id_list)
-            clould_server_shot = CloudServerSnapshot.objects.filter(job_id__in=job_id_list)
-            fun_result = FuncResult.objects.filter(test_job_id__in=job_id_list)
-            test_job_case = TestJobCase.objects.filter(job_id__in=job_id_list)
-            report_obj = ReportObjectRelation.objects.filter(object_id__in=job_id_list)
-            for row_data in rows:
-                self._get_test_res(collect_job_set, create_name_map, func_view_config, product_name_map,
-                                   project_name_map, res, row_data, test_type_map)
-            total = 0
-            query_total = """
-            SELECT COUNT(id) FROM test_job WHERE is_deleted=0 {} ORDER BY id DESC""".format(extend_sql)
-            cursor.execute(query_total)
-            rows = cursor.fetchall()
-            if rows:
-                total = rows[0][0]
+        search_sql = """
+                SELECT 
+                A.id,
+                A.name,
+                A.ws_id,
+                A.state,
+                A.state_desc,
+                A.test_type,
+                A.test_result,
+                A.project_id,
+                A.product_id,
+                A.creator,
+                A.callback_api,
+                A.start_time,
+                A.end_time,
+                A.gmt_created,
+                A.report_name,
+                A.report_template_id,
+                A.server_provider,
+                A.product_version,
+                A.created_from,
+                A.baseline_id
+                FROM test_job A
+                RIGHT JOIN (
+                SELECT id FROM test_job
+                WHERE is_deleted=0 {} ORDER BY id DESC LIMIT {}, {}) B
+                ON A.id=B.id ORDER BY B.id DESC
+                """.format(extend_sql, (page_num - 1) * page_size, page_size)
+        if not data.get('ws_id'):
+            search_sql = search_sql.replace("and ws_id='None'", '')
+        rows = execute_sql(search_sql, sql_params)
+        for row_data in rows:
+            self._get_test_res(collect_job_set, create_name_map, func_view_config,
+                               product_name_map, project_name_map, res, row_data, test_type_map)
+        total = 0
+        query_total = """
+                            SELECT COUNT(id) FROM test_job WHERE is_deleted=0 {} ORDER BY id DESC""".format(extend_sql)
+        rows = execute_sql(query_total, sql_params)
+        if rows:
+            total = rows[0][0]
         return res, total
 
     def _get_test_res(self, collect_job_set, create_name_map, func_view_config, product_name_map, project_name_map,

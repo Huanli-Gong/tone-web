@@ -25,6 +25,7 @@ class JobTagService(CommonService):
         q &= Q(update_user=data.get('update_user')) if data.get('update_user') else q
         q &= Q(tag_color=data.get('tag_color')) if data.get('tag_color') else q
         q &= Q(description__icontains=data.get('description')) if data.get('description') else q
+        q &= Q(source_tag=data.get('source_tag')) if data.get('source_tag') else q
         return sorted(queryset.filter(q), key=lambda x: (0 if not x.creator else 1, -x.id))
 
     def update(self, data, operator):

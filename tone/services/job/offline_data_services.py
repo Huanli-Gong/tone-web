@@ -20,7 +20,7 @@ from tone.core.utils.sftp_client import sftp_client
 from tone.models.job.upload_models import OfflineUpload
 from tone.models.job.job_models import TestJob, TestJobCase, TestJobSuite, TestStep, Project
 from tone.models.sys.testcase_model import TestSuite, TestCase, TestMetric
-from tone.models.sys.server_models import TestServer, TestServerSnapshot, CloudServer, CloudServerSnapshot,\
+from tone.models.sys.server_models import TestServer, TestServerSnapshot, CloudServer, CloudServerSnapshot, \
     TestCluster, TestClusterServer
 from tone.models.job.result_models import FuncResult, PerfResult, ResultFile
 from tone.models.sys.baseline_models import PerfBaselineDetail
@@ -28,6 +28,7 @@ from tone.core.common.constant import OFFLINE_DATA_DIR, RESULTS_DATA_DIR
 from tone.settings import MEDIA_ROOT
 from tone.services.job.test_services import JobTestService
 from tone.core.common.job_result_helper import get_test_config, patch_job_state
+from django.conf import settings
 
 
 class OfflineDataUploadService(object):
@@ -56,8 +57,8 @@ class OfflineDataUploadService(object):
             if projects:
                 q &= Q(project_id__in=list(projects))
         if data.get('start_time') and data.get('end_time'):
-            end_time = (datetime.datetime.strptime(data.get('end_time'), "%Y-%m-%d") +
-                        datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+            end_time = (datetime.datetime.strptime(data.get('end_time'), "%Y-%m-%d") + datetime.timedelta(days=1)). \
+                strftime("%Y-%m-%d")
             q &= Q(gmt_created__range=(data.get('start_time'), end_time))
         return queryset.filter(q)
 
