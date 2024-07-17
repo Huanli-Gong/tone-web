@@ -289,7 +289,7 @@ class TestSuiteService(CommonService):
             view_type_list = data.get('view_type').split(',')
             q &= Q(view_type__in=view_type_list)
         if data.get('scope'):
-            suite_id_list = TestCase.objects.all().values_list('test_suite_id', flat=True)
+            suite_id_list = TestCase.objects.all().values_list('test_suite_id', flat=True).distinct()
             q &= Q(id__in=suite_id_list)
         return q
 

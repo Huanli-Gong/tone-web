@@ -215,3 +215,19 @@ class ReportItemDescView(CommonAPIView):
         """
         self.service.update_report_item_desc(request.data)
         return Response(self.get_response_code())
+
+
+class ReportProductVersionView(CommonAPIView):
+    serializer_class = ReportSerializer
+    queryset = Report.objects.all()
+    service_class = ReportService
+    permission_classes = []
+
+    @method_decorator(views_catch_error)
+    def get(self, request):
+        """
+        创建测试报告
+        """
+        res_list = self.service.get_report_product_version(request.GET)
+        response_data = self.get_response_only_for_data(res_list)
+        return Response(response_data)
