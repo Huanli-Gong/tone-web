@@ -187,8 +187,8 @@ def get_job_count(job_id, baseline_id, test_type):
         job_case_dict = dict()
         for job_case_count in job_case_list:
             key = str(job_case_count['test_suite_id']) + '_' + str(job_case_count['test_case_id'])
-            na = job_case_count['total'] - job_case_count['increase'] - job_case_count['decline'] - \
-                 job_case_count['normal'] - job_case_count['invalid']
+            na = (job_case_count['total'] - job_case_count['increase'] - job_case_count['decline']) - \
+                 (job_case_count['normal'] - job_case_count['invalid'])
             job_case_dict[key] = dict(
                 {
                     'count': job_case_count['total'],
@@ -556,8 +556,8 @@ def job_log_query(request):
 
 
 def get_job_case_logs(result_dict, job_case, job_log_files):
-    result_files = [log for log in job_log_files if log[0] == job_case.test_suite_id and
-                    log[1] == job_case.test_case_id]
+    result_files = [log for log in job_log_files
+                    if log[0] == job_case.test_suite_id and log[1] == job_case.test_case_id]
     key = str(job_case.test_suite_id) + '_' + str(job_case.test_case_id)
     result_dict[key] = list()
     for result_file in result_files:
