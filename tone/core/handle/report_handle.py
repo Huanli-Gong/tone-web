@@ -1010,64 +1010,6 @@ def get_item_data_list(tmpl_id, test_type):
     return pack_item_data(item_data_map)
 
 
-def pack_group_name(item_name_list, pack_data):
-    if len(item_name_list) > 1:
-        if 'group_data' in pack_data:
-            pack_data['group_data'] = {'group_name': item_name_list[0],
-                                       'group_data': None}
-        else:
-            pack_data = {'group_name': item_name_list[0],
-                         'group_data': {}}
-        return self.pack_group_name(item_name_list[1:], pack_data)
-    else:
-        if 'group_data' in pack_data:
-            pack_data['group_data'] = {'group_name': item_name_list[0],
-                                       'group_data': {'item_name': item_name_list[0],
-                                                      'test_suite_list': []}}
-        else:
-            pack_data = {'name': item_name_list[0],
-                         'test_suite_list': []}
-        return pack_data
-
-
-def trans_data(group_name_map):
-    result = list()
-    parent_dic = {}
-    for group_name in group_name_map.keys():
-        # 多级分组, 目前支持到三级
-        if ':' in group_name:
-            parent_name = group_name.split(':')[0]
-            son_name = ':'.join(group_name.split(':')[1:])
-            if parent_name in parent_dic:
-                parent_dic[parent_name].append({
-                    son_name: group_name_map[group_name]
-                })
-            else:
-                parent_dic[parent_name] = [{
-                    son_name: group_name_map[group_name]
-                }]
-        else:
-            result.append({
-                'name': group_name,
-                'is_group': True,
-                'list': group_name_map[group_name]
-            })
-    for tmp in parent_dic:
-        tmp_dict = {'name': tmp,
-                    'is_group': True,
-                    'list': []}
-        son_list = parent_dic[tmp]
-        for son_tmp in son_list:
-            son_name = list(son_tmp.keys())[0]
-            tmp_dict['list'].append({
-                'name': son_name,
-                'is_group': True,
-                'list': son_tmp[son_name]
-            })
-        result.append(tmp_dict)
-    return result
-
-
 def init_list(son_list, new_list):
     for son in son_list:
         if son.son_list:

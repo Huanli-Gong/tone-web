@@ -45,7 +45,7 @@ class JobCallBack(object):
         log_info = f'api:{self.api} | method:{self.method} | ' \
                    f'callback_type:{self.callback_type} | ' \
                    f'data:{self.data} | result:{success},{res}'
-        logger.info(f'--- callback request info ---')
+        logger.info('--- callback request info ---')
         logger.info(log_info)
         return success, res
 
