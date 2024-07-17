@@ -5,7 +5,9 @@ Date:
 Author:
 """
 
-from tone.core.handle.report_handle import *
+from datetime import datetime
+from tone.core.handle.report_handle import get_template_conf, get_template_func_item, get_template_perf_item, \
+    get_perf_data, get_func_data, get_report_template, get_old_report
 from rest_framework import serializers
 from tone.core.common.serializers import CommonSerializer
 from tone.models import User, Project, CompareForm, ReportDetail, BaseConfig, ReportItem
