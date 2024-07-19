@@ -303,22 +303,22 @@ class PerfAnalysisService(CommonService):
 def package_job_info(job_value, job_id_list, job_list, provider_env):
     if job_value and job_value.get('job_id') not in job_id_list:
         job_list.append({
-                    'job_id': job_value.get('job_id'),
-                    'job_name': job_value.get('job_name'),
-                    'start_time': job_value.get('start_time'),
-                    'end_time': job_value.get('end_time'),
-                    'commit_id': job_value.get('commit_id'),
-                    'creator': job_value.get('creator'),
-                    'server': job_value.get('server'),
-                    'server_id': job_value.get('server_id'),
-                    'exists': job_value.get('exists'),
-                    'value': job_value.get('value'),
-                    'cv_value': job_value.get('cv_value'),
-                    'note': job_value.get('note'),
-                    'result_obj_id': job_value.get('result_obj_id'),
-                    'creator_id': job_value.get('creator_id'),
-                    'server_provider': provider_env
-                })
+            'job_id': job_value.get('job_id'),
+            'job_name': job_value.get('job_name'),
+            'start_time': job_value.get('start_time'),
+            'end_time': job_value.get('end_time'),
+            'commit_id': job_value.get('commit_id'),
+            'creator': job_value.get('creator'),
+            'server': job_value.get('server'),
+            'server_id': job_value.get('server_id'),
+            'exists': job_value.get('exists'),
+            'value': job_value.get('value'),
+            'cv_value': job_value.get('cv_value'),
+            'note': job_value.get('note'),
+            'result_obj_id': job_value.get('result_obj_id'),
+            'creator_id': job_value.get('creator_id'),
+            'server_provider': provider_env
+        })
         job_id_list.append(job_value.get('job_id'))
 
 
