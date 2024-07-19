@@ -24,7 +24,7 @@ def check_admin_operator_permission(user_name):
     sys_role_id = RoleMember.objects.get(user_id=user.id).role_id
     sys_role = Role.objects.get(id=sys_role_id).title
     if sys_role not in ['super_admin', 'sys_admin', 'sys_test_admin']:
-            return False
+        return False
     return True
 
 
