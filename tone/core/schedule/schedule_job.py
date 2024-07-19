@@ -173,7 +173,7 @@ def auto_plan_report():
         except Exception as ex:
             logger.error(f'auto_plan_report error. ex is {ex}')
             PlanInstance.objects.filter(id=plan_instance.id).update(report_is_saved=1)
-    logger.info(f'auto_plan_report end now ...........')
+    logger.info('auto_plan_report end now ...........')
 
 
 def batch_create_job():
@@ -210,10 +210,10 @@ def clear_timeout_job():
     job_id_list = [job_id['id'] for job_id in job_res_list]
     if job_id_list:
         with transaction.atomic():
-            TestJob.objects.filter(id__in=job_id_list).delete(really_delete=True)
-            PerfResult.objects.filter(test_job_id__in=job_id_list).delete(really_delete=True)
-            FuncResult.objects.filter(test_job_id__in=job_id_list).delete(really_delete=True)
-            JobTagRelation.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
-            TestStep.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
-            TestJobCase.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
-            TestJobSuite.objects.filter(job_id__in=job_id_list).delete(really_delete=True)
+            TestJob.objects.filter(id__in=job_id_list, query_scope='all').delete(really_delete=True)
+            PerfResult.objects.filter(test_job_id__in=job_id_list, query_scope='all').delete(really_delete=True)
+            FuncResult.objects.filter(test_job_id__in=job_id_list, query_scope='all').delete(really_delete=True)
+            JobTagRelation.objects.filter(job_id__in=job_id_list, query_scope='all').delete(really_delete=True)
+            TestStep.objects.filter(job_id__in=job_id_list, query_scope='all').delete(really_delete=True)
+            TestJobCase.objects.filter(job_id__in=job_id_list, query_scope='all').delete(really_delete=True)
+            TestJobSuite.objects.filter(job_id__in=job_id_list, query_scope='all').delete(really_delete=True)
