@@ -774,8 +774,8 @@ class WorkspaceSelectService(CommonService):
         # 按照config_list_ws_id里面的顺序排列
         if config_list_ws_id:
             preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(config_list_ws_id)])
-            queryset = Workspace.objects.filter(Q(Q(id__in=config_list_ws_id) | Q(is_common=True)) &
-                                                Q(is_approved=True)).order_by(preserved)
+            queryset = Workspace.objects.filter(Q(Q(id__in=config_list_ws_id) | Q(is_common=True))
+                                                & Q(is_approved=True)).order_by(preserved)
             return queryset
         else:
             queryset = Workspace.objects.filter(is_common=True)
@@ -831,8 +831,8 @@ class AllWorkspaceService(CommonService):
         if config_list_ws_id:
             preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(config_list_ws_id)])
             # 查找出id在config_list_ws_id或通用的ws，并且审核通过的ws,根据preserved排序,定义为queryset_need_update
-            queryset_need_update = Workspace.objects.filter(Q(Q(id__in=config_list_ws_id) | Q(is_common=True)) &
-                                                            Q(is_approved=True)).order_by(preserved)
+            queryset_need_update = Workspace.objects.filter(Q(Q(id__in=config_list_ws_id) | Q(is_common=True))
+                                                            & Q(is_approved=True)).order_by(preserved)
             # 查找出不属于queryset_update并且非通用的ws，定义为queryset_no_need_update
             queryset_dont_need_update = Workspace.objects.filter(is_approved=True,
                                                                  is_common=False).exclude(id__in=queryset_need_update)

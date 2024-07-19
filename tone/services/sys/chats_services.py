@@ -211,7 +211,8 @@ class ChatsAnswerInfoService(CommonService):
         enable = data.get("enable")
         right_number = data.get("right_number")
         ChatsAnswer.objects.filter(id=answer_id).update(reason=reason, answer=answer, problem_type=problem_type,
-                                                        problem_attribution=problem_attribution, enable=enable, right_number=right_number)
+                                                        problem_attribution=problem_attribution, enable=enable,
+                                                        right_number=right_number)
         return True, None
 
     @staticmethod
@@ -483,7 +484,8 @@ class ChatsCheckInfoService(CommonService):
                         }
                         all_question_res.append(cur_question_res)
         if operator:
-            ChatsCollectInfoService.create({"contents": problem_desc, "contents_sources": ContentEnums.PROBLEM_SOURCES_CHOICES[0][0]}, operator, all_question_res)
+            ChatsCollectInfoService.create({"contents": problem_desc, "contents_sources":
+                ContentEnums.PROBLEM_SOURCES_CHOICES[0][0]}, operator, all_question_res)
         return True, all_question_res
 
 '''
