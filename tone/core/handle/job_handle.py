@@ -353,8 +353,8 @@ class JobDataHandle(BaseHandle):
                     'monitor_info': case.monitor_info,
                     'priority': case.priority,
                 })
-                    for case in template_cases if TestCase.objects.filter(id=case.test_case_id).exists() and
-                                                  TestSuite.objects.filter(id=case.test_suite_id).exists()]
+                    for case in template_cases if TestCase.objects.filter(id=case.test_case_id).exists() and TestSuite.
+                    objects.filter(id=case.test_suite_id).exists()]
         elif self.data_from == 'import':
             test_config = self.data.get('test_config')
             assert test_config, JobTestException(ErrorCode.TEST_CONF_NEED)

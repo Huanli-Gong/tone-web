@@ -41,8 +41,8 @@ def calc_job(job_id):
         na = total - count_dict.get('increase_count', 0) - count_dict.get('decline_count', 0) - count_dict.get(
             'normal_count', 0) - count_dict.get('invalid_count', 0)
         result = {'count': total, 'increase': count_dict.get('increase_count', 0), 'decline':
-            count_dict.get('decline_count', 0), 'normal': count_dict.get('normal_count', 0), 'invalid':
-                      count_dict.get('invalid_count', 0), 'na': na}
+                  count_dict.get('decline_count', 0), 'normal': count_dict.get('normal_count', 0), 'invalid':
+                  count_dict.get('invalid_count', 0), 'na': na}
     elif test_type == BUSINESS:
         job_case_queryset = TestJobCase.objects.filter(job_id=job_id)
         count = len(job_case_queryset)
@@ -87,7 +87,7 @@ def count_prefresult_state_num(job_id, test_suite_id=None, test_case_id=None):
         cursor.execute(search_sql)
         count = cursor.fetchall()
         for i in count:
-            count_dict[str(i[0])+'_count'] = i[1]
+            count_dict[str(i[0]) + '_count'] = i[1]
         total = sum(count_dict.values())
     return count_dict, total
 
@@ -123,8 +123,8 @@ def count_funcresult_state_num(job_id, test_suite_id=None, test_case_id=None):
         count = cursor.fetchall()
         for i in count:
             count_dict[str(i[0])] = i[1]
-        total = count_dict.get("1", 0) + count_dict.get("2", 0) + count_dict.get("3", 0) + count_dict.get("4", 0) + \
-                count_dict.get("5", 0) + count_dict.get("6", 0)
+        total = count_dict.get("1", 0) + count_dict.get("2", 0) + count_dict.get("3", 0) + count_dict.\
+            get("4", 0) + count_dict.get("5", 0) + count_dict.get("6", 0)
     return count_dict, total
 
 
@@ -215,7 +215,7 @@ def parse_func_result_v1(job_id, sub_case_result, match_baseline):
         SELECT COUNT(1) FROM func_result  WHERE test_job_id=%s AND sub_case_result=%s AND match_baseline=%s AND {}
     """.format(id_sql, id_sql, id_sql)
     result = execute_sql(search_sql, [job_id, job_id, job_id, job_id, sub_case_result, job_id, sub_case_result,
-                                         match_baseline])
+                                      match_baseline])
     if result and len(result) == 5:
         job_case_count, result_case_count, count_total, count_fail, count_no_match_baseline = \
             result[0][0], result[1][0], result[2][0], result[3][0], result[4][0]
@@ -742,7 +742,7 @@ def _get_cases_by_job_job_suite(test_job_id, job_cases, job_suite, detail_server
             'test_case': test_case_name,
             'setup_info': case.setup_info,
             'cleanup_info': case.cleanup_info,
-            'server_ip': ip,
+            'server_ip': ip if ip else '随机',
             'server_id': server_info.id if server_info else None,
             'server_description': get_job_case_run_server(case.id, return_field='description'),
             'is_instance': is_instance,
@@ -1214,8 +1214,8 @@ def get_suite_conf_metric_v1(suite_id, suite_name, base_index, group_list, suite
     thread_tasks = []
     for case_info in case_list:
         if base_is_baseline:
-            case_result_list = [result for result in baseline_result_list if result['test_case_id'] ==
-                                case_info['conf_id']]
+            case_result_list = [result for result in baseline_result_list
+                                if result['test_case_id'] == case_info['conf_id']]
         else:
             case_result_list = [result for result in job_result_list if result['test_case_id'] == case_info['conf_id']]
         for base_job_id in base_job_list.get('job_list'):
@@ -1652,8 +1652,8 @@ def get_job_state(test_job_id, test_type, state, func_view_config, state_second,
             if runner_version == 2:
                 state = state_second
             else:
-                job_case_count, result_case_count, count_total, count_fail, \
-                 count_no_match_baseline = parse_func_result_v1(test_job_id, 2, 0)
+                job_case_count, result_case_count, count_total, count_fail,  count_no_match_baseline = \
+                    parse_func_result_v1(test_job_id, 2, 0)
                 if count_total == 0 or job_case_count != result_case_count:
                     state = 'fail'
                     return state
