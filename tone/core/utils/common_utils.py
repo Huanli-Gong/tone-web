@@ -115,7 +115,7 @@ def execute_sql(sql, params=None):
                 cursor.execute(sql)
             rows = cursor.fetchall()
             return rows
-        except Exception as e:
+        except Exception:
             raise ValueError(ErrorCode.ILLEGALITY_PARAM_ERROR)
 
 
@@ -124,17 +124,19 @@ def kernel_info_format(kernel_info):
     # 原数据结构：{"kernel": "a.rpm", "devel": "b.rpm", "headers": "c.rpm", "hotfix_install": true}
     # 新数据结构：{"kernel_packages": ["a.rpm", "b.rpm", "c.rpm"], "hotfix_install": true}
     if not kernel_info or kernel_info.get('kernel_packages'):
+        if kernel_info.get('kernel_packages'):
+            kernel_info['kernel_packages'] = [kp.strip() for kp in kernel_info.get('kernel_packages')]
         return kernel_info
     new_kernel_info = {'kernel_packages': []}
     if kernel_info.get('kernel'):
-        new_kernel_info['kernel_packages'].append(kernel_info.get('kernel'))
+        new_kernel_info['kernel_packages'].append(kernel_info.get('kernel').strip())
     if kernel_info.get('devel'):
-        new_kernel_info['kernel_packages'].append(kernel_info.get('devel'))
+        new_kernel_info['kernel_packages'].append(kernel_info.get('devel').strip())
     if kernel_info.get('headers'):
-        new_kernel_info['kernel_packages'].append(kernel_info.get('headers'))
-    for name,value in kernel_info.items():
+        new_kernel_info['kernel_packages'].append(kernel_info.get('headers').strip())
+    for name, value in kernel_info.items():
         if name not in ['kernel', 'devel', 'headers']:
-            new_kernel_info[name] = value
+            new_kernel_info[name] = value.strip()
     return new_kernel_info
 
 
