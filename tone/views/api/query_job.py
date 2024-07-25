@@ -14,7 +14,8 @@ from tone.core.utils.common_utils import query_all_dict
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation, \
+    WorkspaceMember, User
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -343,11 +344,17 @@ def get_project(request):
 @api_catch_error
 @token_required
 def get_workspace(request):
-    if not check_admin_operator_permission(request.GET.get('username', None)):
-        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    ws_list = list()
     resp = CommResp()
-    queryset = Workspace.objects.all()
-    ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
+    if check_admin_operator_permission(request.GET.get('username', None)):
+        queryset = Workspace.objects.filter(is_approved=True)
+        ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
+    else:
+        user = User.objects.filter(username=request.GET.get('username', None)).first()
+        if user:
+            ws_id_list = WorkspaceMember.objects.filter(user_id=user.id).values_list('ws_id', flat=True).distinct()
+            queryset = Workspace.objects.filter(is_approved=True, id__in=ws_id_list)
+            ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
     resp.data = ws_list
     return resp.json_resp()
 
