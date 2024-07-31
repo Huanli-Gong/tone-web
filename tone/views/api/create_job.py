@@ -21,6 +21,7 @@ from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
 from tone.core.utils.permission_manage import check_ws_operator_permission
 from tone.serializers.job.test_serializers import JobSerializerForAPI
+from tone.core.common.job_result_helper import splice_job_link
 
 
 @api_catch_error
@@ -54,6 +55,7 @@ def job_create(request):
         job_data['job_id'] = test_job.id
         job_data['job_name'] = test_job.name
         job_data['test_type'] = test_job.test_type
+        job_data['job_link'] = splice_job_link(test_job)
     resp.data = job_data
     return resp.json_resp()
 
@@ -183,11 +185,11 @@ def conversion_data(data):  # noqa: C901
         else:
             kernel_info['kernel_packages'] = []
             if kernel_info_obj.kernel_link:
-                kernel_info['kernel_packages'].append(kernel_info_obj.kernel_link)
+                kernel_info['kernel_packages'].append(kernel_info_obj.kernel_link.strip())
             if kernel_info_obj.devel_link:
-                kernel_info['kernel_packages'].append(kernel_info_obj.devel_link)
+                kernel_info['kernel_packages'].append(kernel_info_obj.devel_link.strip())
             if kernel_info_obj.headers_link:
-                kernel_info['kernel_packages'].append(kernel_info_obj.headers_link)
+                kernel_info['kernel_packages'].append(kernel_info_obj.headers_link.strip())
             data['kernel_info'] = kernel_info
     else:
         data['kernel_info'] = kernel_info_format(data.get('kernel_info', dict()))

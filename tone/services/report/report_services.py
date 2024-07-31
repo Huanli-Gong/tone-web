@@ -634,6 +634,11 @@ class ReportService(CommonService):
                 report_item.desc = desc
                 report_item.save()
 
+    def get_report_product_version(self, data):
+        ws_id = data.get('ws_id')
+        return Report.objects.filter(ws_id=ws_id).exclude(product_version='').\
+            values_list('product_version', flat=True).distinct()
+
 
 def save_report_detail_suite(report_id, test_suite_id, data):
     report_detail = ReportDetail.objects.filter(report_id=report_id).first()

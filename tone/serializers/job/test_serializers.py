@@ -331,8 +331,8 @@ class JobTestProcessSuiteSerializer(CommonSerializer):
                     'result': step.result,
                     'tid': step.tid,
                     'gmt_created': datetime.datetime.strftime(step.gmt_created, "%Y-%m-%d %H:%M:%S"),
-                    'gmt_modified': datetime.datetime.strftime(step.gmt_modified,
-                                                      "%Y-%m-%d %H:%M:%S") if step.state != 'running' else None
+                    'gmt_modified': datetime.datetime.strftime(step.gmt_modified, "%Y-%m-%d %H:%M:%S")
+                    if step.state != 'running' else None
                 })
         return step_li
 
@@ -519,8 +519,8 @@ class JobTestResultSerializer(CommonSerializer):
                 'suite_name': test_suite.name,
                 'test_type': test_type,
                 'note': suite.note,
-                'start_time': datetime.datetime.strftime(suite.start_time,
-                                                "%Y-%m-%d %H:%M:%S") if suite.start_time else None,
+                'start_time': datetime.datetime.strftime(suite.start_time, "%Y-%m-%d %H:%M:%S")
+                if suite.start_time else None,
                 'end_time': datetime.datetime.strftime(suite.end_time, "%Y-%m-%d %H:%M:%S") if suite.end_time else None,
                 'creator': test_job.creator,
                 'business_name': business_name,
@@ -561,8 +561,8 @@ class JobTestResultSerializer(CommonSerializer):
                     'suite_name': test_suite.name,
                     'test_type': test_type,
                     'note': suite.note,
-                    'start_time': datetime.datetime.strftime(suite.start_time,
-                                                    "%Y-%m-%d %H:%M:%S") if suite.start_time else None,
+                    'start_time': datetime.datetime.strftime(suite.start_time, "%Y-%m-%d %H:%M:%S")
+                    if suite.start_time else None,
                     'end_time': datetime.datetime.strftime(suite.end_time, "%Y-%m-%d %H:%M:%S") if suite.end_time else None,
                     'creator': test_job.creator,
                     'business_name': business_name
@@ -721,12 +721,18 @@ class JobTestCaseResultSerializer(CommonSerializer):
                                                                 sub_case_name=obj.sub_case_name,
                                                                 impact_result=True).first()
                 if func_detail is not None:
+                    baseline_ids = FuncBaselineDetail.objects.filter(source_job_id=obj.test_job_id,
+                                                                     test_suite_id=obj.test_suite_id,
+                                                                     test_case_id=obj.test_case_id,
+                                                                     sub_case_name=obj.sub_case_name). \
+                        values_list('baseline_id', flat=True)
                     return {'server_provider': baseline_obj.server_provider,
                             'test_type': baseline_obj.test_type,
                             'test_suite_id': obj.test_suite_id,
                             'test_case_id': obj.test_case_id,
-                            'baseline_id': baseline_id,
-                            'sub_case_name': obj.sub_case_name
+                            'baseline_id': baseline_ids,
+                            'sub_case_name': obj.sub_case_name,
+                            'impact_result': func_detail.impact_result
                             }
             else:
                 func_detail = FuncBaselineDetail.objects.filter(source_job_id=obj.test_job_id,
@@ -735,14 +741,20 @@ class JobTestCaseResultSerializer(CommonSerializer):
                                                                 sub_case_name=obj.sub_case_name,
                                                                 impact_result=True).first()
                 if func_detail is not None:
+                    baseline_ids = FuncBaselineDetail.objects.filter(source_job_id=obj.test_job_id,
+                                                                     test_suite_id=obj.test_suite_id,
+                                                                     test_case_id=obj.test_case_id,
+                                                                     sub_case_name=obj.sub_case_name). \
+                        values_list('baseline_id', flat=True)
                     baseline_obj = Baseline.objects.filter(id=func_detail.baseline_id).first()
                     if baseline_obj is not None:
                         return {'server_provider': baseline_obj.server_provider,
                                 'test_type': baseline_obj.test_type,
                                 'test_suite_id': obj.test_suite_id,
                                 'test_case_id': obj.test_case_id,
-                                'baseline_id': func_detail.baseline_id,
-                                'sub_case_name': obj.sub_case_name
+                                'baseline_id': baseline_ids,
+                                'sub_case_name': obj.sub_case_name,
+                                'impact_result': func_detail.impact_result
                                 }
 
     @staticmethod

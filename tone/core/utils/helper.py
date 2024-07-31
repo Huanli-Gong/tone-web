@@ -192,7 +192,7 @@ class BaseObject(object):
                     result_dict[k] = []
             elif type(v) in (float, int, list, dict, None, tuple, str, str, bool, int) or v is None:
                 result_dict[k] = v
-            elif type(v) == datetime:
+            elif type(v) is datetime:
                 result_dict[k] = DateUtil.datetime_to_str(v)
             elif isinstance(v, ObjectDict):
                 result_dict[k] = v

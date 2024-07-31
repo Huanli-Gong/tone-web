@@ -326,7 +326,7 @@ class BaselineUploadService(CommonService):
         except tarfile.ReadError:
             code = ErrorCode.UPLOAD_FILE_FORMAT.code
             msg = ErrorCode.UPLOAD_FILE_FORMAT.to_api
-        except Exception as ex:
+        except Exception:
             code = 201
             msg = ''
         return code, msg, error_list

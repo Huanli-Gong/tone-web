@@ -72,10 +72,10 @@ def get_config_from_db(key, default=''):
 
 def get_chinese_stopwords():
     try:
-        doc_file1 = f'static/config/chinese_stopwords.txt'
+        doc_file1 = 'static/config/chinese_stopwords.txt'
         with open(doc_file1, 'r', encoding='utf-8') as f:
             stopword_set = set([line.strip() for line in f])
-    except Exception as err:
+    except Exception:
         stopword_set = set()
     return stopword_set
 

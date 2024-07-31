@@ -48,7 +48,7 @@ class ToneAgentRequest(object):
     def request(self, api, data, method='post'):
         self._data.update(data)
         self._sign()
-        url = '{domain}/{api}'.format(domain=self._domain, json=data, api=api)
+        url = '{domain}/{api}'.format(domain=self._domain, api=api)
         data = self._data
         try:
             if method == 'get':
@@ -125,7 +125,6 @@ class QueryTaskRequest(ToneAgentRequest):
 
     def send_request(self):
         return self.request(self._api, self._request_data)
-
 
 
 class RemoveAgentRequest(ToneAgentRequest):

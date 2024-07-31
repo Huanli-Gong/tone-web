@@ -116,4 +116,3 @@ class EciDriver(BaseDriver):
             raise AliYunException(msg=e.get_error_msg(), code=e.get_error_code())
         finally:
             AliYunNetwork(self.access_id, self.access_key, self.region, self.zone).release_eip_address(eip_addr)
-

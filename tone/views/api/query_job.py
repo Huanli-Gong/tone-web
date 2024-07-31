@@ -14,7 +14,8 @@ from tone.core.utils.common_utils import query_all_dict
 from tone import settings
 from tone.core.common.constant import FUNC_CASE_RESULT_TYPE_MAP, PERFORMANCE
 from tone.models import TestJob, TestJobCase, TestSuite, TestCase, PerfResult, FuncResult, JobType, Project, \
-    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation
+    Workspace, ResultFile, TestCluster, TestClusterServer, CloudServer, TestStep, Product, BatchJobRelation, \
+    WorkspaceMember, User
 from tone.core.utils.helper import CommResp
 from tone.core.common.expection_handler.error_code import ErrorCode
 from tone.core.common.expection_handler.error_catch import api_catch_error
@@ -187,8 +188,8 @@ def get_job_count(job_id, baseline_id, test_type):
         job_case_dict = dict()
         for job_case_count in job_case_list:
             key = str(job_case_count['test_suite_id']) + '_' + str(job_case_count['test_case_id'])
-            na = job_case_count['total'] - job_case_count['increase'] - job_case_count['decline'] - \
-                 job_case_count['normal'] - job_case_count['invalid']
+            na = (job_case_count['total'] - job_case_count['increase'] - job_case_count['decline']) - \
+                 (job_case_count['normal'] - job_case_count['invalid'])
             job_case_dict[key] = dict(
                 {
                     'count': job_case_count['total'],
@@ -343,11 +344,17 @@ def get_project(request):
 @api_catch_error
 @token_required
 def get_workspace(request):
-    if not check_admin_operator_permission(request.GET.get('username', None)):
-        assert None, ValueError(ErrorCode.PERMISSION_ERROR)
+    ws_list = list()
     resp = CommResp()
-    queryset = Workspace.objects.all()
-    ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
+    if check_admin_operator_permission(request.GET.get('username', None)):
+        queryset = Workspace.objects.filter(is_approved=True)
+        ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
+    else:
+        user = User.objects.filter(username=request.GET.get('username', None)).first()
+        if user:
+            ws_id_list = WorkspaceMember.objects.filter(user_id=user.id).values_list('ws_id', flat=True).distinct()
+            queryset = Workspace.objects.filter(is_approved=True, id__in=ws_id_list)
+            ws_list = [{'id': ws.id, 'name': ws.name} for ws in queryset]
     resp.data = ws_list
     return resp.json_resp()
 
@@ -556,8 +563,8 @@ def job_log_query(request):
 
 
 def get_job_case_logs(result_dict, job_case, job_log_files):
-    result_files = [log for log in job_log_files if log[0] == job_case.test_suite_id and
-                    log[1] == job_case.test_case_id]
+    result_files = [log for log in job_log_files
+                    if log[0] == job_case.test_suite_id and log[1] == job_case.test_case_id]
     key = str(job_case.test_suite_id) + '_' + str(job_case.test_case_id)
     result_dict[key] = list()
     for result_file in result_files:
