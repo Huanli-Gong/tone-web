@@ -53,11 +53,12 @@ class ChatsProblemKeywordRelation(BaseModel):
 class ChatsCollection(BaseModel):
     contents = models.CharField(max_length=1024, help_text='问题描述')
     status = models.CharField(max_length=64, choices=ContentEnums.PROBLEM_STATUS_CHOICES, default='Init',
-                              help_text='状态', db_index=True)
-    creator = models.IntegerField(help_text='创建者', null=True)
+                             help_text='状态', db_index=True)
+    creator = models.IntegerField(help_text='创建者', null=True, db_index=True)
     contents_sources = models.CharField(max_length=64, choices=ContentEnums.PROBLEM_SOURCES_CHOICES,
-                                        default='Collect', help_text='问题来源', db_index=True)
+                             default='Collect', help_text='问题来源', db_index=True)
     is_answered = models.BooleanField(default=False, help_text='是否有答案', db_index=True)
+    response = models.CharField(max_length=1024, help_text='回答', null=True)
 
     class Meta:
         db_table = 'chats_collection'

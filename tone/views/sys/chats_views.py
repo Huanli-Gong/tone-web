@@ -191,7 +191,7 @@ class ChatsQueryView(CommonAPIView):
     service_class = ChatsCheckInfoService
 
     @method_decorator(views_catch_error)
-    def get(self, request):
+    def get(self, request, model=True):
         """
         常见问题查询
         """
@@ -201,12 +201,22 @@ class ChatsQueryView(CommonAPIView):
             response_data['data'] = query_res
             response_data['total'] = total
         else:
-            success, query_res = self.service.chats_query(request.GET, operator=request.user.id)
-            if success:
-                response_data['data'] = query_res
-            else:
-                response_data = self.get_response_code(code=201, msg=query_res)
+            problem_desc = request.GET.get('problem')
+            if not problem_desc:
+                response_data = self.get_response_code(code=201, msg=ErrorCode.PROBLEM_MISSING.to_api)
                 response_data['data'] = None
+            else:
+                query_res = self.service.query_match(problem_desc)
+                if query_res:
+                    response_data['data'] = query_res
+                else:
+                    limit = request.GET.get("limit", 3)
+                    limit = int(limit) if str(limit).isdigit() else 1
+                    query_res = self.service.query_guess(problem_desc, limit)
+                    if model:
+                        response_data['data'] = self.service.generate_response(problem_desc, query_res, request.user.id)
+                    else:
+                        response_data['data'] = query_res
         return Response(response_data)
 
 

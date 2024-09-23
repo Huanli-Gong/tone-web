@@ -27,6 +27,15 @@ from tone.models import TestJob, WorkspaceMember, RoleMember, Role, TestSuite, C
 from tone.models.sys.chats_models import ChatsProblemAnswerRelation, ChatsAnswer, ChatsProblem, ChatsKeyword, \
     ChatsProblemKeywordRelation, ChatsCollection
 
+from tone.core.utils.config_parser import cp
+import dashscope
+from dashscope import TextEmbedding
+from datasets import load_from_disk
+import numpy as np
+from rank_bm25 import BM25Okapi
+import markdown
+
+dashscope.api_key=cp.get('dashscope_api_key')
 
 class ChatsProblemInfoService(CommonService):
     @staticmethod
@@ -211,8 +220,7 @@ class ChatsAnswerInfoService(CommonService):
         enable = data.get("enable")
         right_number = data.get("right_number")
         ChatsAnswer.objects.filter(id=answer_id).update(reason=reason, answer=answer, problem_type=problem_type,
-                                                        problem_attribution=problem_attribution, enable=enable,
-                                                        right_number=right_number)
+                                                        problem_attribution=problem_attribution, enable=enable, right_number=right_number)
         return True, None
 
     @staticmethod
@@ -260,9 +268,11 @@ class ChatsCollectInfoService(CommonService):
         # 添加反馈意见
         contents = data.get("contents")
         contents_sources = data.get("contents_sources", ContentEnums.PROBLEM_SOURCES_CHOICES[1][0])
+        response = data.get("response")
         is_answered = True if all_question_res else False
         collect_obj = ChatsCollection.objects.create(contents=contents, status="Init",
-                                    contents_sources=contents_sources, is_answered=is_answered, creator=operator)
+                                    contents_sources=contents_sources, is_answered=is_answered, creator=operator,
+                                                     response = response)
         if contents_sources == ContentEnums.PROBLEM_SOURCES_CHOICES[1][0]:
             # 意见反馈发送钉钉消息
             ChatsCollectInfoService.get_chats_msg_content(collect_obj.id, contents, operator)
@@ -386,6 +396,9 @@ class ChatsConfigInfoService(CommonService):
 
 
 class ChatsCheckInfoService(CommonService):
+    embeddings_dataset = load_from_disk('embeddings_dataset')
+    embeddings_dataset.add_faiss_index(column="embeddings")
+
     @staticmethod
     def chats_query_faq(page_num, page_size):
         all_question_res = []
@@ -431,7 +444,7 @@ class ChatsCheckInfoService(CommonService):
         #     FROM chats_keyword k
         #     JOIN chats_problem_keyword_relation pk ON k.id = pk.keyword_id
         #     JOIN chats_problem p ON p.id = pk.problem_id
-        #     WHERE p.is_deleted is False AND k.is_deleted is False AND pk.is_deleted is False
+        #     WHERE p.is_deleted is False AND k.is_deleted is False AND pk.is_deleted is False AND keyword != ''
         # """
         # problem_list = query_all_dict(sql)
         # redis缓存替代直接访问数据库
@@ -484,10 +497,219 @@ class ChatsCheckInfoService(CommonService):
                         }
                         all_question_res.append(cur_question_res)
         if operator:
-            ChatsCollectInfoService.create({"contents": problem_desc, "contents_sources":
-                ContentEnums.PROBLEM_SOURCES_CHOICES[0][0]}, operator, all_question_res)
+            ChatsCollectInfoService.create({"contents": problem_desc, "contents_sources": ContentEnums.PROBLEM_SOURCES_CHOICES[0][0]}, operator, all_question_res)
         return True, all_question_res
 
+    @staticmethod
+    def query_match(problem_desc):
+        question_res = []
+        problem_obj = ChatsProblem.objects.filter(problem=problem_desc)
+        if problem_obj:
+            problem = problem_obj.first()
+            question_res.append({
+                "problem_id": problem.id,
+                "problem": problem_desc,
+                "answers": ChatsAnswerInfoService.get_question_aswers(problem.id)
+            })
+        return question_res
+
+    @staticmethod
+    def query_guess(problem_desc, limit=1, keyword_cutoff=0, question_cutoff=0):
+        all_question_res = []
+        # 使用jieba进行智能分词
+        user_keywords = ChatsProblemInfoService.question_cut(problem_desc)
+        user_keywords_length = len(user_keywords)
+        sql = """
+            SELECT k.keyword, pk.problem_id, problem
+            FROM chats_keyword k
+            JOIN chats_problem_keyword_relation pk ON k.id = pk.keyword_id
+            JOIN chats_problem p ON p.id = pk.problem_id
+            WHERE p.is_deleted is False AND k.is_deleted is False AND pk.is_deleted is False AND keyword != ''
+        """
+        problem_list = query_all_dict(sql)
+        # redis缓存替代直接访问数据库
+        # problem_list = redis_cache.get('chats_problem_keyword')[1]
+        # 统计每个问题匹配到的关键字数量
+
+        sql = """
+                    SELECT keyword
+                    FROM chats_keyword
+                    WHERE is_deleted is False AND keyword != ''
+                """
+        keyword_list = query_all_dict(sql)
+        keyword_list = [_["keyword"] for _ in keyword_list]
+
+        tokenized_keywords = [ChatsProblemInfoService.question_cut(keyword) for keyword in keyword_list]
+        bm25 = BM25Okapi(tokenized_keywords)
+        scores = bm25.get_scores(user_keywords)
+        top_indices = np.argsort(-scores)[:user_keywords_length]
+        keyword_score = {keyword_list[i]: scores[i] for i in top_indices}
+
+        question_match_score = {}
+        for problem in problem_list:
+            if problem["keyword"] in keyword_score:
+                keyword = problem["keyword"]
+                problem_id = problem["problem_id"]
+                if keyword_score[keyword] > keyword_cutoff:
+                    question_match_score[problem_id] = question_match_score.get(problem_id, 0) + keyword_score[keyword]
+        question_match_score = {k: v for k, v in question_match_score.items() if v > question_cutoff}
+
+        # 查询所有问题答案
+        if question_match_score:
+            # 对问题进行排序，匹配关键字最多的问题优先级最高
+            sorted_questions = sorted(question_match_score.items(), key=lambda item: item[1], reverse=False)
+
+            if limit == 1:
+                sorted_questions = sorted_questions[:limit]
+            else:
+                match_questions_ids = []
+                # 如果匹配到的关键词数量等于用户输入问题的关键词数量，则优先级最高
+                for question_id, match_count in sorted_questions:
+                    if match_count == user_keywords_length:
+                        match_questions_ids.append(question_id)
+                match_questions_ids_length = len(match_questions_ids)
+                if match_questions_ids_length == 1:
+                    sorted_questions = sorted_questions[:1]
+                elif match_questions_ids_length > 1:
+                    sorted_questions = sorted_questions[:min(match_questions_ids_length, limit)]
+                else:
+                    sorted_questions = sorted_questions[:limit]
+
+            if len(sorted_questions) == 1:
+                problems = ChatsProblem.objects.filter(id=sorted_questions[0][0])
+                if problems:
+                    problem = problems.first()
+                    cur_question_res = {
+                        "problem_id": problem.id,
+                        "problem": problem_desc,
+                        "answers": ChatsAnswerInfoService.get_question_aswers(problem.id)
+                    }
+                    all_question_res.append(cur_question_res)
+            else:
+                for question_id, match_count in sorted_questions:
+                    problems = ChatsProblem.objects.filter(id=question_id)
+                    if problems:
+                        problem = problems.first()
+                        cur_question_res = {
+                            "problem_id": question_id,
+                            "problem": problem.problem
+                        }
+                        all_question_res.append(cur_question_res)
+        return all_question_res
+
+    @staticmethod
+    def generate_embeddings(docs):
+        rsp = TextEmbedding.call(
+            model=TextEmbedding.Models.text_embedding_v2,
+            input=docs
+        )
+        if rsp.output and 'embeddings' in rsp.output and rsp.output['embeddings']:
+            embeddings = [record['embedding'] for record in rsp.output['embeddings']]
+
+            # 转换成 NumPy 数组
+            embeddings_array = np.array(embeddings)
+
+            # 规范化每个嵌入向量到单位长度
+            norms = np.linalg.norm(embeddings_array, axis=1, keepdims=True)
+            norms[norms == 0] = 1
+            normalized_embeddings = embeddings_array / norms
+
+            return normalized_embeddings if isinstance(docs, list) else normalized_embeddings[0]
+        else:
+            print("Error: embeddings not found in response: ", rsp)
+            return None
+
+    @staticmethod
+    def search_relevant_docs(question, threshold=0, limit=1):
+        question_embedding = ChatsCheckInfoService.generate_embeddings(question)
+        scores, samples = ChatsCheckInfoService.embeddings_dataset.get_nearest_examples(
+            "embeddings", question_embedding, k=limit
+        )
+        result=[]
+        references=set()
+        for i in range(len(scores)):
+            if scores[i] > threshold:
+                references.add((samples['doc_id'][i],samples['title'][i]))
+                result.append(samples['chunk'][i])
+        return result,references
+
+    @staticmethod
+    def generate_response(problem_desc,query_res,operator=None):
+        messages = [{'role': 'system', 'content': '你是一个T-one（一站式自动化测试平台）社区的智能助手。用户在使用T-one社区时可能碰到一些情况并来咨询你，请帮用户解决问题。'}]
+        reference = None
+        if operator:
+            sql = f"""
+                        SELECT contents, response
+                        FROM chats_collection
+                        WHERE creator = {operator}
+                        ORDER BY `gmt_created` DESC
+                        LIMIT 5;
+                    """
+            chat_history = query_all_dict(sql)
+            for record in reversed(chat_history):
+                if record['response']:
+                    messages.append({'role': 'user', 'content': record['contents']})
+                    messages.append({'role': 'assistant', 'content': record['response']})
+        context = ""
+        problems=set()
+        for query in query_res:
+            problems.add(query['problem'])
+            context += f"问题: {query['problem']}\n"
+            if 'answers' in query:
+                for idx, answer in enumerate(query['answers'], start=1):
+                    context += f"原因{idx}: {answer['reason']}\n {answer['answer']}\n"
+                context += "\n"
+
+        if context:
+            if len(query_res)>1:
+                prompt = f'''用户对你说：{problem_desc}。
+                它可能遇到的问题和对应的原因在<context></context>中：
+                <context>
+                {context}
+                </context>
+                请根据以上信息引导用户说出它遇到的是context中的哪个问题。
+                当你输出{problems}中的内容时，请把它放在<problem></problem>中。
+                '''
+            else:
+                prompt = f'''用户对你说：{problem_desc}。
+                它可能遇到的问题和对应的原因在<context></context>中：
+                <context>
+                {context}
+                </context>
+                根据上述已知信息，简洁和专业的话语来回答用户的问题。
+                '''
+            response = dashscope.Generation.call(model="qwen-max",
+                                         messages=messages,
+                                         prompt=prompt,
+                                         )
+        else:
+            docs, ref = ChatsCheckInfoService.search_relevant_docs(problem_desc)
+
+            if docs:
+                prompt = f'''请基于```内的内容回答问题。"
+                	```
+                	{" ".join(docs)}
+                	```
+                	我的问题是：{problem_desc}。
+                    '''
+                response = dashscope.Generation.call(model="qwen-max",
+                                                     messages=messages,
+                                                     prompt=prompt,
+                                                     )
+                reference = ref
+            else:
+                messages.append({'role': 'user', 'content': problem_desc})
+                response = dashscope.Generation.call(model="qwen-max",
+                                                     messages=messages,
+                                                     )
+
+        assistant_output = response.output.text
+        if operator:
+            ChatsCollectInfoService.create({"contents": problem_desc, "contents_sources": ContentEnums.PROBLEM_SOURCES_CHOICES[0][0],'response':assistant_output}, operator)
+        output = markdown.markdown(assistant_output)
+        # for problem in sorted(problems, key=len, reverse=True):
+        #     output = output.replace(problem, f"<problem>{problem}</problem>")
+        return {'response':output, 'reference':reference}
 '''
     @staticmethod
     def self_check(data, operator):
