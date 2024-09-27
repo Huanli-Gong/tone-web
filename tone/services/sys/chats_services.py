@@ -621,7 +621,7 @@ class ChatsCheckInfoService(CommonService):
             return None
 
     @staticmethod
-    def search_relevant_docs(question, threshold=0, limit=1):
+    def search_relevant_docs(question, threshold=1, limit=1):
         question_embedding = ChatsCheckInfoService.generate_embeddings(question)
         scores, samples = ChatsCheckInfoService.embeddings_dataset.get_nearest_examples(
             "embeddings", question_embedding, k=limit
@@ -629,7 +629,7 @@ class ChatsCheckInfoService(CommonService):
         result=[]
         references=set()
         for i in range(len(scores)):
-            if scores[i] > threshold:
+            if scores[i] < threshold:
                 references.add((samples['doc_id'][i],samples['title'][i]))
                 result.append(samples['chunk'][i])
         return result,references
