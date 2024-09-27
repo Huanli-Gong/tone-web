@@ -575,26 +575,27 @@ class ChatsCheckInfoService(CommonService):
                 else:
                     sorted_questions = sorted_questions[:limit]
 
-            if len(sorted_questions) == 1:
-                problems = ChatsProblem.objects.filter(id=sorted_questions[0][0])
+            # if len(sorted_questions) == 1:
+            #     problems = ChatsProblem.objects.filter(id=sorted_questions[0][0])
+            #     if problems:
+            #         problem = problems.first()
+            #         cur_question_res = {
+            #             "problem_id": problem.id,
+            #             "problem": problem.problem,
+            #             "answers": ChatsAnswerInfoService.get_question_aswers(problem.id)
+            #         }
+            #         all_question_res.append(cur_question_res)
+            # else:
+            for question_id, match_count in sorted_questions:
+                problems = ChatsProblem.objects.filter(id=question_id)
                 if problems:
                     problem = problems.first()
                     cur_question_res = {
-                        "problem_id": problem.id,
-                        "problem": problem_desc,
+                        "problem_id": question_id,
+                        "problem": problem.problem,
                         "answers": ChatsAnswerInfoService.get_question_aswers(problem.id)
                     }
                     all_question_res.append(cur_question_res)
-            else:
-                for question_id, match_count in sorted_questions:
-                    problems = ChatsProblem.objects.filter(id=question_id)
-                    if problems:
-                        problem = problems.first()
-                        cur_question_res = {
-                            "problem_id": question_id,
-                            "problem": problem.problem
-                        }
-                        all_question_res.append(cur_question_res)
         return all_question_res
 
     @staticmethod
@@ -635,8 +636,8 @@ class ChatsCheckInfoService(CommonService):
 
     @staticmethod
     def generate_response(problem_desc,query_res,operator=None):
-        messages = [{'role': 'system', 'content': '你是一个T-one（一站式自动化测试平台）社区的智能助手。用户在使用T-one社区时可能碰到一些情况并来咨询你，请帮用户解决问题。'}]
         reference = None
+        messages = [{'role': 'system', 'content': '你是一个T-one（一站式自动化测试平台）社区的智能助手。用户在使用T-one社区时可能碰到一些情况并来咨询你，请帮用户解决问题。'}]
         if operator:
             sql = f"""
                         SELECT contents, response
@@ -676,7 +677,8 @@ class ChatsCheckInfoService(CommonService):
                 <context>
                 {context}
                 </context>
-                根据上述已知信息，简洁和专业的话语来回答用户的问题。
+                先对用户说明他可能遇到什么问题，再根据上述已知信息，简洁和专业的话语来回答用户的问题。
+                当你输出{problems}中的内容时，请把它放在<problem></problem>中。
                 '''
             response = dashscope.Generation.call(model="qwen-max",
                                          messages=messages,
