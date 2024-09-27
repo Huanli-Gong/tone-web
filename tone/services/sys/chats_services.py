@@ -637,7 +637,7 @@ class ChatsCheckInfoService(CommonService):
     @staticmethod
     def generate_response(problem_desc,query_res,operator=None):
         reference = None
-        messages = [{'role': 'system', 'content': '你是一个T-one（一站式自动化测试平台）社区的智能助手。用户在使用T-one社区时可能碰到一些情况并来咨询你，请帮用户解决问题。'}]
+        messages = [{'role': 'system', 'content': '你是一个T-one（一站式自动化测试平台）社区的智能助手。用户在使用T-one社区时可能碰到一些情况并来咨询你，请帮用户解决问题。答案请使用中文。'}]
         if operator:
             sql = f"""
                         SELECT contents, response
@@ -668,7 +668,7 @@ class ChatsCheckInfoService(CommonService):
                 <context>
                 {context}
                 </context>
-                请根据以上信息引导用户说出它遇到的是context中的哪个问题。
+                请根据以上信息用简洁和专业的话语引导用户说出它遇到的是context中的哪个问题。
                 当你输出{problems}中的内容时，请把它放在<problem></problem>中。
                 '''
             else:
