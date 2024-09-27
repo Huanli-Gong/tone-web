@@ -15,7 +15,7 @@ from tone.serializers.sys.chats_serializers import ChatsAnswerSerializer, ChatsP
 from tone.services.sys.chats_services import ChatsProblemInfoService, ChatsAnswerInfoService, \
     ChatsCheckInfoService, ChatsCollectInfoService, ChatsConfigInfoService
 from tone.core.common.expection_handler.error_catch import views_catch_error
-
+from tone.core.common.expection_handler.error_code import ErrorCode
 
 class ChatsProblemView(CommonAPIView):
     serializer_class = ChatsProblemSerializer
