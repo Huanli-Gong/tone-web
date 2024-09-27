@@ -514,7 +514,7 @@ class ChatsCheckInfoService(CommonService):
         return question_res
 
     @staticmethod
-    def query_guess(problem_desc, limit=1, keyword_cutoff=0, question_cutoff=0):
+    def query_guess(problem_desc, limit=1, keyword_threshold=0, question_threshold=0):
         all_question_res = []
         # 使用jieba进行智能分词
         user_keywords = ChatsProblemInfoService.question_cut(problem_desc)
@@ -550,9 +550,9 @@ class ChatsCheckInfoService(CommonService):
             if problem["keyword"] in keyword_score:
                 keyword = problem["keyword"]
                 problem_id = problem["problem_id"]
-                if keyword_score[keyword] > keyword_cutoff:
+                if keyword_score[keyword] > keyword_threshold:
                     question_match_score[problem_id] = question_match_score.get(problem_id, 0) + keyword_score[keyword]
-        question_match_score = {k: v for k, v in question_match_score.items() if v > question_cutoff}
+        question_match_score = {k: v for k, v in question_match_score.items() if v > question_threshold}
 
         # 查询所有问题答案
         if question_match_score:
@@ -621,7 +621,7 @@ class ChatsCheckInfoService(CommonService):
             return None
 
     @staticmethod
-    def search_relevant_docs(question, threshold=1, limit=1):
+    def search_relevant_docs(question, limit=1, threshold=1):
         question_embedding = ChatsCheckInfoService.generate_embeddings(question)
         scores, samples = ChatsCheckInfoService.embeddings_dataset.get_nearest_examples(
             "embeddings", question_embedding, k=limit
